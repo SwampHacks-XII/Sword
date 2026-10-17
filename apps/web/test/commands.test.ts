@@ -12,8 +12,14 @@ import { MossCommandInput } from '../src/components/MossCommandInput';
 import { createCommandFeedback } from '../src/story/commandFeedback';
 import { executeMenuExit } from '../src/story/menuExit';
 import { ConnectionContext } from '../src/hooks/useConnection';
-import { MatchProvider } from '../src/hooks/useMatch';
-import { LobbyScreen } from '../src/components/LobbyScreen';
+import { MatchProvider, useMatch } from '../src/hooks/useMatch';
+import { lobbySpread, useLobbyControls } from '../src/components/LobbyPages';
+
+/** Renders both pages of the storybook's lobby spread, the way Storybook builds them. */
+function LobbyPages({ lobby, onVoiceReply, stopVoice }: { lobby: LobbyState; onVoiceReply(text: string): Promise<boolean>; stopVoice(): void }) {
+  const spread = lobbySpread(lobby, useMatch(), useLobbyControls(lobby, { onVoiceReply, stopVoice }));
+  return createElement('div', null, spread.left.content, spread.right.content);
+}
 import { createMossNarrator } from '../src/story/elevenLabsNarration';
 
 test('Moss recognizes one supported game command, including spoken leading-zero room codes', () => {
@@ -132,7 +138,7 @@ test('online and guest lobby pages both render Talk to Moss beside quest control
       const lobby: LobbyState = { mode, code: '0123', you: 'p1', players: [] };
       const html = renderToStaticMarkup(createElement(ConnectionContext, { value: {
         connection, poses: { p1: [1, 0, 0, 0], p2: [1, 0, 0, 0] },
-      } }, createElement(MatchProvider, { children: createElement(LobbyScreen, {
+      } }, createElement(MatchProvider, { children: createElement(LobbyPages, {
         lobby, onVoiceReply: async () => true, stopVoice() {},
       }) })));
       assert.match(html, /Talk to Moss/); assert.match(html, /Heard: /);
