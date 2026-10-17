@@ -1,17 +1,15 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useMatch } from '../hooks/useMatch';
-import { Parchment } from './Parchment';
 import { useSession } from '../auth/SessionProvider';
 import { createApi, type Profile } from '../net/api';
 import { navigate } from '../hooks/useScreen';
-import { NpcGuide } from './NpcGuide';
 import { MossCommandInput } from './MossCommandInput';
 import { parseMossCommand, planLobbyCommand, type MossCommand } from '../story/commands';
 import { MOSS_COMMAND_REPLIES } from '@sword/protocol';
+import type { BookSpread } from './BookMenu';
 
-export function MainMenu({ guestOnly = false, onVoiceReply, stopVoice }: {
-  guestOnly?: boolean; onVoiceReply(text: string): void; stopVoice(): void;
-}) {
+/** Game-choice state lives above the pages, so the name survives page turns that remount them. */
+export function useHubMenu({ guestOnly, onVoiceReply }: { guestOnly: boolean; onVoiceReply(text: string): void }) {
   const { send, error, pending } = useMatch();
   const session = useSession();
   const [accountError, setAccountError] = useState<string | null>(null);
@@ -56,34 +54,61 @@ export function MainMenu({ guestOnly = false, onVoiceReply, stopVoice }: {
     }
     submitCommand(result.command, true);
   }
-
   function join(event: FormEvent) {
     event.preventDefault();
     submitCommand({ kind: 'join', code: code.trim() });
   }
+  function rename(value: string) {
+    editedName.current = true;
+    setName(value);
+  }
 
-  return (
-    <Parchment className="story-scroll flow-card game-choice">
-        <h1>{guestOnly ? 'A little sword practice.' : 'Every tale needs a rival.'}</h1>
-        <p>{guestOnly ? 'Sharpen your spells with our friend from the swamp.' : 'Invite a friend to play your reflection, follow their room code, or prepare with Swamp Bot.'}</p>
+  return {
+    guestOnly, session, error, pending, accountError, setAccountError, name, rename, validName, canPlayOnline,
+    joining, setJoining, code, setCode, submitCommand, voiceCommand, join,
+  };
+}
+
+/** Your hero on the left page; create, join or Swamp Bot on the right. */
+export function hubSpread(hub: ReturnType<typeof useHubMenu>, stopVoice: () => void): BookSpread {
+  const { guestOnly, session, error, pending, accountError, setAccountError, name, rename, validName, canPlayOnline,
+    joining, setJoining, code, setCode, submitCommand, voiceCommand, join } = hub;
+  return {
+    left: {
+      kicker: guestOnly ? 'Practice' : 'The hero',
+      className: 'book-page-dense',
+      content: <div className="book-form book-hero">
+        <div className="book-hero-figure">
+          <img src="/art/knight.svg" alt="" />
+          <span className="book-hero-name">{name.trim() || 'Nameless hero'}</span>
+        </div>
         <label className="field">
           <span>Your hero’s name</span>
-          <input value={name} maxLength={40} disabled={pending} onChange={(e) => { editedName.current = true; setName(e.target.value); }} />
+          <input value={name} maxLength={40} disabled={pending} onChange={(e) => rename(e.target.value)} />
         </label>
+        {!validName && <p className="hint">Enter a player name to continue.</p>}
+        {!guestOnly && <p className="hint">Signed in as {session.name || 'a player'} · <button type="button" className="link-button small" disabled={pending}
+          onClick={() => void session.logout().catch(() => setAccountError('Could not sign out. Please try again.'))}>Sign out</button></p>}
+      </div>,
+    },
+    right: {
+      className: 'book-page-dense',
+      content: <div className="book-form">
+        <h1>{guestOnly ? 'A little sword practice.' : 'Every tale needs a rival.'}</h1>
         <div className="game-options" aria-label="Game options">
           {!guestOnly && <>
             <button type="button" className="game-option" disabled={!canPlayOnline} onClick={() => submitCommand({ kind: 'create', mode: 'online' })}>
-              <span className="option-icon" aria-hidden="true">⚔</span><strong>Create game</strong><span>Open a new chapter. Invite your rival.</span><span className="option-arrow" aria-hidden="true">↗</span>
+              <span className="option-icon" aria-hidden="true">⚔</span><strong>Create lobby</strong><span>Open a new chapter. Invite your rival.</span><span className="option-arrow" aria-hidden="true">↗</span>
             </button>
             <button type="button" className="game-option" disabled={!canPlayOnline} onClick={() => setJoining(v => !v)} aria-expanded={joining}>
-              <span className="option-icon" aria-hidden="true">⌘</span><strong>Join game</strong><span>Follow a friend’s four-digit room code.</span><span className="option-arrow" aria-hidden="true">↗</span>
+              <span className="option-icon" aria-hidden="true">⌘</span><strong>Join lobby</strong><span>Follow a friend’s four-digit party code.</span><span className="option-arrow" aria-hidden="true">↗</span>
             </button>
             {joining && <form className="join-form game-join" onSubmit={join}>
-              <label className="field"><span>Room code</span>
+              <label className="field"><span>Party code</span>
                 <input placeholder="0000" inputMode="numeric" pattern="[0-9]{4}" value={code} autoFocus maxLength={4} disabled={pending}
                   onChange={e => setCode(e.target.value.replace(/\D/g, ''))} />
               </label>
-              <button type="submit" className="primary-button" disabled={!canPlayOnline || code.length !== 4}>Join room</button>
+              <button type="submit" className="primary-button" disabled={!canPlayOnline || code.length !== 4}>Join</button>
             </form>}
           </>}
           <button type="button" className="game-option" disabled={!validName || pending} onClick={() => submitCommand({ kind: 'create', mode: 'bot' })}>
@@ -91,15 +116,14 @@ export function MainMenu({ guestOnly = false, onVoiceReply, stopVoice }: {
           </button>
         </div>
         <MossCommandInput disabled={pending || session.loading} onTranscript={voiceCommand} stopVoice={stopVoice} />
-        {!validName && <p className="hint">Enter a player name to continue.</p>}
         {pending && <p className="hint" role="status">Connecting to your room…</p>}
         {(error || session.error || accountError) && <p className="error" role="alert">{error || session.error || accountError}</p>}
         <div className="choice-footer">
-          {guestOnly ? <button type="button" className="link-button small" disabled={pending} onClick={() => navigate(session.authenticated ? 'play' : 'login')}>{session.authenticated ? 'Play online' : 'Sign in for online games'}</button>
-            : <span>Signed in as {session.name || 'a player'} · <button type="button" className="link-button small" disabled={pending} onClick={() => void session.logout().catch(() => setAccountError('Could not sign out. Please try again.'))}>Sign out</button></span>}
-          <button type="button" className="link-button small" disabled={pending} onClick={() => navigate('home')}>← Back to welcome</button>
+          {guestOnly && <button type="button" className="link-button small" disabled={pending} onClick={() => navigate(session.authenticated ? 'play' : 'login')}>
+            {session.authenticated ? 'Play online' : 'Sign in for online games'}</button>}
+          {!guestOnly && <button type="button" className="link-button small" disabled={pending} onClick={() => navigate('lore')}>← Back to the tale</button>}
         </div>
-        <NpcGuide message="Two swords. One very complicated family reunion." />
-    </Parchment>
-  );
+      </div>,
+    },
+  };
 }

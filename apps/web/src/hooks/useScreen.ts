@@ -1,9 +1,11 @@
 import { useSyncExternalStore } from 'react';
 
-export type MenuScreen = 'home' | 'prologue' | 'login' | 'play' | 'practice';
+/** `home` is the closed book cover; the rest are spreads inside it. */
+export type MenuScreen = 'home' | 'lore' | 'login' | 'play' | 'practice';
 function currentScreen(): MenuScreen {
   const value = window.location.hash.slice(1);
-  return value === 'prologue' || value === 'login' || value === 'play' || value === 'practice' ? value : 'home';
+  if (value === 'prologue') return 'lore';
+  return value === 'lore' || value === 'login' || value === 'play' || value === 'practice' ? value : 'home';
 }
 function subscribe(listener: () => void) {
   window.addEventListener('hashchange', listener);

@@ -1,22 +1,19 @@
-import { lazy, Suspense, useRef } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { BattleScreen } from './components/BattleScreen';
-import { LobbyScreen } from './components/LobbyScreen';
-import { MainMenu } from './components/MainMenu';
-import { WelcomeScreen } from './components/WelcomeScreen';
-import { LoginScreen } from './components/LoginScreen';
 import { useSession } from './auth/SessionProvider';
 import { navigate, useScreen } from './hooks/useScreen';
 import { WorldBackdrop } from './components/WorldBackdrop';
-import { PrologueScreen } from './components/PrologueScreen';
-import { QuestScreen } from './components/QuestScreen';
+import { Storybook } from './components/Storybook';
+import { QuestHandoff } from './components/QuestHandoff';
 import { MossCommandVoice, type MossCommandVoiceControls } from './components/MossCommandVoice';
 import { PLAYER_SLOTS, type PlayerSlot } from './game/types';
 import { useMatch } from './hooks/useMatch';
 import { useNow } from './hooks/useNow';
 import { useSwordPoses } from './hooks/useSwordPoses';
-const Arena = lazy(() => import('./scene/Arena').then(module => ({ default: module.Arena })));
+const loadArena = () => import('./scene/Arena');
+const Arena = lazy(() => loadArena().then(module => ({ default: module.Arena })));
 
-/** Menu steps precede the server-owned lobby and battle screens. */
+/** The storybook menus close into Moss's quest handoff, then the server-owned battle. */
 export function App() {
   const screen = useScreen();
   const session = useSession();
@@ -29,15 +26,24 @@ export function App() {
   const shielded = Object.fromEntries(
     PLAYER_SLOTS.map((slot) => [slot, (match?.fighters[slot].shieldUntil ?? 0) > now]),
   ) as Record<PlayerSlot, boolean>;
+  // Once the book folds shut it stays shut through quests and rematches, until the story returns to the menus.
+  const [bookClosed, setBookClosed] = useState(false);
+  if (bookClosed && !quest && !match) setBookClosed(false);
+  // Fetch the 3D arena while players gather, so the battle opens without a wait.
+  const gathering = !!lobby;
+  useEffect(() => { if (gathering) void loadArena(); }, [gathering]);
+
   const choosingGame = screen === 'practice' || (screen === 'play' && session.authenticated);
-  const chapter = match ? 'The duel · Write your own ending' : quest ? 'Chapter I · The stolen dawn'
+  const handoff = !!quest && bookClosed;
+  const battle = !!match && !quest;
+  const chapter = battle ? 'The duel · Write your own ending' : handoff ? 'Chapter I · The stolen dawn'
     : lobby ? 'The gathering · Two swords, one story' : choosingGame ? 'The crossroads · Choose your duel'
-    : screen === 'home' ? 'A tale of two selves' : screen === 'prologue' ? 'Prologue · A crack in the mirror' : 'The beginning · Name your hero';
+    : screen === 'home' ? 'A tale of two selves' : screen === 'lore' ? 'Prologue · A crack in the mirror' : 'The beginning · Name your hero';
 
   return (
-    <div className={`stage ${match ? 'stage-battle' : 'stage-story'} ${quest || screen === 'prologue' ? 'stage-dialogue' : ''}`}>
-      <WorldBackdrop showKnights={(!lobby && !match) || !!quest} />
-      {(lobby || match) && !quest && <Suspense fallback={null}>
+    <div className={`stage ${battle ? 'stage-battle' : 'stage-story'}`}>
+      <WorldBackdrop showKnights={handoff} />
+      {battle && <Suspense fallback={null}>
         <Arena you={you} poses={poses} lastHitAt={lastHitAt} shielded={shielded} />
       </Suspense>}
       <header className="world-header">
@@ -45,19 +51,15 @@ export function App() {
         <p>{chapter}</p><span className="world-edition">SwampHacks XII</span>
       </header>
       <main className="overlay">
-        {quest ? <div className="entry-layout"><QuestScreen /></div>
-          : match ? <BattleScreen match={match} you={you} now={now} />
-          : lobby ? <LobbyScreen lobby={lobby} />
-          : <div className="entry-layout">
-            {screen === 'home' ? <WelcomeScreen />
-              : screen === 'prologue' ? <PrologueScreen />
-              : choosingGame ? <MainMenu guestOnly={screen === 'practice'}
-                onVoiceReply={text => commandVoice.current?.speak(text)} stopVoice={() => commandVoice.current?.stop()} />
-              : <LoginScreen />}
+        {handoff ? <QuestHandoff />
+          : match && !quest ? <BattleScreen match={match} you={you} now={now} />
+          : <div className="entry-layout storybook-layout">
+            <Storybook onClosed={() => setBookClosed(true)}
+              onVoiceReply={text => commandVoice.current?.speak(text)} stopVoice={() => commandVoice.current?.stop()} />
           </div>}
       </main>
       <MossCommandVoice controlRef={commandVoice} stopWhen={!!quest || !!match || (!choosingGame && !lobby)} />
-      {!match && <footer className="world-footer"><span>Remember your runes. Rewrite your fate.</span><span>✦ A little magic goes a long way.</span></footer>}
+      {!battle && <footer className="world-footer"><span>Remember your runes. Rewrite your fate.</span><span>✦ A little magic goes a long way.</span></footer>}
     </div>
   );
 }

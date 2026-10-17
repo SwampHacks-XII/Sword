@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef } from 'react';
+import { useTypewriter } from '../hooks/useTypewriter';
 import { Parchment } from './Parchment';
 import { NpcGuide } from './NpcGuide';
 import { MossVoice, type MossVoiceControls } from './MossVoice';
@@ -13,16 +14,7 @@ interface StorySceneProps {
 export function StoryScene({ title, paragraphs, action, onContinue, disabled, status, onLeave, page, error, narration = true }: StorySceneProps) {
   const total = paragraphs.join('').length;
   const voice = useRef<MossVoiceControls>(null);
-  const [visible, setVisible] = useState(0);
-  useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { setVisible(total); return; }
-    setVisible(0);
-    const timer = window.setInterval(() => setVisible(count => {
-      if (count >= total) { window.clearInterval(timer); return total; }
-      return Math.min(total, count + 3);
-    }), 23);
-    return () => window.clearInterval(timer);
-  }, [total, title]);
+  const [visible, showAll] = useTypewriter(total, title);
   let offset = 0;
   return <Parchment className="story-scroll dialogue-scroll">
     <h1>{title}</h1>
@@ -37,7 +29,7 @@ export function StoryScene({ title, paragraphs, action, onContinue, disabled, st
     </div>
     <div className="dialogue-toolbar">
       {page && <span className="dialogue-page">Page {page}</span>}
-      {visible < total ? <button type="button" className="text-button" onClick={() => setVisible(total)}>Show all dialogue <span aria-hidden="true">↠</span></button>
+      {visible < total ? <button type="button" className="text-button" onClick={showAll}>Show all dialogue <span aria-hidden="true">↠</span></button>
         : <span className="dialogue-finished">A new page is waiting.</span>}
     </div>
     <div className="story-actions">

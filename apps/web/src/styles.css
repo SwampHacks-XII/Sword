@@ -76,11 +76,6 @@ button { touch-action: manipulation; }
 .story-scroll { width: min(590px, 51vw); padding: 30px 44px 126px; animation: scroll-arrive .4s steps(4) both; }
 .story-scroll h1 { font-size: clamp(1.9rem, 3.1vw, 2.65rem); line-height: 1.1; font-weight: 500; margin: .4rem 0 1rem; }
 .story-scroll > p { line-height: 1.6; }
-.welcome-screen { padding-top: 28px; padding-bottom: 124px; }
-.story-scroll .welcome-title { font-size: clamp(3.4rem, 5.6vw, 5.4rem); font-weight: 700; line-height: .95; margin: .8rem 0 1.4rem; text-shadow: 4px 4px 0 #d9c391; }
-.welcome-title em { color: #6a7a3a; font-style: normal; }
-.welcome-copy { margin: .8rem 0; font-size: 1.08rem; }
-.welcome-copy-last { color: #6d6047; font-size: 1rem; }
 .story-actions { margin-top: 1.75rem; text-align: right; padding-left: 34px; }
 
 .quest-button, .primary-button, .secondary-button {
@@ -94,7 +89,6 @@ button { touch-action: manipulation; }
 .quest-button:active:not(:disabled), .primary-button:active:not(:disabled), .secondary-button:active:not(:disabled) { transform: translateY(4px); --sy: 0px; }
 .secondary-button { --edge: #8a7448; --hi: #fffaea; --lo: #d8c49a; --lip: #8a7448; color: #4f4c35; background: #f5e7c7; text-shadow: none; }
 .secondary-button:hover:not(:disabled) { background: #fbf0d6; transform: translateY(-4px); --sy: 8px; }
-.handwritten-note { font-size: .8rem; margin: .85rem 0 0; color: var(--ink-soft); }
 
 .npc-guide { position: absolute; bottom: -31px; left: -75px; display: flex; align-items: flex-end; gap: 3px; pointer-events: none; width: calc(100% + 30px); }
 /* moss-fly.png is a 24-frame boomerang strip (frames 1→13→2), so a plain forward loop plays it back and forth. */
@@ -103,23 +97,87 @@ button { touch-action: manipulation; }
 .npc-caption { align-self: center; width: min(240px, 65%); padding-top: 47px; }
 .npc-caption p { margin: 0; font-size: .8rem; line-height: 1.4; color: #5f5640; }
 
-.flow-card .field { margin: 1rem 0; }
 .auth-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0 1rem; }
 .guest-option { display: grid; gap: .35rem; border-top: 4px dashed #b7a27370; padding-top: 1rem; margin-top: 1.2rem; font-size: .84rem; }
-/* Sign-in as an open BookMenu: the tale on the left page, the hero's ledger on the right. */
-.entry-layout > .login-book { align-self: center; }
-.login-book .book-wrap { width: min(940px, 92vw); }
-.login-tale { display: flex; flex-direction: column; align-items: center; }
-.login-book h2 em { color: var(--leaf); font-style: normal; }
-.login-tale .npc-guide { position: static; width: 100%; display: flex; flex-direction: column; align-items: center; margin-top: 10px; gap: 0; }
-.login-tale .npc-moss { width: 150px; }
-.login-tale .npc-caption { width: 100%; max-width: 260px; padding: 6px 0 0; }
-.login-ledger { width: 100%; text-align: left; }
-.login-ledger h1 { font-size: clamp(1.3rem, 2.3vw, 1.9rem); margin: 0 0 .8rem; }
-.login-ledger .auth-actions { grid-template-columns: 1fr; margin-block: 1rem .6rem; }
+/* The storybook: every menu before the quest is a spread of one BookMenu, centred on the meadow. */
+.storybook-layout { align-items: center; }
+.storybook { display: grid; justify-items: center; gap: 2rem; width: 100%; }
+/* One size for every spread: as wide as fits, but never taller than the space under the header. */
+.story-book .book-wrap { width: min(980px, 92vw, max(560px, calc((100svh - 170px) * 1.56))); }
+.story-book h2 em { color: var(--leaf); font-style: normal; }
+.book-form { width: 100%; text-align: left; }
+.book-form h1 { font-size: clamp(1.2rem, min(2.2vw, 3.6vh), 1.9rem); font-weight: 500; margin: 0 0 .8rem; }
+.book-form > p { font-size: .95rem; line-height: 1.5; margin: 0 0 .5rem; }
+.book-form .auth-actions { grid-template-columns: 1fr; gap: .4rem; margin-block: .8rem .4rem; }
+.book-form .game-option { padding-block: .6rem; }
+.book-form .moss-command-input { margin-top: .8rem; padding-top: .7rem; }
+.book-form .choice-footer { margin-top: .8rem; }
+/* Art on the auth page: the hero and Moss, with Moss's caption tucked under him. */
+.book-art { display: flex; flex-direction: column; align-items: center; }
+.book-art-knight { height: clamp(90px, 22vh, 190px); filter: drop-shadow(6px 6px 0 #5b4a3a33); animation: twin-breathe 5s steps(3) infinite; }
+.book-art .npc-guide { position: static; width: 100%; display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 4px; margin-top: 4px; }
+.book-art .npc-moss { width: clamp(64px, 11vh, 100px); }
+.book-art .npc-caption { align-self: center; width: auto; max-width: 200px; padding: 0; margin: 0; background: none; box-shadow: none; text-align: left; }
+/* The hub: your character with a name plate. */
+.book-hero { display: grid; gap: .6rem; }
+.book-hero-figure { display: grid; justify-items: center; gap: .4rem; margin-bottom: .4rem; }
+.book-hero-figure img { height: clamp(90px, 23vh, 220px); transform: scaleX(-1); filter: drop-shadow(6px 6px 0 #5b4a3a33); animation: hero-breathe 5s steps(3) infinite; }
+.book-hero-name { padding: .15rem .8rem; background: #fff4d7; box-shadow: 0 0 0 3px var(--frame); font-size: 1.05rem; overflow-wrap: anywhere; text-align: center; }
+/* The lobby: both duellists face each other on the left page. */
+.book-party { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.book-party-member { display: grid; justify-items: center; gap: .35rem; text-align: center; }
+.book-party-member img { height: clamp(90px, 24vh, 220px); filter: drop-shadow(6px 6px 0 #5b4a3a33); }
+.book-party-p1 img { transform: scaleX(-1); }
+.book-party-p2 img { filter: hue-rotate(300deg) saturate(1.2) drop-shadow(6px 6px 0 #5b4a3a33); }
+.book-party-member.is-waiting img { opacity: .35; filter: grayscale(1); }
+.book-lobby { text-align: center; }
+.book-lobby .room-code { margin: 0; }
+.book-lobby .row { justify-content: center; flex-wrap: wrap; }
+.book-lore { text-align: left; }
+.book-lore p { margin: 0 0 .6rem; font-size: clamp(.8rem, min(1.25vw, 2vh), 1.02rem); line-height: 1.55; color: var(--ink-soft); }
+.book-lore-actions { display: grid; justify-items: center; gap: .4rem; margin-top: .6rem; }
+
+/* After the book closes: Moss pops up in a little chat window, then the quest scroll. */
+.quest-layout { align-items: flex-end; }
+.moss-chat {
+  --hi: var(--parchment-hi); --lo: var(--parchment-lo); --lip: var(--drop); --sx: 8px; --sy: 8px;
+  width: min(620px, 56vw); background: var(--parchment); pointer-events: auto; animation: chat-pop .35s steps(5) both;
+  box-shadow: 0 -4px 0 0 var(--frame), 0 4px 0 0 var(--frame), -4px 0 0 0 var(--frame), 4px 0 0 0 var(--frame),
+    8px 8px 0 4px var(--drop), inset 4px 4px 0 0 var(--parchment-hi), inset -4px -4px 0 0 var(--parchment-lo);
+}
+.moss-chat-bar { display: flex; align-items: center; gap: .8rem; padding: .5rem .9rem; background: #697746; color: #fff6dd; font-size: .85rem; text-shadow: 2px 2px 0 #3f4a26; }
+.moss-chat-dots { display: flex; gap: 5px; }
+.moss-chat-dots i { width: 9px; height: 9px; background: #fff6dd; box-shadow: 0 0 0 2px #3f4a26; }
+.moss-chat-dots i:nth-child(2) { background: var(--rune-yellow); }
+.moss-chat-dots i:nth-child(3) { background: var(--rune-red); }
+.moss-chat-body { display: grid; grid-template-columns: auto 1fr; gap: 1rem; align-items: start; padding: 1rem 1.2rem .4rem; }
+.moss-chat-portrait { display: grid; justify-items: center; padding: .4rem; background: #dce8b9; box-shadow: 0 0 0 4px #65753f; }
+.moss-chat-portrait .npc-moss { width: clamp(96px, 12vw, 150px); }
+.moss-chat-name { display: flex; align-items: center; gap: .4rem; font-weight: 600; color: #566736; }
+.moss-chat-log { display: grid; align-content: start; min-height: 190px; }
+.moss-chat-bubble { position: relative; margin: 0 0 .7rem; padding: .6rem .8rem; background: #fff8e6; box-shadow: 0 0 0 3px #8a7448, 4px 4px 0 3px #5b4a3a33; font-size: clamp(.92rem, 1.3vw, 1.05rem); line-height: 1.5; animation: scroll-arrive .2s steps(2) both; }
+.moss-chat-bubble::before { content: ''; position: absolute; left: -11px; top: 12px; width: 8px; height: 8px; background: #8a7448; }
+.moss-chat-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem; padding: .4rem 1.2rem 1.1rem; }
+.moss-chat-footer .moss-voice { margin: 0; }
+.moss-chat-footer > button { margin-left: auto; }
+@keyframes chat-pop { from { opacity: 0; transform: scale(.85) translateY(20px); } to { opacity: 1; transform: none; } }
 @media (max-width: 720px) {
-  .login-tale .npc-guide { flex-direction: row; justify-content: center; gap: 10px; text-align: left; }
-  .login-tale .npc-moss { width: 113px; }
+  .quest-layout { align-items: center; }
+  .moss-chat { width: 100%; max-width: 540px; }
+  .moss-chat-body { grid-template-columns: 1fr; }
+  .moss-chat-portrait { justify-self: start; grid-auto-flow: column; align-items: center; gap: .5rem; }
+  .moss-chat-portrait .npc-moss { width: 80px; }
+  .moss-chat-log { min-height: 150px; }
+  .moss-chat-bubble::before { display: none; }
+  .book-form .auth-actions { grid-template-columns: 1fr; }
+  /* Stacked pages are half height on phones, so the art shrinks to keep each page on one screen. */
+  .book-art-knight { height: 84px; }
+  .book-art .npc-moss { width: 60px; }
+  .book-hero-figure img, .book-party-member img { height: 96px; }
+  .book-page-content > h2 { font-size: 15px; }
+  .book-lore p { font-size: .78rem; line-height: 1.45; }
+  .book-form .game-option { padding-block: .4rem; }
+  .book-form .game-option > span:not(.option-icon):not(.option-arrow) { display: none; }
 }
 .moss-command-input { margin-top: 1.1rem; padding-top: 1rem; border-top: 1px solid #b7a27370; }
 .moss-command-input .secondary-button { min-height: 42px; gap: .6rem; font-size: .85rem; }
@@ -132,8 +190,6 @@ button { touch-action: manipulation; }
 .back-button { margin-top: 1.1rem; }
 .auth-error-details { font-size: .84rem; line-height: 1.5; overflow-wrap: anywhere; }
 .auth-error-details summary { cursor: pointer; text-decoration: underline; }
-.game-choice h1 { max-width: 370px; }
-.game-choice > p { font-size: 1rem; }
 .field { display: grid; gap: .5rem; margin-bottom: .8rem; font-size: 1.05rem; font-weight: 600; color: #4f4430; }
 .field input { --edge: #8a7448; --hi: #d9c391; font-size: .95rem; font-weight: 400; width: 100%; background: #fff8e6; min-height: 42px; padding: .6rem .85rem; }
 .game-options { display: grid; gap: 0; border-top: 4px solid #b9a16a80; }
@@ -156,8 +212,6 @@ button { touch-action: manipulation; }
 .error { margin: .75rem 0 0; color: #9d3747; font-size: .9rem; line-height: 1.5; }
 .row { display: flex; gap: 1.2rem; align-items: center; margin-top: 1.3rem; }
 
-.menu-layout { position: absolute; inset: 0; overflow-y: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 2.5rem; padding: 110px 6vw 85px 3vw; pointer-events: auto; }
-.lobby { width: min(530px, 49vw); padding-bottom: 124px; }
 .room-code { margin: .3rem 0 0; font-size: 3.4rem; font-weight: 700; letter-spacing: .2em; font-variant-numeric: tabular-nums; text-shadow: 4px 4px 0 #d9c391; }
 .slots { list-style: none; margin: 1.3rem 0 0; padding: 0; display: grid; gap: 1rem; }
 .slot { --edge: #b9a46f; --hi: #fffaea; position: relative; display: flex; justify-content: space-between; gap: .75rem; padding: .8rem .9rem .8rem 1.3rem; background: #fff4d7aa; }
@@ -266,7 +320,7 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
 /* Wide screens: Moss stands on the grass beside the panel, so the panel doesn't reserve room for him. */
 @media (min-width: 721px) {
   .entry-layout { padding-block: 92px 60px; }
-  .story-scroll, .welcome-screen, .lobby { padding-bottom: 32px; }
+  .story-scroll { padding-bottom: 32px; }
   .npc-guide { left: auto; right: calc(100% + 16px); bottom: -8px; width: max-content; gap: 8px; }
   .npc-moss { width: 187px; }
   .npc-caption {
@@ -279,30 +333,25 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
 @media (min-width: 721px) and (max-height: 860px) {
   .entry-layout { padding-block: 86px 54px; }
   .story-scroll { padding-top: 20px; }
-  .welcome-screen { padding-top: 18px; }
   .story-scroll h1 { font-size: clamp(1.6rem, 4.6vh, 2.4rem); margin: .2rem 0 .6rem; }
-  .story-scroll .welcome-title { font-size: clamp(2.8rem, 9vh, 5rem); margin: .4rem 0 .9rem; }
-  .welcome-copy { margin: .5rem 0; }
   .speaker-line { margin: .6rem 0 .6rem; }
   .story-dialogue { line-height: 1.5; }
   .story-dialogue p { margin-bottom: .7rem; }
   .story-actions { margin-top: 1rem; }
-  .flow-card .field { margin: .6rem 0; }
   .auth-actions { margin: 1rem 0 .7rem; }
   .guest-option { padding-top: .7rem; margin-top: .8rem; }
   .game-option { padding-block: .6rem; }
   .choice-footer { margin-top: .8rem; gap: .5rem; }
-  .menu-layout { padding-block: 92px 60px; }
   .room-code { font-size: 2.8rem; }
 }
 /* Medium screens lack room beside the panel, so Moss tucks back into its bottom corner. */
 @media (min-width: 721px) and (max-width: 1000px) {
-  .story-scroll, .welcome-screen, .lobby { padding-bottom: 112px; }
+  .story-scroll { padding-bottom: 112px; }
   .npc-guide { left: -40px; right: auto; bottom: -24px; width: calc(100% + 30px); gap: 3px; }
   .npc-moss { width: 175px; }
   .npc-caption { align-self: center; width: min(240px, 65%); padding: 16px 0 0; margin: 0; background: none; box-shadow: none; }
 }
-@media (min-width: 1500px) { .story-scroll { width: min(650px, 48vw); padding-inline: 52px; } .entry-layout { padding-right: 9vw; } .lobby { width: 550px; } .menu-layout { padding-right: 9vw; } }
+@media (min-width: 1500px) { .story-scroll { width: min(650px, 48vw); padding-inline: 52px; } .entry-layout { padding-right: 9vw; } }
 @media (max-width: 1000px) {
   .world-header p { font-size: .8rem; }
   .story-scroll { width: min(590px, 66vw); padding-inline: 35px; }
@@ -310,7 +359,6 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
   .near-knight { left: -18%; width: 65%; }
   .distant-knight { right: 15%; width: 36%; }
   .duel-caption { display: none; }
-  .lobby { width: min(530px, 60vw); }
 }
 @media (max-width: 720px) {
   .world-header { height: 68px; padding-inline: 20px; }
@@ -320,7 +368,6 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
   .entry-layout { align-items: center; padding: 96px 34px 110px; }
   .story-scroll { width: 100%; max-width: 540px; padding: 25px 30px 126px; }
   .story-scroll h1 { font-size: 2.2rem; }
-  .story-scroll .welcome-title { font-size: clamp(3.6rem, 12vw, 4.8rem); }
   .npc-guide { left: -28px; bottom: -30px; }
   .npc-moss { width: 220px; }
   .npc-caption { width: 210px; padding-top: 32px; }
@@ -329,8 +376,6 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
   .distant-knight { right: -5%; width: 26%; }
   .world-footer { bottom: 15px; justify-content: center; text-align: center; font-size: .7rem; }
   .world-footer > span:last-child { display: none; }
-  .menu-layout { padding: 98px 34px 100px; align-items: center; gap: 3.5rem; }
-  .lobby { width: 100%; }
   .connect-panel { width: 100%; max-width: 340px; margin: 0; }
   .health-bars { top: 83px; left: 16px; width: 43vw; padding: .7rem; gap: .6rem; }
   .health-label { font-size: .78rem; flex-wrap: wrap; gap: .1rem; }
@@ -351,7 +396,7 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
   .camera-sigil { font-size: 1.25rem; }
 }
 @media (max-width: 420px) {
-  .entry-layout, .menu-layout { padding-inline: 23px; }
+  .entry-layout { padding-inline: 23px; }
   .story-scroll { padding-inline: 23px; }
   .story-actions { padding-left: 0; }
   .quest-button { font-size: .95rem; gap: .7rem; }
@@ -359,7 +404,6 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
   .npc-caption { max-width: 180px; }
   .npc-caption p { font-size: .78rem; }
   .story-scroll h1 { font-size: 1.95rem; }
-  .story-scroll .welcome-title { font-size: 3.4rem; }
   .row { gap: .8rem; }
   .slot { gap: .4rem; padding-inline: 1.1rem .5rem; }
   .slot-name { font-size: .9rem; }
@@ -371,5 +415,5 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
 /* Medium, short screens: the decorative footer gives its space to the panel. */
 @media (min-width: 721px) and (max-width: 1000px) and (max-height: 760px) {
   .world-footer { display: none; }
-  .entry-layout, .menu-layout { padding-bottom: 28px; }
+  .entry-layout { padding-bottom: 28px; }
 }
