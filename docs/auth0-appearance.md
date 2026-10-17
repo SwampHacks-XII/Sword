@@ -18,6 +18,18 @@ at **1280×720**, **1366×768**, and **375×740**, with no credentials entered.
 Password guidance, errors, browser zoom, and the mobile keyboard can add space;
 scrolling remains available when needed rather than clipping form controls.
 
+**Return to the book:** Log in and Sign up now open Auth0 in a popup while the
+game's hero ledger stays open. Closing the popup leaves the player on that page;
+the book also shows **Back to the book** to close the pending window. Popup
+cancellation is not displayed as a login error. Successful authentication opens
+game selection only after Auth0 confirms the signed-in state. Blocked popups
+show instructions to allow the sign-in window and retry.
+
+The app requests a 500×720 popup. Both initial Auth0 forms also fit a 500×640
+content viewport without vertical overflow. Popup ownership/cleanup, blocked
+windows, and provider cancellation are covered by frontend tests. The full
+account sign-in/token exchange still requires a manual check from the game.
+
 ## Start here: colors, fonts, and the login card
 
 1. Open [Auth0](https://manage.auth0.com/), select your Sword tenant, then open
@@ -125,7 +137,8 @@ for signup. Keep the Log in / Sign up links and credential labels clear.
 The standard-domain visual editor does not add a custom **Back to Sword**
 hyperlink to the login/signup widget. The prepared page template's link returns
 to `/#login` once a custom domain is configured. Do not claim that link is live
-just because the basic theme has been published.
+just because the basic theme has been published. The currently selected popup
+flow provides a way back without needing that link or buying a domain.
 
 ## Hosting address versus a login domain
 

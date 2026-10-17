@@ -33,7 +33,6 @@ export function MainMenu({ guestOnly = false }: { guestOnly?: boolean }) {
 
   return (
     <Parchment className="story-scroll flow-card game-choice">
-        <div className="scroll-kicker"><span>The crossroads</span><span>Choose your path</span></div>
         <h1>{guestOnly ? 'A little sword practice.' : 'Every tale needs a rival.'}</h1>
         <p>{guestOnly ? 'Sharpen your spells with our friend from the swamp.' : 'Invite a friend to play your reflection, follow their room code, or prepare with Swamp Bot.'}</p>
         <label className="field">

@@ -18,9 +18,10 @@ export function Arena({ you, poses, lastHitAt, shielded }: ArenaProps) {
   return (
     <Canvas
       className="arena"
-      dpr={[1, 2]}
+      // Render at a fraction of screen resolution; CSS scales it up with hard pixel edges.
+      dpr={0.3}
       camera={{ position: [1.2, 2.3, 7], fov: 50 }}
-      gl={{ alpha: true }}
+      gl={{ alpha: true, antialias: false }}
       onCreated={({ camera }) => camera.lookAt(0, 1.3, -1)}
     >
       <fog attach="fog" args={[SKY, 16, 42]} />

@@ -1,0 +1,111 @@
+/* Page-turning storybook. Everything is scoped under .book-menu so it can sit beside styles.css. */
+.book-menu {
+  --book-cover: #a98a6a; --book-edge: var(--frame); --book-paper: var(--parchment-hi); --book-stack: var(--parchment);
+  --book-stack-alt: var(--parchment-lo); --book-gutter: #c9b58a; --book-accent: var(--ink-soft); --book-grid: rgba(91, 74, 58, .04);
+  --book-turn-ms: 1500ms; --book-ease: cubic-bezier(.55, .05, .24, .98);
+  display: grid; justify-items: center; gap: clamp(16px, 3vh, 32px); width: 100%;
+}
+
+.book-wrap { width: min(88vw, 1000px); perspective: 1800px; filter: drop-shadow(12px 16px 0 var(--drop)); }
+
+.book {
+  position: relative; display: grid; grid-template-columns: 1fr 1fr; aspect-ratio: 1.56; padding: 3.6%;
+  border: clamp(4px, .55vw, 7px) solid var(--book-edge); background: var(--book-cover);
+  /* Stepped pixel corners. */
+  clip-path: polygon(
+    0 24px, 8px 24px, 8px 16px, 16px 16px, 16px 8px, 24px 8px, 24px 0,
+    calc(100% - 24px) 0, calc(100% - 24px) 8px, calc(100% - 16px) 8px,
+    calc(100% - 16px) 16px, calc(100% - 8px) 16px, calc(100% - 8px) 24px,
+    100% 24px, 100% calc(100% - 24px), calc(100% - 8px) calc(100% - 24px),
+    calc(100% - 8px) calc(100% - 16px), calc(100% - 16px) calc(100% - 16px),
+    calc(100% - 16px) calc(100% - 8px), calc(100% - 24px) calc(100% - 8px),
+    calc(100% - 24px) 100%, 24px 100%, 24px calc(100% - 8px),
+    16px calc(100% - 8px), 16px calc(100% - 16px), 8px calc(100% - 16px),
+    8px calc(100% - 24px), 0 calc(100% - 24px)
+  );
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .1), inset 0 -10px 0 rgba(59, 44, 32, .2);
+  transform: rotateX(2deg); transform-style: preserve-3d;
+}
+
+/* Stepped page edges peeking out behind each side. */
+.book-stack { grid-row: 1; position: relative; z-index: 0; background: var(--book-stack); border: 2px solid var(--book-edge); }
+.book-stack-left {
+  grid-column: 1;
+  box-shadow: -5px 5px 0 -1px var(--book-stack), -5px 5px 0 1px var(--book-edge), -10px 10px 0 -1px var(--book-stack-alt),
+    -10px 10px 0 1px var(--book-edge), -15px 15px 0 -1px var(--book-stack), -15px 15px 0 1px var(--book-edge);
+}
+.book-stack-right {
+  grid-column: 2;
+  box-shadow: 5px 5px 0 -1px var(--book-stack), 5px 5px 0 1px var(--book-edge), 10px 10px 0 -1px var(--book-stack-alt),
+    10px 10px 0 1px var(--book-edge), 15px 15px 0 -1px var(--book-stack), 15px 15px 0 1px var(--book-edge);
+}
+
+/* No overflow clipping, so a tall page (e.g. a form) grows the book instead of being cut off. */
+.book-paper { position: relative; z-index: 1; min-width: 0; border: 4px solid var(--book-edge); background: var(--book-paper); cursor: pointer; }
+.book-menu-static .book-paper { cursor: auto; }
+.book-left, .book-leaf.next .back, .book-leaf.prev .front {
+  clip-path: polygon(0 12px, 6px 12px, 6px 6px, 12px 6px, 12px 0, 100% 0, 100% 100%, 12px 100%, 12px calc(100% - 6px), 6px calc(100% - 6px), 6px calc(100% - 12px), 0 calc(100% - 12px));
+}
+.book-right, .book-leaf.next .front, .book-leaf.prev .back {
+  clip-path: polygon(0 0, calc(100% - 12px) 0, calc(100% - 12px) 6px, calc(100% - 6px) 6px, calc(100% - 6px) 12px, 100% 12px, 100% calc(100% - 12px), calc(100% - 6px) calc(100% - 12px), calc(100% - 6px) calc(100% - 6px), calc(100% - 12px) calc(100% - 6px), calc(100% - 12px) 100%, 0 100%);
+}
+.book-left { grid-area: 1 / 1; border-right-width: 2px; box-shadow: inset -14px 0 0 -10px var(--book-gutter); }
+.book-right { grid-area: 1 / 2; border-left-width: 2px; box-shadow: inset 14px 0 0 -10px var(--book-gutter); }
+
+.book-page-content {
+  position: relative; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 12%; text-align: center;
+  background-image: linear-gradient(90deg, var(--book-grid) 1px, transparent 1px), linear-gradient(var(--book-grid) 1px, transparent 1px);
+  background-size: 8px 8px;
+}
+.book-kicker { color: var(--book-accent); font-family: var(--label-font); font-size: clamp(7px, 1vw, 11px); letter-spacing: .28em; text-transform: uppercase; }
+.book-ornament { margin: clamp(12px, 2vw, 22px); color: var(--rune-red); font-size: 8px; }
+.book-page-content > h2 { max-width: 360px; margin: 0; font: 400 clamp(15px, 2.4vw, 27px)/1.4 var(--label-font); color: var(--ink); }
+.book-page-content > p { max-width: 330px; margin: clamp(12px, 2vw, 24px) 0 0; color: var(--ink-soft); font: 400 clamp(11px, 1.4vw, 17px)/1.45 var(--pixel-font); }
+.book-page-slot { width: 100%; margin-top: clamp(12px, 2vw, 24px); cursor: auto; }
+.book-page-number { position: absolute; bottom: 5%; color: var(--book-accent); opacity: .6; font: 400 12px var(--label-font); }
+
+.book-spine {
+  position: absolute; z-index: 8; top: 4%; bottom: 4%; left: 50%; width: 2px; transform: translateX(-50%);
+  background: var(--book-edge); box-shadow: -7px 0 11px rgba(59, 44, 32, .16), 7px 0 11px rgba(59, 44, 32, .16); pointer-events: none;
+}
+
+/* The leaf that flips: hinged at the spine, two faces back to back. */
+.book-leaf {
+  position: absolute; z-index: 6; top: calc(3.6% + 5px); bottom: calc(3.6% + 5px); width: 46.4%;
+  transform-style: preserve-3d; pointer-events: none;
+}
+.book-leaf.next { left: 50%; transform-origin: left center; animation: book-turn-next var(--book-turn-ms) var(--book-ease) forwards; }
+.book-leaf.prev { left: 3.6%; transform-origin: right center; animation: book-turn-prev var(--book-turn-ms) var(--book-ease) forwards; }
+.book-face { position: absolute; inset: 0; overflow: hidden; border: 4px solid var(--book-edge); background: var(--book-paper); backface-visibility: hidden; }
+.book-face.back { transform: rotateY(180deg); }
+/* Darkens mid-turn as the leaf tilts away from the light. */
+.book-face::after {
+  content: ""; position: absolute; inset: 0; background: #2a1f14; opacity: 0; pointer-events: none;
+  animation: book-page-shade var(--book-turn-ms) var(--book-ease) forwards;
+}
+@keyframes book-page-shade { 0%, 100% { opacity: 0; } 45% { opacity: .22; } }
+@keyframes book-turn-next { from { transform: rotateY(0deg); } to { transform: rotateY(-180deg); } }
+@keyframes book-turn-prev { from { transform: rotateY(0deg); } to { transform: rotateY(180deg); } }
+
+.book-nav { display: flex; align-items: center; gap: clamp(22px, 7vw, 80px); }
+.book-nav button { border: 0; background: transparent; color: var(--frame); font-size: 12px; font-weight: 600; cursor: pointer; }
+.book-nav button span { margin: 0 5px; }
+.book-nav button:disabled { opacity: .25; cursor: default; }
+.book-progress { display: flex; gap: 7px; }
+.book-progress span { width: 5px; height: 5px; background: var(--parchment-lo); transition: width .25s; }
+.book-progress span.active { width: 20px; background: var(--frame); }
+
+/* Narrow screens: pages stack top to bottom and change without the 3D turn. */
+@media (max-width: 720px) {
+  .book-wrap { width: 96vw; }
+  .book { grid-template-columns: 1fr; aspect-ratio: auto; padding: 12px; }
+  .book-left { grid-area: 1 / 1; border-right-width: 4px; border-bottom-width: 2px; }
+  .book-right { grid-area: 2 / 1; border-left-width: 4px; border-top-width: 2px; }
+  .book-stack, .book-spine, .book-leaf { display: none; }
+  .book-page-content { padding: 28px 22px 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .book-leaf.next, .book-leaf.prev, .book-face::after { animation-duration: .01ms; }
+}

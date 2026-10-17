@@ -4,13 +4,13 @@ import { NpcGuide } from './NpcGuide';
 import { MossVoice, type MossVoiceControls } from './MossVoice';
 
 interface StorySceneProps {
-  title: string; paragraphs: readonly string[]; chapter: string;
+  title: string; paragraphs: readonly string[];
   action: string; onContinue(): void; disabled?: boolean; status?: string;
   onLeave?(): void; page?: string; error?: string | null;
   narration?: boolean;
 }
 /** Animated dialogue shared by the fixed prologue and server-provided quests. */
-export function StoryScene({ title, paragraphs, chapter, action, onContinue, disabled, status, onLeave, page, error, narration = true }: StorySceneProps) {
+export function StoryScene({ title, paragraphs, action, onContinue, disabled, status, onLeave, page, error, narration = true }: StorySceneProps) {
   const total = paragraphs.join('').length;
   const voice = useRef<MossVoiceControls>(null);
   const [visible, setVisible] = useState(0);
@@ -25,10 +25,8 @@ export function StoryScene({ title, paragraphs, chapter, action, onContinue, dis
   }, [total, title]);
   let offset = 0;
   return <Parchment className="story-scroll dialogue-scroll">
-    <div className="scroll-kicker"><span>{chapter}</span><span>{page || 'Story preview'}</span></div>
-    <div className="scroll-flourish" aria-hidden="true">✦</div>
     <h1>{title}</h1>
-    <div className="speaker-line"><span className="speaker-dot" /> Moss <span>Keeper of the glade</span></div>
+    <div className="speaker-line"><span className="speaker-dot" /> Moss</div>
     {narration && <MossVoice text={paragraphs.join(' ')} controlRef={voice} />}
     <div className="story-dialogue">
       <div className="sr-only" aria-live="polite">{paragraphs.map(text => <p key={text}>{text}</p>)}</div>
@@ -38,6 +36,7 @@ export function StoryScene({ title, paragraphs, chapter, action, onContinue, dis
       })}</div>
     </div>
     <div className="dialogue-toolbar">
+      {page && <span className="dialogue-page">Page {page}</span>}
       {visible < total ? <button type="button" className="text-button" onClick={() => setVisible(total)}>Show all dialogue <span aria-hidden="true">↠</span></button>
         : <span className="dialogue-finished">A new page is waiting.</span>}
     </div>
