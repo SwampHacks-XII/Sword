@@ -4,6 +4,7 @@ import { navigate } from '../hooks/useScreen';
 import { describeAuthError, type AuthIssue } from '../auth/errors';
 import type { BookSpread } from './BookMenu';
 import { NpcGuide } from './NpcGuide';
+import { Knight } from './Knight';
 
 /** Sign-in state lives above the pages, so a page turn that remounts them keeps it. */
 export function useAuthLedger() {
@@ -65,7 +66,7 @@ export function authSpread({ session, pending, issue, signIn, setError }: Return
       kicker: 'Chapter one',
       title: <>Every legend<br />begins with <em>you.</em></>,
       content: <div className="book-art">
-        <img className="book-art-knight" src="/art/knight.svg" alt="A small pixel knight raising a sword" />
+        <Knight className="book-art-knight" label="A small pixel knight holding a sword" />
         <NpcGuide message="Let’s put your name in the story before your twin takes all the credit." />
       </div>,
     },

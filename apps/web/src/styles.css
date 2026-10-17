@@ -43,9 +43,9 @@ button { touch-action: manipulation; }
 .fireflies i { position: absolute; width: 6px; height: 6px; background: #fff4bb; box-shadow: 0 0 0 3px #fff4bb55; animation: firefly 8s steps(10) infinite; }
 .duel-illustration { width: 49%; }
 .near-knight, .distant-knight { position: absolute; filter: url(#pixelate) drop-shadow(8px 8px 0 #4d6a4e33); }
-.near-knight img, .distant-knight img { width: 100%; height: 100%; }
-.near-knight { left: 3%; bottom: 2%; width: 45%; max-height: 66%; transform: scaleX(-1); animation: hero-breathe 5s steps(3) infinite; }
-.distant-knight { right: 4%; bottom: 26%; width: 26%; animation: twin-breathe 5s steps(3) infinite; }
+.near-knight .knight-sprite, .distant-knight .knight-sprite { width: 100%; }
+.near-knight { left: 3%; bottom: 2%; width: 45%; max-height: 66%; transform: scaleX(-1); }
+.distant-knight { right: 4%; bottom: 26%; width: 26%; }
 .duel-caption { position: absolute; left: 12%; bottom: 7%; color: #3f553f; font-size: .9rem; }
 
 .world-header { position: absolute; z-index: 5; inset: 0 0 auto; height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0 3.2vw; color: #3f3a30; background: transparent; pointer-events: none; }
@@ -123,8 +123,10 @@ button { touch-action: manipulation; }
 
 .npc-guide { position: absolute; bottom: -31px; left: -75px; display: flex; align-items: flex-end; gap: 3px; pointer-events: none; width: calc(100% + 30px); }
 /* moss-fly.png is a 24-frame boomerang strip (frames 1→13→2), so a plain forward loop plays it back and forth. */
+/* knight-idle.png holds six 64×112 frames side by side; size it by width or height and the other follows. */
+.knight-sprite { flex: none; aspect-ratio: 64 / 112; background: url(/art/knight-idle.png) 0 0 / 600% 100% no-repeat; image-rendering: pixelated; animation: knight-idle 1.6s step-end infinite; }
 /* moss-fly.png holds the original 192px frames; pixelated rendering keeps hard edges when scaled. */
-.npc-moss { width: 256px; aspect-ratio: 1; flex: 0 0 auto; background: url(/art/moss-fly.png) 0 0 / 2400% 100% no-repeat; image-rendering: pixelated; filter: url(#pixelate-soft); animation: moss-fly 2s steps(24) infinite; }
+.npc-moss { width: 256px; aspect-ratio: 1; flex: 0 0 auto; background: url(/art/moss-fly.png) 0 0 / 2400% 100% no-repeat; image-rendering: pixelated; filter: none); animation: moss-fly 2s steps(24) infinite; }
 .npc-caption { align-self: center; width: min(240px, 65%); padding-top: 47px; }
 .npc-caption p { margin: 0; font-size: .8rem; line-height: 1.4; color: #5f5640; }
 
@@ -145,7 +147,7 @@ button { touch-action: manipulation; }
 .book-form .choice-footer { margin-top: .8rem; }
 /* Art on the auth page: the hero and Moss, with Moss's caption tucked under him. */
 .book-art { display: flex; flex-direction: column; align-items: center; }
-.book-art-knight { height: clamp(90px, 22vh, 190px); filter: drop-shadow(6px 6px 0 #5b4a3a33); animation: twin-breathe 5s steps(3) infinite; }
+.book-art-knight { height: clamp(90px, 22vh, 190px); filter: drop-shadow(6px 6px 0 #5b4a3a33); }
 .book-art .npc-guide { position: static; width: 100%; display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 4px; margin-top: 4px; }
 .book-art .npc-moss { width: clamp(64px, 11vh, 100px); }
 .book-art .npc-caption { align-self: center; width: auto; max-width: 200px; padding: 0; margin: 0; background: none; box-shadow: none; text-align: left; }
@@ -153,7 +155,7 @@ button { touch-action: manipulation; }
 .book-hero { display: grid; gap: .6rem; }
 .book-hero-figure { display: flex; justify-content: center; align-items: center; gap: .4rem; margin-bottom: .4rem; }
 .book-hero-figure .npc-moss { width: clamp(64px, 12vh, 110px); align-self: flex-start; }
-.book-hero-figure img { height: clamp(90px, 23vh, 220px); transform: scaleX(-1); filter: drop-shadow(6px 6px 0 #5b4a3a33); animation: hero-breathe 5s steps(3) infinite; }
+.book-hero-figure .knight-sprite { height: clamp(90px, 23vh, 220px); transform: scaleX(-1); filter: drop-shadow(6px 6px 0 #5b4a3a33); }
 .book-hero-name { padding: .15rem .8rem; background: #fff4d7; box-shadow: 0 0 0 3px var(--frame); font-size: 1.05rem; overflow-wrap: anywhere; text-align: center; }
 .hero-identity { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: .8rem; margin: .3rem 0 .6rem; }
 .hero-identity .book-hero-name { min-width: 0; max-width: 100%; }
@@ -161,10 +163,10 @@ button { touch-action: manipulation; }
 /* The lobby: both duellists face each other on the left page. */
 .book-party { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .book-party-member { display: grid; justify-items: center; gap: .35rem; text-align: center; }
-.book-party-member img { height: clamp(90px, 24vh, 220px); filter: drop-shadow(6px 6px 0 #5b4a3a33); }
-.book-party-p1 img { transform: scaleX(-1); }
+.book-party-member .knight-sprite { height: clamp(90px, 24vh, 220px); filter: drop-shadow(6px 6px 0 #5b4a3a33); }
+.book-party-p1 .knight-sprite { transform: scaleX(-1); }
 .book-party-p2 img { filter: hue-rotate(300deg) saturate(1.2) drop-shadow(6px 6px 0 #5b4a3a33); }
-.book-party-member.is-waiting img { opacity: .35; filter: grayscale(1); }
+.book-party-member.is-waiting .knight-sprite { opacity: .35; filter: grayscale(1); }
 .book-lobby { text-align: center; }
 .book-lobby .room-code { margin: 0; }
 .book-lobby .row { justify-content: center; flex-wrap: wrap; }
@@ -208,7 +210,7 @@ button { touch-action: manipulation; }
   /* Stacked pages are half height on phones, so the art shrinks to keep each page on one screen. */
   .book-art-knight { height: 84px; }
   .book-art .npc-moss { width: 60px; }
-  .book-hero-figure img, .book-party-member img { height: 96px; }
+  .book-hero-figure .knight-sprite, .book-party-member .knight-sprite { height: 96px; }
   .book-hero-figure .npc-moss { width: 60px; }
   .book-page-content > h2 { font-size: 15px; }
   .book-lore p { font-size: .78rem; line-height: 1.45; }
@@ -366,8 +368,15 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
 
 @keyframes scroll-arrive { from { opacity: 0; translate: 0 16px; } to { opacity: 1; translate: 0 0; } }
 @keyframes moss-fly { to { background-position-x: calc(100% * 24 / 23); } }
-@keyframes hero-breathe { 0%, 100% { transform: scaleX(-1) translateY(0); } 50% { transform: scaleX(-1) translateY(-6px); } }
-@keyframes twin-breathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+/* Boomerang: frames 1→6→2, so neither end frame is shown twice in a row. Frame k sits at k × 20%. */
+@keyframes knight-idle {
+  0%, 100% { background-position-x: 0%; }
+  10%, 90% { background-position-x: 20%; }
+  20%, 80% { background-position-x: 40%; }
+  30%, 70% { background-position-x: 60%; }
+  40%, 60% { background-position-x: 80%; }
+  50% { background-position-x: 100%; }
+}
 @keyframes cloud-wander { from { transform: translateX(-2%); } to { transform: translateX(6%); } }
 @keyframes firefly { 0%, 100% { opacity: 0; transform: translate(0, 10px); } 50% { opacity: .8; transform: translate(12px, -12px); } }
 @keyframes cursor-blink { 50% { opacity: 0; } }
