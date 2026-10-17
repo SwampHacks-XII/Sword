@@ -16,10 +16,6 @@
   padding: .3rem .6rem; color: var(--ok); background: var(--parchment-hi);
   box-shadow: 0 0 0 3px var(--frame), 4px 4px 0 #5b4a3a33;
 }
-.world-header:has(.music-controls) > p { max-width: calc(100% - 640px); white-space: normal; text-align: center; }
-@media (max-width: 1050px) {
-  .world-header:has(.music-controls) > p { display: none; }
-}
 @media (max-width: 420px) {
   .music-controls { gap: .3rem; padding-inline: .3rem; }
   .music-toggle > span, .music-percent { display: none; }

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { getSpell } from '../game/spells';
 import { otherSlot, type FighterState, type MatchEvent, type MatchState, type PlayerSlot } from '../game/types';
 import { useKeyboardSword } from '../hooks/useKeyboardSword';
@@ -21,22 +22,35 @@ export function BattleScreen({ match, you, now }: { match: MatchState; you: Play
   const theirs = match.fighters[otherSlot(you)];
   const endingLine = match.winner === you ? MOSS_ENDINGS.win : MOSS_ENDINGS.loss;
   const leaveGame = async () => { if (await confirmLeaveGame()) send({ type: 'lobby.leave' }); };
+  const eventLog = useRef<HTMLUListElement>(null);
+  useEffect(() => {
+    if (eventLog.current) eventLog.current.scrollTop = eventLog.current.scrollHeight;
+  }, [log]);
 
   return (
     <div className="battle">
-      <HealthBars you={mine} opponent={theirs} now={now} />
       <SpellPanel fighter={mine} disabled={!fighting || !connected} />
-      <ul className="event-log" aria-live="polite">
-        {log.map(({ id, event }) => <li key={id}>{describe(event, match.fighters, you)}</li>)}
-      </ul>
       <CameraPlaceholder />
-      {fighting && <BattleMoss you={you} active />}
-      <div className="battle-controls">
-        <p>{online ? 'Online · keyboard practice' : 'Swamp Bot · keyboard practice'}</p>
-        {!connected && <p role="status">Waiting for both players to reconnect…</p>}
-        {error && <p className="error" role="alert">{error}</p>}
-        <button type="button" className="secondary-button leave-game-button" onClick={() => void leaveGame()}>Leave game <span aria-hidden="true">↗</span></button>
-      </div>
+      {fighting && <BattleMoss you={you} active>{({ guide, voiceControl }) =>
+        <div className="battle-left-hud">
+          <div className="battle-status">
+            <HealthBars you={mine} opponent={theirs} now={now} />
+            <div className="battle-controls">
+              {voiceControl}
+              <p className="battle-mode">{online ? 'Online · keyboard practice' : 'Swamp Bot · keyboard practice'}</p>
+              {!connected && <p role="status">Waiting for both players to reconnect…</p>}
+              {error && <p className="error" role="alert">{error}</p>}
+              <button type="button" className="secondary-button leave-game-button" onClick={() => void leaveGame()}>Leave game <span aria-hidden="true">↗</span></button>
+            </div>
+          </div>
+          <div className="battle-conversation">
+            {guide}
+            <ul ref={eventLog} className="event-log" aria-label="Battle log" aria-live="polite">
+              {log.map(({ id, event }) => <li key={id}>{describe(event, match.fighters, you)}</li>)}
+            </ul>
+          </div>
+        </div>
+      }</BattleMoss>}
       {!fighting && (
         <div className="modal">
           <Parchment className="ending-scroll" title={match.winner === you ? 'The light returns.' : 'Even heroes stumble.'}>

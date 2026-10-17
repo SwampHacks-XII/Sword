@@ -38,9 +38,6 @@ export function App() {
   const choosingGame = screen === 'practice' || (screen === 'play' && session.authenticated);
   const handoff = !!quest && bookClosed;
   const battle = !!match && !quest;
-  const chapter = battle ? 'The duel · Write your own ending' : handoff ? 'Chapter I · The stolen dawn'
-    : lobby ? 'The gathering · Two swords, one story' : choosingGame ? 'The crossroads · Choose your duel'
-    : screen === 'home' ? 'A tale of two selves' : screen === 'lore' ? 'Prologue · A crack in the mirror' : 'The beginning · Name your hero';
 
   return (
     <div className={`stage ${battle ? 'stage-battle' : 'stage-story'}`}>
@@ -50,7 +47,7 @@ export function App() {
       </Suspense>}
       <header className="world-header">
         <button type="button" className="wordmark" disabled={!!lobby || !!match} onClick={() => navigate('home')} aria-label="Sword home"><span aria-hidden="true">⚔</span> SWORD<span className="wordmark-star" aria-hidden="true">✦</span></button>
-        <p>{chapter}</p><MusicControls scene={battle ? 'battle' : 'lobby'} />
+        <MusicControls scene={battle ? 'battle' : 'lobby'} />
       </header>
       <main className="overlay">
         {handoff ? <QuestHandoff />
