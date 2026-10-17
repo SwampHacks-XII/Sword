@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useRef } from 'react';
 import { BattleScreen } from './components/BattleScreen';
 import { LobbyScreen } from './components/LobbyScreen';
 import { MainMenu } from './components/MainMenu';
@@ -9,6 +9,7 @@ import { navigate, useScreen } from './hooks/useScreen';
 import { WorldBackdrop } from './components/WorldBackdrop';
 import { PrologueScreen } from './components/PrologueScreen';
 import { QuestScreen } from './components/QuestScreen';
+import { MossCommandVoice, type MossCommandVoiceControls } from './components/MossCommandVoice';
 import { PLAYER_SLOTS, type PlayerSlot } from './game/types';
 import { useMatch } from './hooks/useMatch';
 import { useNow } from './hooks/useNow';
@@ -19,6 +20,7 @@ const Arena = lazy(() => import('./scene/Arena').then(module => ({ default: modu
 export function App() {
   const screen = useScreen();
   const session = useSession();
+  const commandVoice = useRef<MossCommandVoiceControls>(null);
   const { lobby, match, quest, lastHitAt } = useMatch();
   const poses = useSwordPoses();
   const you = lobby?.you ?? 'p1';
@@ -49,10 +51,12 @@ export function App() {
           : <div className="entry-layout">
             {screen === 'home' ? <WelcomeScreen />
               : screen === 'prologue' ? <PrologueScreen />
-              : choosingGame ? <MainMenu guestOnly={screen === 'practice'} />
+              : choosingGame ? <MainMenu guestOnly={screen === 'practice'}
+                onVoiceReply={text => commandVoice.current?.speak(text)} stopVoice={() => commandVoice.current?.stop()} />
               : <LoginScreen />}
           </div>}
       </main>
+      <MossCommandVoice controlRef={commandVoice} stopWhen={!!quest || !!match || (!choosingGame && !lobby)} />
       {!match && <footer className="world-footer"><span>Remember your runes. Rewrite your fate.</span><span>✦ A little magic goes a long way.</span></footer>}
     </div>
   );

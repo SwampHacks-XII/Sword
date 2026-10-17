@@ -112,6 +112,14 @@ button { touch-action: manipulation; }
 }
 .auth-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; margin: 1.5rem 0 1rem; }
 .guest-option { display: grid; gap: .35rem; border-top: 1px solid #b7a27370; padding-top: 1rem; margin-top: 1.2rem; font-size: .76rem; }
+.moss-command-input { margin-top: 1.1rem; padding-top: 1rem; border-top: 1px solid #b7a27370; }
+.moss-command-input .secondary-button { min-height: 42px; gap: .6rem; font-size: .85rem; }
+.moss-command-input .hint { margin: .65rem 0 .3rem; }
+.moss-command-input.is-listening .secondary-button { background: #dce8b9; border-color: #65753f; box-shadow: 0 0 0 3px #a5c57860; }
+.voice-input-notice { margin: .3rem 0; font-size: .63rem; line-height: 1.5; color: var(--ink-soft); }
+.heard-command { font-size: .76rem; line-height: 1.5; font-style: italic; overflow-wrap: anywhere; }
+.moss-command-reply { position: absolute; z-index: 8; left: 50%; bottom: 54px; transform: translateX(-50%); margin: 0; width: max-content; max-width: min(520px, 85vw); padding: .8rem 1rem; background: #f6ecd2f5; border: 1px solid #b59b66; box-shadow: 0 4px 15px #51483220; font-size: .8rem; line-height: 1.5; pointer-events: none; }
+.moss-command-reply strong { color: #65753f; margin-right: .3rem; }
 .back-button { margin-top: 1.1rem; }
 .auth-error-details { font-size: .78rem; line-height: 1.5; overflow-wrap: anywhere; }
 .auth-error-details summary { cursor: pointer; text-decoration: underline; }
