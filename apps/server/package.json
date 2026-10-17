@@ -1,0 +1,35 @@
+{
+  "name": "@sword/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.12.0" },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "check": "tsc --noEmit -p tsconfig.check.json",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "test": "tsx --test test/app.test.ts",
+    "db:check": "tsx src/scripts/check-db.ts",
+    "db:setup": "tsx src/scripts/setup-db.ts"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.0",
+    "express": "^5.3.0",
+    "express-oauth2-jwt-bearer": "^1.11.0",
+    "helmet": "^8.1.0",
+    "pg": "^8.23.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.18.0",
+    "@types/pg": "^8.15.0",
+    "jose": "^6.2.12",
+    "pg-mem": "^3.0.14",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.3"
+  }
+}

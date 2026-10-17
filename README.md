@@ -1,0 +1,154 @@
+# Sword ⚔️
+
+**A two-player magic-sword game for SwampHacks XII.**
+
+Two physical swords, two laptops, and one shared game. Each sword contains an ESP32, buttons, a motion sensor, and infrared (IR) hardware. The website shows the game and a moving 3D version of each sword.
+
+## Start here
+
+Our current goal is **player login and a saved profile**. Live sword movement will be added when the hardware is built and connected.
+
+1. **Create Auth0 and Tiger Data accounts.** Follow [the setup guide](docs/backend-setup.md) for the exact dashboard settings and connection steps.
+2. **Configure the backend.** From `apps/server`, install dependencies and copy `.env.example` to a private `.env`. Fill in the Auth0 tenant URL, API audience, and Tiger Data connection string.
+3. **Create the player table.** Run `npm run db:check`, then `npm run db:setup` from `apps/server`.
+4. **Start the backend.** Run `npm run dev`, then open http://localhost:3001/health.
+5. **Test login and a profile.** The setup guide explains how to use Postman before the website exists. The website login button is a later step.
+
+The backend can start without account settings, but protected routes stay unavailable. The website, hardware integration, game rules, and Gemini dialogue still need to be built. See [the backend README](apps/server/README.md) for endpoints and verified commands.
+
+## The game we're building
+
+1. **Remember** the spell sequence shown on your laptop.
+2. **Enter** the sequence using the buttons on your sword.
+3. **Move and aim** your sword to cast the spell. The exact gesture and firing controls are still to be decided.
+4. **Land a hit:** the opponent's IR receiver detects the attack, and the server checks it before updating the game.
+
+Both laptops should see the same match state. We'll 3D print two swords to hold the electronics.
+
+## Find your folder
+
+Everything lives in one repository, with separate folders for each part of the project.
+
+```text
+Sword/
+├── README.md
+├── apps/
+│   ├── web/
+│   │   ├── public/models/
+│   │   └── src/
+│   │       ├── components/
+│   │       └── hooks/
+│   └── server/
+│       └── src/
+├── packages/
+│   └── protocol/
+│       └── src/
+├── firmware/
+│   ├── include/
+│   └── src/
+├── hardware/
+│   ├── cad/
+│   ├── prints/
+│   └── electronics/
+├── docs/
+├── tools/
+└── .github/
+    └── workflows/
+```
+
+| If you're working on… | Put it in… | Examples |
+| --- | --- | --- |
+| What players see | `apps/web` | Spell sequence, health bar, menus, 3D sword viewer |
+| Rules and multiplayer | `apps/server` | Validate spells, track health, update both laptops |
+| Messages between the parts | `packages/protocol` | Movement updates, button presses, player IDs, hit reports |
+| Code running on the ESP32 | `firmware` | Read sensors/buttons, connect to Wi-Fi, send/receive IR |
+| The physical swords | `hardware` | CAD models, print exports, wiring diagrams |
+| Guides and team decisions | `docs` | Setup, calibration, connection format, design notes |
+| Development helpers | `tools` | Fake sword data, sensor logs, calibration utilities |
+| Automated GitHub checks | `.github/workflows` | Build and type checks once the projects exist |
+
+### Inside the website
+
+| Folder | What belongs here |
+| --- | --- |
+| `apps/web/src/components` | Reusable screen elements: spell display, health bar, player panel, sword viewer |
+| `apps/web/src/hooks` | Reusable React logic, such as connecting to the server and receiving updates |
+| `apps/web/public/models` | 3D models for the browser, preferably `.glb` files |
+
+### Inside firmware and hardware
+
+| Folder | What belongs here |
+| --- | --- |
+| `firmware/include` | C++ header files: declarations, hardware interfaces, configuration structure |
+| `firmware/src` | C++ implementation: sensors, buttons, Wi-Fi, IR, and optional LEDs |
+| `hardware/cad` | Editable sword and enclosure design files |
+| `hardware/prints` | Printable `.stl` / `.3mf` exports and print settings |
+| `hardware/electronics` | Parts list, pin assignments, schematics, wiring photos, power details |
+
+**Browser model → `apps/web/public/models`. Printable sword → `hardware/prints`. Editable design → `hardware/cad`.**
+
+## How it connects
+
+```text
+Sword 1 / ESP32 ──┐                  ┌── Laptop 1 website
+                  ├── Shared server ─┤
+Sword 2 / ESP32 ──┘                  └── Laptop 2 website
+```
+
+The swords send readings over Wi-Fi. The server coordinates the match and sends updates to both browsers. One laptop can run the shared server.
+
+- **Firmware reads the hardware.** It reports movement, button presses, and received IR attacks.
+- **The server decides what happens.** It checks spells and hits, prevents duplicate damage, and keeps the match state consistent.
+- **The website shows the result.** It displays the spell sequence, sword movement, health, and score.
+
+When another laptop or ESP32 connects, use the server laptop's local network address. `localhost` means the device you're currently using.
+
+## Suggested team split
+
+| Teammate | Main folders | First goal |
+| --- | --- | --- |
+| Software 1 | `apps/web` | Build player login and character screens; add live movement when hardware is ready |
+| Software 2 | `apps/server`, `packages/protocol`, `tools` | Verify player identity and save profiles in Tiger Data |
+| Hardware 1 | `firmware`, `hardware/electronics` | Send button presses and real motion readings over Wi-Fi |
+| Hardware 2 | `hardware/cad`, `hardware/prints`, IR firmware | Test enclosure fit and IR transmission/reception |
+
+Agree together on wiring, sensor mounting, message formats, and how an IR shot identifies its sender. Keep shared decisions in `docs`.
+
+## Proposed tools
+
+The backend API is initialized with Auth0 verification and Tiger Data profile storage. The frontend and hardware tools remain planned.
+
+| Part | Tools |
+| --- | --- |
+| Website | React + TypeScript + Vite |
+| 3D viewer | Three.js + React Three Fiber |
+| Server | Node.js + TypeScript + Express; WebSockets later |
+| Player login | Auth0 |
+| Database | Tiger Data / PostgreSQL |
+| Dialogue and story (planned) | Gemini API |
+| Shared messages | TypeScript + Zod for checking incoming data |
+| ESP32 | PlatformIO + Arduino framework + C++ |
+| Physical design | Team-selected CAD software |
+
+## Keep these in mind
+
+- **Start with rotation.** A motion sensor does not directly give reliable absolute position. Calibrate it and agree which sensor directions match the 3D model.
+- **Use one message format.** The website and server can share TypeScript definitions. The C++ firmware must send the same format, including agreed units and IDs.
+- **Give each sword its own identity.** Both can use the same firmware project with different device/player settings.
+- **Keep live match state in memory.** Save player profiles in Tiger Data; add match history when needed.
+- **Keep secrets local.** Don't commit Wi-Fi passwords, database credentials, or tokens. Ignore rules exclude local environment files, dependency folders, and build output.
+
+## Git basics
+
+Git tracks files, so **empty folders won't appear on GitHub or in a fresh clone** until they contain tracked files. We can add real project files as we build, or use `.gitkeep` placeholders later if needed.
+
+To commit only this README when ready:
+
+```sh
+git status
+git add README.md
+git commit -m "Document project layout and next steps"
+```
+
+Review `git status` before committing. Local environment files, dependencies, and caches are ignored; commit the example configuration and lockfile.
+
