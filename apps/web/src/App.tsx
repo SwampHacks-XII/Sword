@@ -47,12 +47,13 @@ export function App() {
       <main className="overlay">
         {quest ? <div className="entry-layout"><QuestScreen /></div>
           : match ? <BattleScreen match={match} you={you} now={now} />
-          : lobby ? <LobbyScreen lobby={lobby} />
+          : lobby ? <LobbyScreen lobby={lobby}
+            onVoiceReply={text => commandVoice.current?.speak(text) ?? Promise.resolve(false)} stopVoice={() => commandVoice.current?.stop()} />
           : <div className="entry-layout">
             {screen === 'home' ? <WelcomeScreen />
               : screen === 'prologue' ? <PrologueScreen />
               : choosingGame ? <MainMenu guestOnly={screen === 'practice'}
-                onVoiceReply={text => commandVoice.current?.speak(text)} stopVoice={() => commandVoice.current?.stop()} />
+                onVoiceReply={text => commandVoice.current?.speak(text) ?? Promise.resolve(false)} stopVoice={() => commandVoice.current?.stop()} />
               : <LoginScreen />}
           </div>}
       </main>

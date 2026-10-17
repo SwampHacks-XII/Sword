@@ -1,18 +1,28 @@
-import { useEffect, useImperativeHandle, useState, type Ref } from 'react';
+import { useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
 import { useMossSpeech } from '../hooks/useMossSpeech';
+import { createCommandFeedback } from '../story/commandFeedback';
 
-export interface MossCommandVoiceControls { speak(text: string): void; stop(): void }
+export interface MossCommandVoiceControls { speak(text: string): Promise<boolean>; stop(): void }
 /** Remains mounted when game selection turns into a lobby, so replies finish. */
 export function MossCommandVoice({ controlRef, stopWhen }: { controlRef: Ref<MossCommandVoiceControls>; stopWhen: boolean }) {
-  const { narrator } = useMossSpeech(true);
+  const feedback = useRef<ReturnType<typeof createCommandFeedback> | null>(null);
+  const { narrator } = useMossSpeech(true, state => feedback.current?.stateChanged(state));
   const [line, setLine] = useState('');
+  if (!feedback.current) feedback.current = createCommandFeedback({
+    speak: text => {
+      if (narrator.current) narrator.current.speak(text);
+      else feedback.current?.stateChanged('unavailable');
+    },
+    stop: () => narrator.current?.stop(), show: setLine,
+  });
   useImperativeHandle(controlRef, () => ({
-    speak(text) { setLine(text); narrator.current?.speak(text); },
-    stop() { setLine(''); narrator.current?.stop(); },
-  }), [narrator]);
+    speak: text => feedback.current!.speak(text),
+    stop: () => feedback.current!.stop(),
+  }), []);
   useEffect(() => {
-    if (stopWhen) { setLine(''); narrator.current?.stop(); }
-  }, [stopWhen, narrator]);
+    if (stopWhen) feedback.current?.stop();
+  }, [stopWhen]);
+  useEffect(() => () => feedback.current?.stop(), []);
   useEffect(() => {
     if (!line) return;
     const timer = setTimeout(() => setLine(''), 8000);
