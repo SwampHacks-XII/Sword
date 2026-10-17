@@ -19,7 +19,7 @@ button { touch-action: manipulation; }
 .stage { position: relative; width: 100%; height: 100vh; height: 100svh; overflow: hidden; isolation: isolate; }
 .storybook-world, .pixel-landscape, .world-haze, .duel-illustration, .fireflies { position: absolute; inset: 0; pointer-events: none; }
 .storybook-world { z-index: -2; overflow: hidden; background: #b9aceb; }
-.pixel-landscape { background: url('/art/pixel-world.svg') center 64% / cover no-repeat; image-rendering: pixelated; transform: scale(1.025); }
+.pixel-landscape { background: url('/art/meadow-sky.png') center / cover no-repeat; image-rendering: pixelated; transform: scale(1.025); }
 .world-haze { background: linear-gradient(90deg, #b7a5d000, #d3b9d417 45%, #eee3cf1a), linear-gradient(0deg, #6d805013, transparent 40%); }
 .wandering-clouds { position: absolute; width: 135%; height: 25%; left: -15%; top: 15%; opacity: .15; background: #f2dce9; clip-path: polygon(0 35%, 10% 35%, 10% 15%, 17% 15%, 17% 40%, 30% 40%, 30% 60%, 41% 60%, 41% 48%, 52% 48%, 52% 25%, 62% 25%, 62% 50%, 77% 50%, 77% 30%, 84% 30%, 84% 55%, 100% 55%, 100% 85%, 0 85%); animation: cloud-wander 38s ease-in-out infinite alternate; }
 .fireflies i { position: absolute; width: 5px; height: 5px; background: #fff4bb; box-shadow: 0 0 14px #fff4bba1; animation: firefly 8s ease-in-out infinite; }
