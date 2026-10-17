@@ -162,7 +162,3 @@
   .book-cover-closing { display: none; }
   @keyframes book-cover-fade { to { opacity: 0; } }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .book-leaf.next, .book-leaf.prev, .book-face::after { animation-duration: .01ms; }
-}

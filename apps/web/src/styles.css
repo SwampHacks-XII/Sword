@@ -120,7 +120,8 @@ button { touch-action: manipulation; }
 .book-art .npc-caption { align-self: center; width: auto; max-width: 200px; padding: 0; margin: 0; background: none; box-shadow: none; text-align: left; }
 /* The hub: your character with a name plate. */
 .book-hero { display: grid; gap: .6rem; }
-.book-hero-figure { display: grid; justify-items: center; gap: .4rem; margin-bottom: .4rem; }
+.book-hero-figure { display: flex; justify-content: center; align-items: center; gap: .4rem; margin-bottom: .4rem; }
+.book-hero-figure .npc-moss { width: clamp(64px, 12vh, 110px); align-self: flex-start; }
 .book-hero-figure img { height: clamp(90px, 23vh, 220px); transform: scaleX(-1); filter: drop-shadow(6px 6px 0 #5b4a3a33); animation: hero-breathe 5s steps(3) infinite; }
 .book-hero-name { padding: .15rem .8rem; background: #fff4d7; box-shadow: 0 0 0 3px var(--frame); font-size: 1.05rem; overflow-wrap: anywhere; text-align: center; }
 .hero-identity { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: .8rem; margin: .3rem 0 .6rem; }
@@ -177,6 +178,7 @@ button { touch-action: manipulation; }
   .book-art-knight { height: 84px; }
   .book-art .npc-moss { width: 60px; }
   .book-hero-figure img, .book-party-member img { height: 96px; }
+  .book-hero-figure .npc-moss { width: 60px; }
   .book-page-content > h2 { font-size: 15px; }
   .book-lore p { font-size: .78rem; line-height: 1.45; }
   .book-form .game-option { padding-block: .4rem; }
@@ -411,9 +413,6 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
   .slot { gap: .4rem; padding-inline: 1.1rem .5rem; }
   .slot-name { font-size: .9rem; }
   .join-form { flex-wrap: wrap; }
-}
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
 /* Medium, short screens: the decorative footer gives its space to the panel. */
 @media (min-width: 721px) and (max-width: 1000px) and (max-height: 760px) {

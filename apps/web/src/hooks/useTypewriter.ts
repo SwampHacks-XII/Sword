@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 export function useTypewriter(total: number, resetKey?: unknown) {
   const [visible, setVisible] = useState(0);
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { setVisible(total); return; }
     setVisible(0);
     const timer = window.setInterval(() => setVisible(count => {
       if (count >= total) { window.clearInterval(timer); return total; }
