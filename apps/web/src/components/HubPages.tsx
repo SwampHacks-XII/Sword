@@ -104,7 +104,7 @@ export function hubSpread(hub: ReturnType<typeof useHubMenu>, stopVoice: () => v
       className: 'book-page-dense',
       content: <div className="book-form book-hero">
         <div className="book-hero-figure">
-          <Knight />
+          <Knight plain />
           <div className="npc-moss" role="img" aria-label="Moss, a tiny smiling green forest spirit with a pink flower, flapping its leafy wings" />
         </div>
         <HeroNameEditor profile={profile} busy={pending} onChange={profile.change} onSave={profile.save}
