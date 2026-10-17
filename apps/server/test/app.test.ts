@@ -14,7 +14,7 @@ import { createPool } from '../src/db/pool.js';
 import { isAbsolute } from 'node:path';
 import { existsSync } from 'node:fs';
 import { createSpeechService } from '../src/story/speech.js';
-import { MOSS_COMMAND_REPLIES } from '@sword/protocol';
+import { MOSS_COMMAND_REPLIES, MOSS_ENDINGS } from '@sword/protocol';
 
 let issuerServer: Server;
 let apiServer: Server;
@@ -114,6 +114,9 @@ test('built-in Moss speech works before login, but the public route rejects arbi
   const signOut = await request('/voice/speak', undefined, { text: MOSS_COMMAND_REPLIES.signOut }, 'POST');
   assert.equal(signOut.status, 200); assert.match(signOut.headers.get('Content-Type')!, /^audio\/mpeg/);
   assert.equal((await request('/voice/speak', undefined, { text: 'Generate arbitrary expensive speech' }, 'POST')).status, 400);
+  for (const text of Object.values(MOSS_ENDINGS)) {
+    assert.equal((await request('/voice/speak', undefined, { text }, 'POST')).status, 200);
+  }
 });
 
 test('protected routes reject missing and malformed tokens', async () => {

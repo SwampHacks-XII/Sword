@@ -90,6 +90,38 @@ button { touch-action: manipulation; }
 .secondary-button { --edge: #8a7448; --hi: #fffaea; --lo: #d8c49a; --lip: #8a7448; color: #4f4c35; background: #f5e7c7; text-shadow: none; }
 .secondary-button:hover:not(:disabled) { background: #fbf0d6; transform: translateY(-4px); --sy: 8px; }
 
+/* A rose-tinted exit button and Moss's little parchment confirmation. */
+.secondary-button.leave-game-button {
+  --edge: #82606a; --hi: #fff0ed; --lo: #d8aeb5; --lip: #82606a;
+  background: #f2d4d8; color: #65474e; gap: .65rem; font-size: .92rem;
+}
+.secondary-button.leave-game-button:hover:not(:disabled) { background: #f9e2e3; }
+.leave-dialog {
+  width: min(500px, calc(100vw - 24px)); max-height: calc(100svh - 24px);
+  border: 0; padding: 8px 16px 16px 8px; background: transparent; color: var(--ink);
+  overflow-y: auto; margin: auto;
+}
+.leave-dialog::backdrop {
+  background: repeating-conic-gradient(#33244899 0 25%, #33244877 0 50%) 0 0 / 4px 4px;
+}
+.leave-dialog-card { text-align: center; padding: 1.2rem 1.4rem 1.6rem; }
+.leave-dialog-close {
+  position: absolute; top: 12px; right: 12px; width: 36px; height: 36px;
+  display: grid; place-items: center; border: 2px solid #b99c74; background: #fff3d8;
+  color: var(--ink-soft); font-size: 1.6rem; cursor: pointer;
+}
+.leave-dialog-close:hover { background: #f2d4d8; }
+.leave-dialog-portrait { display: flex; align-items: center; justify-content: center; gap: .4rem; }
+.leave-dialog-portrait .npc-moss { width: 104px; }
+.leave-dialog-spark { color: #ac8bba; font-size: 1.2rem; }
+.leave-dialog-kicker { font-family: var(--label-font); font-size: .68rem; color: var(--leaf); }
+.leave-dialog-card h2 { margin: .65rem 0 .75rem; font-weight: 500; font-size: clamp(1.6rem, 5vw, 2rem); }
+.leave-dialog-card p { margin: .6rem 0; line-height: 1.5; }
+.leave-dialog-card .leave-dialog-note { font-size: .85rem; color: var(--ink-soft); }
+.leave-dialog-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: .7rem; margin-top: 1.1rem; }
+.leave-dialog-actions > button { flex: 1 1 155px; }
+.battle-controls .leave-game-button { margin: .65rem 4px 4px; min-height: 44px; }
+
 .npc-guide { position: absolute; bottom: -31px; left: -75px; display: flex; align-items: flex-end; gap: 3px; pointer-events: none; width: calc(100% + 30px); }
 /* moss-fly.png is a 24-frame boomerang strip (frames 1→13→2), so a plain forward loop plays it back and forth. */
 /* moss-fly.png holds the original 192px frames; pixelated rendering keeps hard edges when scaled. */
@@ -307,10 +339,15 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
 .camera-sigil { font-size: 1.7rem; }
 /* Dithered dim instead of a soft blur. */
 .modal { position: absolute; inset: 0; display: grid; place-items: center; padding: 2rem; background: repeating-conic-gradient(#2e2244aa 0 25%, #2e224455 0 50%) 0 0 / 4px 4px; }
-.ending-scroll { width: min(480px, 92%); text-align: center; padding: 2.5rem; animation: scroll-arrive .3s steps(3); }
+.ending-scroll { width: min(480px, 92%); max-height: calc(100svh - 64px); overflow-y: auto; text-align: center; padding: clamp(1.2rem, 4vw, 2.5rem); animation: scroll-arrive .3s steps(3); }
 .ending-scroll .parchment-title { font-size: 2.6rem; font-weight: 700; text-shadow: 4px 4px 0 #d9c391; }
 .ending-scroll p { line-height: 1.6; }
 .ending-scroll .row { justify-content: center; flex-wrap: wrap; }
+.ending-moss { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: .6rem; margin: 1.2rem 0; text-align: left; }
+.ending-moss .npc-moss { width: 72px; }
+.ending-moss .speaker-line { margin: 0; }
+.ending-moss p { font-size: .95rem; margin: .4rem 0 .6rem; }
+.ending-moss .moss-voice { margin-bottom: 0; }
 .fatal { --hi: var(--parchment-hi); --lo: var(--parchment-lo); padding: 2rem; margin: 1rem; background: var(--parchment); }
 
 @keyframes scroll-arrive { from { opacity: 0; translate: 0 16px; } to { opacity: 1; translate: 0 0; } }

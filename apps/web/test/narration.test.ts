@@ -4,7 +4,7 @@ import { createNarrator, type NarrationState } from '../src/story/narration';
 import { MOSS_REACTIONS, mossReaction } from '../src/story/reactions';
 import { createMossNarrator } from '../src/story/elevenLabsNarration';
 import { loadMossAudio } from '../src/net/voice';
-import { MOSS_PROLOGUE, MOSS_CHEER, FALLBACK_BRIEFINGS } from '@sword/protocol';
+import { MOSS_PROLOGUE, MOSS_CHEER, MOSS_ENDINGS, FALLBACK_BRIEFINGS } from '@sword/protocol';
 
 test('browser narration uses an English device voice, replaces old speech, and stops cleanly', () => {
   const states: NarrationState[] = [];
@@ -159,7 +159,7 @@ test('opening dialogue, guest quests and battle lines use ElevenLabs before logi
   };
   try {
     const lines = [...MOSS_PROLOGUE.map(chapter => chapter.text.join(' ')), ...FALLBACK_BRIEFINGS,
-      ...Object.values(MOSS_REACTIONS).flat(), MOSS_CHEER];
+      ...Object.values(MOSS_REACTIONS).flat(), ...Object.values(MOSS_ENDINGS), MOSS_CHEER];
     for (const text of lines) await loadMossAudio(text, async () => { throw new Error('Built-in speech must not require login'); }, new AbortController().signal);
     assert.equal(calls.length, lines.length);
     assert.ok(calls.every(call => call.url.endsWith('/voice/speak') && !call.url.includes('/api/') && call.authorization === null));

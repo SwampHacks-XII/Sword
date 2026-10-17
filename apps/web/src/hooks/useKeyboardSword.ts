@@ -13,8 +13,9 @@ export function useKeyboardSword(enabled: boolean) {
   useEffect(() => {
     if (!enabled) return;
     function onKeyDown(event: KeyboardEvent) {
+      if (event.defaultPrevented || document.querySelector('dialog[open]')) return;
       if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) return;
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+      if (event.target instanceof Element && event.target.closest('button, a, input, textarea, select, [contenteditable="true"]')) return;
       const key = event.key.toLowerCase();
       let input: DevSwordInput | null = null;
       if (KEY_BUTTONS[key]) input = { kind: 'button', color: KEY_BUTTONS[key] };

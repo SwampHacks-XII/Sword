@@ -10,6 +10,8 @@ import { PLAYER_SLOTS, type PlayerSlot } from './game/types';
 import { useMatch } from './hooks/useMatch';
 import { useNow } from './hooks/useNow';
 import { useSwordPoses } from './hooks/useSwordPoses';
+import { MusicControls } from './components/MusicControls';
+import { LeaveGameDialog } from './components/LeaveGameDialog';
 const loadArena = () => import('./scene/Arena');
 const Arena = lazy(() => loadArena().then(module => ({ default: module.Arena })));
 
@@ -48,7 +50,7 @@ export function App() {
       </Suspense>}
       <header className="world-header">
         <button type="button" className="wordmark" disabled={!!lobby || !!match} onClick={() => navigate('home')} aria-label="Sword home"><span aria-hidden="true">⚔</span> SWORD<span className="wordmark-star" aria-hidden="true">✦</span></button>
-        <p>{chapter}</p><span className="world-edition">SwampHacks XII</span>
+        <p>{chapter}</p><MusicControls scene={battle ? 'battle' : 'lobby'} />
       </header>
       <main className="overlay">
         {handoff ? <QuestHandoff />
@@ -60,6 +62,7 @@ export function App() {
       </main>
       <MossCommandVoice controlRef={commandVoice} stopWhen={!!quest || !!match || (!choosingGame && !lobby)} />
       {!battle && <footer className="world-footer"><span>Remember your runes. Rewrite your fate.</span><span>✦ A little magic goes a long way.</span></footer>}
+      <LeaveGameDialog scope={`${screen}:${lobby?.mode ?? ''}:${lobby?.code ?? ''}:${quest ? 'quest' : match?.phase ?? 'menu'}`} />
     </div>
   );
 }
