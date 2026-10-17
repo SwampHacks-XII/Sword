@@ -41,15 +41,17 @@ including the prologue and guest games; the lighter browser voice takes over
 when credits run out or playback is unavailable. The browser backup has no speech
 API charge. Follow [ElevenLabs setup](docs/elevenlabs-setup.md).
 
-During either mode, the keyboard stands in for your sword:
+**Play with a real sword.** In the lobby, choose **Connect sword (Bluetooth)**, or **Connect sword (USB cable)** if the sword is plugged in (Chrome or Edge). Its buttons choose Easy/Medium/Hard/Heal (red/yellow/green/blue). The game sends the spell to the sword; press its buttons in order, make its motions, and the sword fires IR. When both players have swords, damage happens only when the opponent's sword receives the shot. The 3D sword follows the real one. Follow [the physical sword guide](docs/physical-sword.md) for wiring, flashing, and the line protocol.
 
-- `1`–`4`: the red, blue, green and yellow buttons
+Without a sword, in either mode, the keyboard stands in for it:
+
+- `1`–`4`: the red, yellow, green and blue buttons
 - `Q`, `E`, `R`, `W`: swing left, swing right, rotate wrist, hold upright
 - `Space`: the trigger
 
 The interface uses a pastel pixel meadow, parchment scrolls, and Moss, the green NPC story guide. **Gemini can write Moss’s short quest briefing for each round**, shared by both players, with a different story on rematch and a quick local fallback. Follow [the Gemini setup guide](docs/gemini-setup.md) to enable and test it. See [the storyline guide](docs/storyline-ui.md) to edit the scenes, and [Auth0 appearance](docs/auth0-appearance.md) to match the hosted login screen to the game. The 3D fighters and swords are still placeholders. To use a real 3D model, put a `.glb` in `apps/web/public/models` and set its path in `apps/web/src/scene/models.ts`.
 
-Online battles use an authenticated WebSocket connection and server-owned spell/health state. The browser bot and online backend share messages and rules in `packages/protocol`. Physical sword connections, real IR reception, and camera capture still need to be built. Online keyboard practice simulates successful attack hits.
+Online battles use an authenticated WebSocket connection and server-owned spell/health state. The browser bot and online backend share messages and rules in `packages/protocol`. Physical swords connect to their player's browser over Bluetooth or USB and report real IR hits; camera capture still needs to be built. Online keyboard practice simulates successful attack hits.
 
 ## The game we're building
 
@@ -79,8 +81,7 @@ Sword/
 │   └── protocol/
 │       └── src/
 ├── firmware/
-│   ├── include/
-│   └── src/
+│   └── sword/          (sword.ino, Arduino IDE)
 ├── hardware/
 │   ├── cad/
 │   ├── prints/

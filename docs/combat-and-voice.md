@@ -17,7 +17,11 @@ Render can be connected later. Local play and testing do not require deploying.
 4. Enter the displayed numbers, perform its motion, then press **Space** to fire.
 5. Choose a difficulty again for your next cast.
 
-The keyboard mapping is **1 red, 2 blue, 3 green, 4 yellow**. Fire spells currently
+With a [physical sword](physical-sword.md) plugged in, its buttons choose the
+difficulty and enter the sequence, its own motions replace the keys below, and
+real IR decides hits when both players have swords.
+
+The keyboard mapping is **1 red, 2 yellow, 3 green, 4 blue**. Fire spells currently
 use **E** (swing right), water spells **Q** (swing left), and electric spells **R**
 (rotate wrist). These motions are keyboard stand-ins, ready to map to the real
 motion sensor once its gesture detection is defined.
