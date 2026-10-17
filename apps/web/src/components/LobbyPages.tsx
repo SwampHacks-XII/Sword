@@ -5,6 +5,7 @@ import { MossCommandInput } from './MossCommandInput';
 import { parseMossLobbyCommand, planLobbyControl, type MossLobbyCommand } from '../story/commands';
 import { MOSS_COMMAND_REPLIES } from '@sword/protocol';
 import type { BookSpread } from './BookMenu';
+import { Knight } from './Knight';
 
 /** Start/leave by button or voice. Voice commands wait for Moss to finish replying before acting. */
 export function useLobbyControls(lobby: LobbyState | null, { onVoiceReply, stopVoice }: {
@@ -60,7 +61,7 @@ export function lobbySpread(lobby: LobbyState | null, { error, onlineStatus, pen
           const player = lobby.players.find((p) => p.slot === slot);
           return (
             <li key={slot} className={`book-party-member book-party-${slot} ${player?.connected ? '' : 'is-waiting'}`}>
-              <img src="/art/knight.svg" alt="" />
+              <Knight />
               <span className="slot-name">
                 {player ? player.name : `Player ${slot === 'p1' ? 1 : 2}`}
                 {slot === lobby.you && ' (you)'}

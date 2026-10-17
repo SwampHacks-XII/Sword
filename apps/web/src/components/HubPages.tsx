@@ -9,6 +9,7 @@ import { executeMenuExit } from '../story/menuExit';
 import { MOSS_COMMAND_REPLIES } from '@sword/protocol';
 import type { BookSpread } from './BookMenu';
 import { HeroNameEditor } from './HeroNameEditor';
+import { Knight } from './Knight';
 
 /** Game-choice state lives above the pages, so the name survives page turns that remount them. */
 export function useHubMenu({ guestOnly, onVoiceReply, stopVoice }: {
@@ -100,7 +101,7 @@ export function hubSpread(hub: ReturnType<typeof useHubMenu>, stopVoice: () => v
       className: 'book-page-dense',
       content: <div className="book-form book-hero">
         <div className="book-hero-figure">
-          <img src="/art/knight.svg" alt="" />
+          <Knight />
           <div className="npc-moss" role="img" aria-label="Moss, a tiny smiling green forest spirit with a pink flower, flapping its leafy wings" />
         </div>
         <HeroNameEditor profile={profile} busy={pending} onChange={profile.change} onSave={profile.save}
