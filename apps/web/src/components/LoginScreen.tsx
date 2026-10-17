@@ -48,7 +48,7 @@ export function LoginScreen() {
             </button>
           </div>
           {!session.configured && <p className="hint">Online sign-in isn’t set up on this copy yet. You can still practice with Swamp Bot.</p>}
-          <p className="hint">Sign in opens a little window. Close it anytime to return to this book.</p>
+          <p className="hint">Log in and Sign up open a small window. Close it anytime to return to this book.</p>
           <div className="guest-option">
             <span>Just want to practice?</span>
             <button type="button" className="link-button small" disabled={pending !== null} onClick={() => navigate('practice')}>Continue as guest with Swamp Bot</button>
