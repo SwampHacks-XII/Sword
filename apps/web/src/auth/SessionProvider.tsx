@@ -5,7 +5,7 @@ import { loginInPopup } from './popupLogin';
 import { navigate } from '../hooks/useScreen';
 
 interface Session {
-  configured: boolean; loading: boolean; authenticated: boolean; name: string; error: string | null;
+  configured: boolean; loading: boolean; authenticated: boolean; subject: string; name: string; error: string | null;
   errorDetails: AuthIssue | null;
   login(mode?: 'login' | 'signup'): Promise<void>; logout(): Promise<void>; getToken(): Promise<string>;
   cancelLogin(): void;
@@ -15,7 +15,7 @@ const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID?.trim();
 const audience = import.meta.env.VITE_AUTH0_AUDIENCE?.trim();
 const configured = Boolean(domain && clientId && audience);
 const fallback: Session = {
-  configured: false, loading: false, authenticated: false, name: '', error: null, errorDetails: null,
+  configured: false, loading: false, authenticated: false, subject: '', name: '', error: null, errorDetails: null,
   async login() {}, async logout() {}, cancelLogin() {},
   async getToken() { throw new Error('Online login is not configured.'); },
 };
@@ -47,6 +47,7 @@ function AuthSession({ children }: { children: ReactNode }) {
   }, [auth.error, auth.isLoading, auth.isAuthenticated]);
   const value = useMemo<Session>(() => ({
     configured: true, loading: auth.isLoading, authenticated: auth.isAuthenticated,
+    subject: auth.user?.sub ?? '',
     name: auth.user?.nickname ?? auth.user?.name ?? '',
     error: issue?.message ?? null,
     errorDetails: issue,

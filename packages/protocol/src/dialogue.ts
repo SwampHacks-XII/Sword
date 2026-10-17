@@ -18,6 +18,7 @@ export const MOSS_COMMAND_REPLIES = {
   code: 'Tell me the four room digits, one at a time.',
   login: 'Sign in first, adventurer. Then I can open an online game for you.',
   name: 'Your hero needs a name! Enter one before we begin.',
+  saveName: 'Save your hero’s name first, adventurer. Then we can open a game!',
   busy: 'One little moment! I’m still opening your room.',
   failed: 'That room didn’t open. Check the room code or connection and try again.',
   lobbyUnknown: 'Here in the lobby, ask me to start your quest or leave the room.',

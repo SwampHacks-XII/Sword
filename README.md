@@ -158,6 +158,8 @@ Agree together on wiring, sensor mounting, message formats, and how an IR shot i
 
 The website supports Auth0 login, online room codes, and local Swamp Bot games. The backend runs shared online battles and stores profiles, sessions, winners, sword readings, and camera tracking in Tiger Data. Hardware capture remains planned.
 
+Signed-in players choose **Save name** on the hero page to store their name with their account. Returning players see their saved name and an **Edit** button. Edit opens the name field again; **Save name** keeps the change, while **Cancel** restores the previous name. Save or cancel an edit before entering a game. Guest names stay local to the current visit.
+
 | Part | Tools |
 | --- | --- |
 | Website | React + TypeScript + Vite 7 (Vite 8 hits an npm 10.8 install bug) |

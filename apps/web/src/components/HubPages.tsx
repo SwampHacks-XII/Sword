@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useMatch } from '../hooks/useMatch';
 import { useSession } from '../auth/SessionProvider';
-import { createApi, type Profile } from '../net/api';
+import { usePlayerName } from '../hooks/usePlayerName';
 import { navigate } from '../hooks/useScreen';
 import { MossCommandInput } from './MossCommandInput';
 import { parseMossCommand, planLobbyCommand, type MossCommand, type MossMenuExitCommand } from '../story/commands';
 import { executeMenuExit } from '../story/menuExit';
 import { MOSS_COMMAND_REPLIES } from '@sword/protocol';
 import type { BookSpread } from './BookMenu';
+import { HeroNameEditor } from './HeroNameEditor';
 
 /** Game-choice state lives above the pages, so the name survives page turns that remount them. */
 export function useHubMenu({ guestOnly, onVoiceReply, stopVoice }: {
@@ -25,21 +26,12 @@ export function useHubMenu({ guestOnly, onVoiceReply, stopVoice }: {
   }, []);
   const session = useSession();
   const [accountError, setAccountError] = useState<string | null>(null);
-  const editedName = useRef(false);
-  const [name, setName] = useState('Player 1');
+  const profile = usePlayerName();
+  const name = profile.status === 'ready' ? profile.savedName! : profile.draft;
   const [joining, setJoining] = useState(false);
   const [code, setCode] = useState('');
   const voiceRequest = useRef(false);
-  useEffect(() => {
-    if (!session.authenticated) return;
-    let cancelled = false;
-    if (!editedName.current && session.name) setName(session.name.slice(0, 40));
-    void createApi(session.getToken).request<{ player: Profile }>('/me').then(({ player }) => {
-      if (!cancelled && !editedName.current) setName(player.displayName);
-    }).catch(() => { /* First-time players create their profile when entering a room. */ });
-    return () => { cancelled = true; };
-  }, [session.authenticated, session.getToken, session.name]);
-  const validName = Boolean(name.trim());
+  const validName = Boolean(name.trim()) && (!profile.authenticated || profile.status === 'ready');
   const canPlayOnline = !guestOnly && session.authenticated && !session.loading && validName && !pending;
 
   useEffect(() => {
@@ -50,6 +42,10 @@ export function useHubMenu({ guestOnly, onVoiceReply, stopVoice }: {
   }, [error, pending, onVoiceReply]);
 
   function submitCommand(command: MossCommand, voice = false) {
+    if (profile.authenticated && profile.status !== 'ready') {
+      if (voice) void onVoiceReply(MOSS_COMMAND_REPLIES.saveName);
+      return;
+    }
     const plan = planLobbyCommand(command, { name, pending, onlineAllowed: canPlayOnline });
     if (!plan.ok) { if (voice) onVoiceReply(plan.reply); return; }
     if (command.kind === 'join') { setJoining(true); setCode(command.code); }
@@ -88,20 +84,15 @@ export function useHubMenu({ guestOnly, onVoiceReply, stopVoice }: {
     event.preventDefault();
     submitCommand({ kind: 'join', code: code.trim() });
   }
-  function rename(value: string) {
-    editedName.current = true;
-    setName(value);
-  }
-
   return {
-    guestOnly, session, error, pending, exiting, accountError, name, rename, validName, canPlayOnline,
+    guestOnly, session, error, pending, exiting, accountError, profile, validName, canPlayOnline,
     joining, setJoining, code, setCode, submitCommand, voiceCommand, exitMenu, join,
   };
 }
 
 /** Your hero on the left page; create, join or Swamp Bot on the right. */
 export function hubSpread(hub: ReturnType<typeof useHubMenu>, stopVoice: () => void): BookSpread {
-  const { guestOnly, session, error, pending, exiting, accountError, name, rename, validName, canPlayOnline,
+  const { guestOnly, session, error, pending, exiting, accountError, profile, validName, canPlayOnline,
     joining, setJoining, code, setCode, submitCommand, voiceCommand, exitMenu, join } = hub;
   return {
     left: {
@@ -110,13 +101,9 @@ export function hubSpread(hub: ReturnType<typeof useHubMenu>, stopVoice: () => v
       content: <div className="book-form book-hero">
         <div className="book-hero-figure">
           <img src="/art/knight.svg" alt="" />
-          <span className="book-hero-name">{name.trim() || 'Nameless hero'}</span>
         </div>
-        <label className="field">
-          <span>Your hero’s name</span>
-          <input value={name} maxLength={40} disabled={pending} onChange={(e) => rename(e.target.value)} />
-        </label>
-        {!validName && <p className="hint">Enter a player name to continue.</p>}
+        <HeroNameEditor profile={profile} busy={pending} onChange={profile.change} onSave={profile.save}
+          onEdit={profile.edit} onCancel={profile.cancel} onRetry={profile.retry} />
         {!guestOnly && <p className="hint">Signed in as {session.name || 'a player'} · <button type="button" className="link-button small" disabled={pending}
           onClick={() => void exitMenu({ kind: 'signout' })}>Sign out</button></p>}
       </div>,
