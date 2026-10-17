@@ -54,6 +54,5 @@ export function MossCommandInput({ disabled, onTranscript, stopVoice, example }:
     <p className={error ? 'error' : 'hint'} role={error ? 'alert' : 'status'}>{error || (listening ? started ? 'Moss is listening… say one command.' : 'Opening microphone… allow access if your browser asks.'
       : !available ? 'Voice commands aren’t available in this browser. You can use the buttons.'
       : example ?? 'Try “Hey Moss, create a game” or “join room code zero one two three.”')}</p>
-    {available && <p className="voice-input-notice">Listens once per click. Your browser may send audio to its speech service.</p>}
   </div>;
 }

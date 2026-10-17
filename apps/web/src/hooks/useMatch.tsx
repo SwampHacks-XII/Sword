@@ -1,11 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react';
 import type { DeviceChecks, LobbyState, MatchEvent, MatchState, PlayerSlot } from '../game/types';
 import type { ClientMessage, ServerMessage } from '../net/messages';
 import { useConnection } from './useConnection';
+import { startPracticeCalibration } from '../game/swordCalibration';
 
 export interface LogEntry { id: number; event: MatchEvent }
 
-/** Everything the screens render. Built only from server messages. */
+/** Everything the screens render, including local practice calibration. */
 export interface GameView {
   lobby: LobbyState | null;
   quest: Extract<ServerMessage, { type: 'quest.state' }>['quest'];
@@ -21,6 +22,7 @@ export interface GameView {
 
 interface MatchContextValue extends GameView {
   send: (message: ClientMessage) => void;
+  calibratePracticeSword: () => void;
   connectionKind: 'mock' | 'ws';
 }
 
@@ -44,7 +46,10 @@ function reduce(view: GameView, { message, receivedAt }: { message: ServerMessag
     case 'connection.state': return { ...view, onlineStatus: message.status };
     case 'room.closed': return { ...initialView, error: message.message };
     case 'lobby.state':
-      return { ...view, lobby: message.lobby, error: null, ...(!message.lobby ? { quest: null } : {}) };
+      return { ...view, lobby: message.lobby, error: null,
+        ...(!message.lobby || !view.lobby || view.lobby.code !== message.lobby.code || view.lobby.mode !== message.lobby.mode
+          ? { checks: initialView.checks } : {}),
+        ...(!message.lobby ? { quest: null } : {}) };
     case 'quest.state': return { ...view, quest: message.quest, error: null };
     case 'device.state':
       return { ...view, checks: message.checks };
@@ -72,6 +77,17 @@ const MatchContext = createContext<MatchContextValue | null>(null);
 export function MatchProvider({ children }: { children: ReactNode }) {
   const { connection } = useConnection();
   const [view, dispatch] = useReducer(reduce, initialView);
+  const cancelCalibration = useRef<(() => void) | undefined>(undefined);
+  const roomKey = view.lobby ? `${view.lobby.mode}:${view.lobby.code}` : null;
+  // Keep checks through book-page animations; cancel them when leaving or switching rooms.
+  useEffect(() => () => cancelCalibration.current?.(), [roomKey, connection]);
+  const calibratePracticeSword = useCallback(() => {
+    if (!roomKey) return;
+    cancelCalibration.current?.();
+    cancelCalibration.current = startPracticeCalibration(checks => {
+      dispatch({ message: { type: 'device.state', checks }, receivedAt: Date.now() });
+    });
+  }, [roomKey]);
 
   useEffect(() => connection.subscribe((message) => {
     // Poses go to the pose store, not React state.
@@ -80,8 +96,8 @@ export function MatchProvider({ children }: { children: ReactNode }) {
 
   const send = useCallback((message: ClientMessage) => connection.send(message), [connection]);
   const value = useMemo<MatchContextValue>(
-    () => ({ ...view, send, connectionKind: connection.kind }),
-    [view, send, connection],
+    () => ({ ...view, send, calibratePracticeSword, connectionKind: connection.kind }),
+    [view, send, calibratePracticeSword, connection],
   );
 
   return <MatchContext value={value}>{children}</MatchContext>;

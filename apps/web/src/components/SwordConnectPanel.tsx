@@ -1,34 +1,49 @@
-import type { CheckId, CheckStatus } from '../game/types';
+import type { CheckStatus, DeviceChecks } from '../game/types';
+import { SWORD_CHECKS, swordChecksPassed } from '../game/swordCalibration';
 import { useMatch } from '../hooks/useMatch';
-import { Parchment } from './Parchment';
-
-const CHECKS: { id: CheckId; label: string }[] = [
-  { id: 'pairing', label: 'Pairing' },
-  { id: 'lights', label: 'Test Lights' },
-  { id: 'motion', label: 'Motion' },
-  { id: 'camera', label: 'Camera' },
-];
 
 const MARK: Record<CheckStatus, string> = { pending: '·', checking: '…', ok: '✓', failed: '✗' };
+type SetupActions = { onContinue(): void; onLeave(): void };
 
-export function SwordConnectPanel() {
-  const { checks, send, connectionKind } = useMatch();
-  const running = Object.values(checks).some((s) => s === 'checking');
+export function SwordSetupForm({ checks, onCalibrate, onContinue, onLeave }: SetupActions & {
+  checks: DeviceChecks; onCalibrate(): void;
+}) {
+  const running = SWORD_CHECKS.some(({ id }) => checks[id] === 'checking');
+  const passed = swordChecksPassed(checks);
   return (
-    <Parchment title="Ready your magic" className="connect-panel">
-      <ul className="checklist">
-        {CHECKS.map(({ id, label }) => (
+    <div className="book-form sword-setup">
+      <h1>Connect your sword</h1>
+      <p className="hint">Wake your sword, hold it steady, and ready your magic. Complete every check to continue.</p>
+      <ul className="checklist" aria-label="Sword readiness checklist">
+        {SWORD_CHECKS.map(({ id, label }) => (
           <li key={id} className={`check check-${checks[id]}`}>
             <span>{label}</span>
             <span className="check-mark" aria-label={checks[id]}>{MARK[checks[id]]}</span>
           </li>
         ))}
       </ul>
-      <button type="button" className="link-button" disabled={running || connectionKind === 'ws'} onClick={() => send({ type: 'device.check' })}>
-        {running ? 'Checking…' : 'Run check'}
-      </button>
-      {connectionKind === 'mock' && <p className="hint">Simulated sword — no hardware needed.</p>}
-      {connectionKind === 'ws' && <p className="hint">Online keyboard practice. Physical swords and camera tracking are not connected yet.</p>}
-    </Parchment>
+      <div className="sword-setup-actions">
+        <button type="button" className="secondary-button" disabled={running} onClick={onCalibrate}>
+          {running ? 'Calibrating…' : passed ? 'Calibrate again' : 'Calibrate practice sword'}
+        </button>
+      </div>
+      <p className="hint sword-setup-status" role="status">
+        {passed ? 'All four practice checks passed! Your practice sword is ready.'
+          : running ? 'Checking your practice sword…'
+          : 'Your sword needs all four checkmarks before you can enter the lobby.'}
+      </p>
+      <p className="hint">Practice mode: pairing, lights, motion, and camera are simulated. Physical hardware and camera connection are coming soon; battles use your keyboard.</p>
+      <div className="sword-setup-actions">
+        <button type="button" className="quest-button" disabled={!passed} onClick={() => { if (passed) onContinue(); }}>
+          Connect your sword <span aria-hidden="true">→</span>
+        </button>
+        <button type="button" className="link-button small" onClick={onLeave}>Back to game choices</button>
+      </div>
+    </div>
   );
+}
+
+export function SwordConnectPanel(actions: SetupActions) {
+  const { checks, calibratePracticeSword } = useMatch();
+  return <SwordSetupForm {...actions} checks={checks} onCalibrate={calibratePracticeSword} />;
 }
