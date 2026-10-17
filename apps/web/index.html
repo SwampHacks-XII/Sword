@@ -6,8 +6,21 @@
     <meta name="theme-color" content="#aaa0e4" />
     <meta name="description" content="One face. Two fates. Enter a storybook sword duel, follow Moss into the glade, and face your evil twin." />
     <title>Sword · A tale of two selves</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&family=Silkscreen&display=swap" />
   </head>
   <body>
+    <!-- Samples one colour per 7px cell (then dilates it by 3px each way), so smooth vector art renders as chunky pixels. -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true" focusable="false">
+      <filter id="pixelate" x="0" y="0" width="1" height="1">
+        <feFlood x="3" y="3" width="1" height="1" />
+        <feComposite width="7" height="7" />
+        <feTile result="grid" />
+        <feComposite in="SourceGraphic" in2="grid" operator="in" />
+        <feMorphology operator="dilate" radius="3" />
+      </filter>
+    </svg>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

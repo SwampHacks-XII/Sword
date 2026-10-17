@@ -13,7 +13,6 @@ export function LobbyScreen({ lobby }: { lobby: LobbyState }) {
   return (
     <div className="menu-layout">
       <Parchment className="story-scroll lobby">
-        <div className="scroll-kicker"><span>The gathering</span><span>{online ? 'Online duel' : 'Practice duel'}</span></div>
         <h1>Your story’s party.</h1>
         <p className="label">{online ? 'Your secret room code' : 'Swamp Bot awaits'}</p>
         {online && <p className="room-code">{lobby.code}</p>}

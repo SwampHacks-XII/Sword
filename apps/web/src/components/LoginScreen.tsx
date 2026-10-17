@@ -18,8 +18,6 @@ export function LoginScreen() {
   }
   return (
     <Parchment className="story-scroll flow-card login-screen">
-      <div className="scroll-kicker"><span>The hero’s ledger</span><span>✦</span></div>
-      <p className="eyebrow">Every legend begins with a name</p>
       <h1>{session.authenticated ? 'Your story awaits.' : 'Who holds the sword?'}</h1>
       {session.loading ? <p role="status">Checking your login…</p>
         : session.authenticated ? <>

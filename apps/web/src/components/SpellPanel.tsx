@@ -17,7 +17,6 @@ export function SpellPanel({ fighter }: { fighter: FighterState }) {
 
   return (
     <Parchment className="spell-panel">
-      <p className="label">Cast</p>
       <h2 className="spell-name">{spell.name}</h2>
       <ol className="runes">
         {spell.combo.map((color, i) => (

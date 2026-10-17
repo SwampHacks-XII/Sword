@@ -3,12 +3,12 @@ import { Parchment } from './Parchment';
 import { NpcGuide } from './NpcGuide';
 
 interface StorySceneProps {
-  title: string; paragraphs: readonly string[]; chapter: string;
+  title: string; paragraphs: readonly string[];
   action: string; onContinue(): void; disabled?: boolean; status?: string;
   onLeave?(): void; page?: string; error?: string | null;
 }
 /** Animated dialogue wireframe; its content is currently local placeholder copy. */
-export function StoryScene({ title, paragraphs, chapter, action, onContinue, disabled, status, onLeave, page, error }: StorySceneProps) {
+export function StoryScene({ title, paragraphs, action, onContinue, disabled, status, onLeave, page, error }: StorySceneProps) {
   const total = paragraphs.join('').length;
   const [visible, setVisible] = useState(0);
   useEffect(() => {
@@ -22,10 +22,8 @@ export function StoryScene({ title, paragraphs, chapter, action, onContinue, dis
   }, [total, title]);
   let offset = 0;
   return <Parchment className="story-scroll dialogue-scroll">
-    <div className="scroll-kicker"><span>{chapter}</span><span>{page || 'Story preview'}</span></div>
-    <div className="scroll-flourish" aria-hidden="true">✦</div>
     <h1>{title}</h1>
-    <div className="speaker-line"><span className="speaker-dot" /> Moss <span>Keeper of the glade</span></div>
+    <div className="speaker-line"><span className="speaker-dot" /> Moss</div>
     <div className="story-dialogue">
       <div className="sr-only" aria-live="polite">{paragraphs.map(text => <p key={text}>{text}</p>)}</div>
       <div aria-hidden="true">{paragraphs.map(text => {
@@ -34,6 +32,7 @@ export function StoryScene({ title, paragraphs, chapter, action, onContinue, dis
       })}</div>
     </div>
     <div className="dialogue-toolbar">
+      {page && <span className="dialogue-page">Page {page}</span>}
       {visible < total ? <button type="button" className="text-button" onClick={() => setVisible(total)}>Show all dialogue <span aria-hidden="true">↠</span></button>
         : <span className="dialogue-finished">A new page is waiting.</span>}
     </div>
