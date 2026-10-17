@@ -24,10 +24,11 @@ export function SwordConnectPanel() {
           </li>
         ))}
       </ul>
-      <button type="button" className="link-button" disabled={running} onClick={() => send({ type: 'device.check' })}>
+      <button type="button" className="link-button" disabled={running || connectionKind === 'ws'} onClick={() => send({ type: 'device.check' })}>
         {running ? 'Checking…' : 'Run check'}
       </button>
       {connectionKind === 'mock' && <p className="hint">Simulated sword — no hardware needed.</p>}
+      {connectionKind === 'ws' && <p className="hint">Online keyboard practice. Physical swords and camera tracking are not connected yet.</p>}
     </Parchment>
   );
 }

@@ -8,10 +8,11 @@ import type { PlayerStore } from './db/players.js';
 import type { GameStore } from './game/store.js';
 import { gameRoutes } from './game/routes.js';
 import { ApiError } from './game/errors.js';
+import type { RealtimeHub } from './game/realtime.js';
 
 const profileSchema = z.object({ displayName: z.string().trim().min(1).max(40) }).strict();
 
-export function createApp(config: Config, players: PlayerStore | null, game: GameStore | null = null) {
+export function createApp(config: Config, players: PlayerStore | null, game: GameStore | null = null, realtime: RealtimeHub | null = null) {
   const app = express();
   app.disable('x-powered-by');
   app.use(helmet());
@@ -48,6 +49,18 @@ export function createApp(config: Config, players: PlayerStore | null, game: Gam
   });
   api.get('/auth/me', (_request, response) => {
     response.json({ subject: response.locals.subject });
+  });
+  api.post('/realtime-ticket', async (request, response) => {
+    if (!realtime) throw new ApiError(503, 'realtime_unavailable', 'Online play is unavailable. Check the server configuration.');
+    response.json(await realtime.issueTicket(response.locals.subject, Number(request.auth?.payload.exp) * 1000));
+  });
+  api.post('/matches/:matchId/leave', async (request, response) => {
+    if (!game) throw new ApiError(503, 'database_not_configured', 'Configure the database first.');
+    const parsed = z.uuid().safeParse(request.params.matchId);
+    if (!parsed.success) throw new ApiError(400, 'invalid_match_id', 'Use a valid match UUID.');
+    if (realtime) await realtime.leave(response.locals.subject, parsed.data);
+    else await game.closeMatch(response.locals.subject, parsed.data);
+    response.json({ left: true });
   });
   api.use('/me', (_request, response, next) => {
     if (!players) { response.status(503).json({ error: 'database_not_configured' }); return; }

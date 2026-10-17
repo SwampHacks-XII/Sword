@@ -53,7 +53,7 @@ For the planned local website, set these to `http://localhost:5173`:
 
 Save its **Domain** and **Client ID** for the future React frontend. A browser application does not keep a client secret. The backend token verifier needs the tenant URL and API audience, not the application's client secret.
 
-The website itself has not been built yet. Later, its Auth0 SDK will request an access token with the `https://sword-api` audience and send it to the backend. See the [React login guide](https://auth0.com/docs/quickstart/spa/react).
+The website now uses the Auth0 React SDK to request an access token for the Sword API audience and send it to the backend. Follow [the online play guide](play-online.md) to configure `apps/web/.env` and test two players. See the [React login guide](https://auth0.com/docs/quickstart/spa/react).
 
 ## 3. Create the Tiger Data database
 

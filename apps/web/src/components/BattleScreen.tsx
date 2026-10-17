@@ -8,9 +8,11 @@ import { Parchment } from './Parchment';
 import { SpellPanel } from './SpellPanel';
 
 export function BattleScreen({ match, you, now }: { match: MatchState; you: PlayerSlot; now: number }) {
-  const { send, log } = useMatch();
+  const { send, log, lobby, onlineStatus, error } = useMatch();
   const fighting = match.phase === 'fighting';
-  useKeyboardSword(fighting);
+  const online = lobby?.mode === 'online';
+  const connected = !online || (onlineStatus === 'open' && lobby?.players.every(p => p.connected));
+  useKeyboardSword(fighting && connected);
   const mine = match.fighters[you];
   const theirs = match.fighters[otherSlot(you)];
 
@@ -22,11 +24,17 @@ export function BattleScreen({ match, you, now }: { match: MatchState; you: Play
         {log.map(({ id, event }) => <li key={id}>{describe(event, match.fighters, you)}</li>)}
       </ul>
       <CameraPlaceholder />
+      <div className="battle-controls">
+        <p>{online ? 'Online · keyboard practice' : 'Swamp Bot · keyboard practice'}</p>
+        {!connected && <p role="status">Waiting for both players to reconnect…</p>}
+        {error && <p className="error" role="alert">{error}</p>}
+        <button type="button" className="link-button small" onClick={() => send({ type: 'lobby.leave' })}>leave game</button>
+      </div>
       {!fighting && (
         <div className="modal">
           <Parchment title={match.winner === you ? 'Victory!' : `${theirs.name} wins`}>
             <div className="row">
-              <button type="button" className="link-button" onClick={() => send({ type: 'match.start' })}>rematch</button>
+              {!online && <button type="button" className="link-button" onClick={() => send({ type: 'match.start' })}>rematch</button>}
               <button type="button" className="link-button" onClick={() => send({ type: 'lobby.leave' })}>leave</button>
             </div>
           </Parchment>

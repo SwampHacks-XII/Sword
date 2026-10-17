@@ -7,14 +7,22 @@
     "node": "^20.19.0 || >=22.12.0"
   },
   "scripts": {
+    "protocol:build": "tsc -p ../../packages/protocol/tsconfig.json",
+    "predev": "npm run protocol:build",
+    "precheck": "npm run protocol:build",
+    "prebuild": "npm run protocol:build",
+    "pretest": "npm run protocol:build",
+    "test": "tsx --test test/connection.test.ts test/auth.test.ts",
     "dev": "vite",
     "check": "tsc --noEmit -p tsconfig.json",
     "build": "tsc --noEmit -p tsconfig.json && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@auth0/auth0-react": "^2.28.2",
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.2",
+    "@sword/protocol": "file:../../packages/protocol",
     "react": "~19.3.1",
     "react-dom": "~19.3.1",
     "three": "^0.186.1"
@@ -24,6 +32,7 @@
     "@types/react-dom": "^19.3.0",
     "@types/three": "^0.186.0",
     "@vitejs/plugin-react": "^5.2.0",
+    "tsx": "^4.23.15",
     "typescript": "~5.9.3",
     "vite": "^7.3.7"
   }

@@ -1,6 +1,7 @@
+import { createPoseSimulator } from '@sword/protocol';
 // In-browser stand-in for the game server, the opponent's laptop, and both swords.
 // Lets the whole flow run with no server or hardware. Swap for a WebSocket connection later.
-import { SWORD_COLORS, otherSlot, type CheckId, type Gesture, type PlayerSlot, type Quat } from '../../game/types';
+import { SWORD_COLORS, otherSlot, type CheckId, type Gesture, type PlayerSlot } from '../../game/types';
 import { getSpell } from '../../game/spells';
 import type { GameConnection } from '../connection';
 import type { ClientMessage, ServerMessage } from '../messages';
@@ -142,50 +143,4 @@ export function createMockConnection(): GameConnection {
       listeners.clear();
     },
   };
-}
-
-// ---- Fake motion sensor -------------------------------------------------------
-
-const GESTURE_MS = 450;
-
-function createPoseSimulator() {
-  const active: Partial<Record<PlayerSlot, { gesture: Gesture; start: number }>> = {};
-  return {
-    play(slot: PlayerSlot, gesture: Gesture, now: number) {
-      active[slot] = { gesture, start: now };
-    },
-    /** Idle sway plus a short animation for the latest gesture. */
-    sample(slot: PlayerSlot, now: number): Quat {
-      const offset = slot === 'p1' ? 0 : 1.7;
-      const t = now / 1000;
-      let pitch = 0.08 * Math.sin(t * 1.3 + offset);
-      let yaw = 0.05 * Math.sin(t * 0.7 + offset);
-      let roll = 0.06 * Math.sin(t * 0.9 + offset);
-      const anim = active[slot];
-      if (anim) {
-        const progress = (now - anim.start) / GESTURE_MS;
-        if (progress >= 1) delete active[slot];
-        else {
-          const k = Math.sin(Math.PI * progress);
-          if (anim.gesture === 'swing_right') roll -= 1.2 * k;
-          else if (anim.gesture === 'swing_left') roll += 1.2 * k;
-          else if (anim.gesture === 'wrist_rotate') yaw += 2 * Math.PI * progress;
-          else { pitch *= 1 - k; roll *= 1 - k; }
-        }
-      }
-      return eulerXYZToQuat(pitch, yaw, roll);
-    },
-  };
-}
-
-/** Same convention as three.js Euler order 'XYZ'. Returns [w, x, y, z]. */
-function eulerXYZToQuat(x: number, y: number, z: number): Quat {
-  const c1 = Math.cos(x / 2), c2 = Math.cos(y / 2), c3 = Math.cos(z / 2);
-  const s1 = Math.sin(x / 2), s2 = Math.sin(y / 2), s3 = Math.sin(z / 2);
-  return [
-    c1 * c2 * c3 - s1 * s2 * s3,
-    s1 * c2 * c3 + c1 * s2 * s3,
-    c1 * s2 * c3 - s1 * c2 * s3,
-    c1 * c2 * s3 + s1 * s2 * c3,
-  ];
 }

@@ -14,6 +14,8 @@ export interface GameView {
   /** Local receive time of the last damaging hit per player, for flash effects. */
   lastHitAt: Partial<Record<PlayerSlot, number>>;
   error: string | null;
+  pending: boolean;
+  onlineStatus: 'connecting' | 'open' | 'closed';
 }
 
 interface MatchContextValue extends GameView {
@@ -28,12 +30,17 @@ const initialView: GameView = {
   log: [],
   lastHitAt: {},
   error: null,
+  pending: false,
+  onlineStatus: 'closed',
 };
 
 let logId = 0;
 
 function reduce(view: GameView, { message, receivedAt }: { message: ServerMessage; receivedAt: number }): GameView {
   switch (message.type) {
+    case 'action.pending': return { ...view, pending: message.pending, ...(message.pending ? { error: null } : {}) };
+    case 'connection.state': return { ...view, onlineStatus: message.status };
+    case 'room.closed': return { ...initialView, error: message.message };
     case 'lobby.state':
       return { ...view, lobby: message.lobby, error: null };
     case 'device.state':

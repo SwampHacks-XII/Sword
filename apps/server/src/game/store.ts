@@ -123,6 +123,16 @@ export function createGameStore(pool: Pool) {
         return details(db, result.rows[0]!);
       });
     },
+    async closeMatch(subject: string, matchId: string) {
+      return transaction(pool, async db => {
+        const playerId = await actor(db, subject);
+        const match = await membership(db, matchId, playerId, true);
+        if (match.status === 'completed') return details(db, match);
+        const result = await db.query<MatchRow>("UPDATE matches SET status = 'completed', finished_at = NOW() WHERE id = $1 RETURNING *", [matchId]);
+        await event(db, matchId, playerId, 'match-finished', { reason: 'player-left', winnerPlayerId: null });
+        return details(db, result.rows[0]!);
+      });
+    },
     async registerSword(subject: string, input: { deviceId: string; label: string }) {
       return transaction(pool, async db => {
         const playerId = await actor(db, subject);

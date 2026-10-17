@@ -13,10 +13,13 @@ It does not animate anything or simulate physical gameplay on its own.
 - Save and read camera tracking for both players, including a shared camera.
 - Keep a history of session changes and reported button/gesture/IR inputs.
 
-This is session management and data storage. Live WebSocket synchronization,
-physical device pairing/authentication, gesture recognition, spell validation,
-damage/scoring, video uploads, and the frontend remain future work. Device
-reports are unverified inputs; reporting an IR hit does not award damage.
+This guide covers session management and data storage. The website also has
+Auth0 login and live online keyboard battles: see [online play](play-online.md).
+That separate WebSocket channel runs the shared spell/damage rules and simulates
+attack reception for keyboard practice. Physical device pairing/authentication,
+real sensor gesture recognition, IR input, camera capture, and video uploads remain
+future work. Reports sent to the REST event endpoint remain unverified inputs;
+posting an IR hit there does not award damage.
 
 ## Start here
 
@@ -112,6 +115,8 @@ comes from the verified token, not a player ID submitted in a body.
 | PUT | `/matches/:matchId/sword` | Assign your own sword while waiting |
 | POST | `/matches/:matchId/start` | Host starts once two players have joined |
 | POST | `/matches/:matchId/finish` | Host finishes an active match |
+| POST | `/matches/:matchId/leave` | A participant closes a session for both players |
+| POST | `/realtime-ticket` | Obtain a ticket for the website's live connection |
 | POST / GET | `/matches/:matchId/sword-samples` | Upload/read sword recordings |
 | POST / GET | `/matches/:matchId/camera-samples` | Upload/read tracking results |
 | POST / GET | `/matches/:matchId/events` | Report inputs/read session history |
@@ -245,7 +250,7 @@ POST one of these to `/matches/:matchId/events`:
 {"type":"ir-hit","shotId":"shot-42","attackerSlot":2}
 ```
 
-Buttons are `red`, `blue`, `green`, or `trigger`. Gesture names and shot IDs are
+Buttons are `red`, `blue`, `green`, `yellow`, or `trigger`. Gesture names and shot IDs are
 strings up to 64 characters. These reports are stored as **unverified** and do not
 alter health or score. Clients cannot submit server lifecycle events.
 

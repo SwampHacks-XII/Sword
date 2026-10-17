@@ -13,6 +13,9 @@ import { createPlayerStore } from '../src/db/players.js';
 import { createGameStore } from '../src/game/store.js';
 import { createPool } from '../src/db/pool.js';
 import { migrate } from '../src/db/migrate.js';
+import { createRealtimeHub, type RealtimeHub } from '../src/game/realtime.js';
+import { WebSocket } from 'ws';
+import { getSpell, type MatchState, type ServerMessage } from '@sword/protocol';
 
 const live = process.env.GAME_TEST_DATABASE === '1';
 let pool: Pool;
@@ -20,6 +23,8 @@ let admin: Pool | undefined;
 let schema: string;
 let issuerServer: Server;
 let apiServer: Server;
+let realtime: RealtimeHub;
+const sockets = new Set<WebSocket>();
 let base: string;
 const tokens: Record<string, string> = {};
 const ids: Record<string, string> = {};
@@ -86,8 +91,12 @@ before(async () => {
     else { response.statusCode = 404; response.end('{}'); }
   });
   issuer = `${await listen(issuerServer)}/`;
+  const players = createPlayerStore(pool);
+  const game = createGameStore(pool);
+  realtime = createRealtimeHub(game, players, 'http://localhost:5173', { disconnectGraceMs: 2000 });
   apiServer = createServer(createApp({ host: '127.0.0.1', port: 3001, webOrigin: 'http://localhost:5173',
-    auth0: { issuerBaseURL: issuer, audience: 'https://sword-api' }, databaseUrl: null }, createPlayerStore(pool), createGameStore(pool)));
+    auth0: { issuerBaseURL: issuer, audience: 'https://sword-api' }, databaseUrl: null }, players, game, realtime));
+  realtime.attach(apiServer);
   base = await listen(apiServer);
   for (const user of ['alice', 'bob', 'carol', 'no-profile']) {
     tokens[user] = await new SignJWT({}).setProtectedHeader({ alg: 'RS256', kid: 'game-test' })
@@ -100,6 +109,8 @@ before(async () => {
   }
 });
 after(async () => {
+  for (const socket of sockets) socket.terminate();
+  await realtime?.close();
   await close(apiServer); await close(issuerServer);
   if (pool) await pool.end();
   if (admin) {
@@ -108,6 +119,128 @@ after(async () => {
       await admin.query(`DROP SCHEMA ${schema} CASCADE`);
     } finally { await admin.end(); }
   }
+});
+
+type WireMessage = ServerMessage | { type: 'session.ready' } | { type: 'room.ready' };
+async function socketClient(user: string, matchId?: string, suppliedTicket?: string) {
+  const ticket = suppliedTicket ?? (await call(user, 'POST', '/realtime-ticket')).data.ticket;
+  const ws = new WebSocket(`${base.replace('http:', 'ws:')}/realtime`, { origin: 'http://localhost:5173' });
+  sockets.add(ws);
+  ws.on('error', () => {});
+  ws.on('close', () => sockets.delete(ws));
+  const messages: WireMessage[] = [];
+  ws.on('message', raw => messages.push(JSON.parse(raw.toString())));
+  const wait = (predicate: (message: WireMessage) => boolean, from = 0) => new Promise<WireMessage>((resolve, reject) => {
+    const existing = messages.slice(from).find(predicate);
+    if (existing) { resolve(existing); return; }
+    const timer = setTimeout(() => { ws.off('message', check); reject(new Error('Expected game message was not received.')); }, 10_000);
+    function check() {
+      const found = messages.slice(from).find(predicate);
+      if (found) { clearTimeout(timer); ws.off('message', check); resolve(found); }
+    }
+    ws.on('message', check);
+  });
+  const send = (message: unknown) => ws.send(JSON.stringify(message));
+  await once(ws, 'open');
+  send({ type: 'session.auth', ticket });
+  if (!suppliedTicket) {
+    await wait(m => m.type === 'session.ready');
+    if (matchId) { send({ type: 'room.subscribe', matchId }); await wait(m => m.type === 'room.ready'); }
+  }
+  return { ws, messages, wait, send,
+    latestMatch: (): MatchState | undefined => {
+      const latest = [...messages].reverse().find(m => m.type === 'match.state' && m.match);
+      return latest?.type === 'match.state' ? latest.match ?? undefined : undefined;
+    },
+  };
+}
+
+test('live tickets require authentication, are single-use, and cannot reveal another room', async () => {
+  assert.equal((await fetch(`${base}/api/realtime-ticket`, { method: 'POST' })).status, 401);
+  assert.equal((await call('no-profile', 'POST', '/realtime-ticket')).status, 409);
+  const ticket = (await call('alice', 'POST', '/realtime-ticket')).data.ticket;
+  const first = await socketClient('alice', undefined, ticket);
+  await first.wait(m => m.type === 'session.ready');
+  const second = await socketClient('alice', undefined, ticket);
+  const [code] = await once(second.ws, 'close');
+  assert.equal(code, 1008);
+  first.ws.close();
+  const matchId = await matchPair();
+  const outsider = await socketClient('carol');
+  outsider.send({ type: 'room.subscribe', matchId });
+  const denied = await outsider.wait(m => m.type === 'error');
+  assert.equal(denied.type === 'error' && denied.message, 'Match not found for this player.');
+  assert.equal(outsider.messages.some(m => m.type === 'lobby.state'), false);
+  outsider.ws.close();
+});
+
+test('online players share server-owned combat state and the winner is saved', async () => {
+  const matchId = await matchPair();
+  const a = await socketClient('alice', matchId);
+  const b = await socketClient('bob', matchId);
+  try {
+    await a.wait(m => m.type === 'lobby.state' && m.lobby?.players.filter(p => p.connected).length === 2);
+    assert.equal(a.messages.some(m => m.type === 'lobby.state' && m.lobby?.players.some(p => p.name === 'Swamp Bot')), false);
+    b.send({ type: 'match.start' });
+    await b.wait(m => m.type === 'error' && m.message.includes('host'));
+    a.send({ type: 'match.start' });
+    await a.wait(m => m.type === 'match.state' && m.match?.phase === 'fighting');
+    await b.wait(m => m.type === 'match.state' && m.match?.phase === 'fighting');
+    assert.deepEqual(a.latestMatch(), b.latestMatch());
+    a.send({ type: 'dev.sword', input: { kind: 'button', color: 'red', slot: 'p2' } });
+    await a.wait(m => m.type === 'error' && m.message === 'Invalid game message.');
+    const bobBefore = b.latestMatch()!.fighters.p2;
+    for (let cast = 0; cast < 40 && a.latestMatch()!.phase === 'fighting'; cast++) {
+      const spell = getSpell(a.latestMatch()!.fighters.p1.spellId);
+      let from = a.messages.length;
+      for (const color of spell.combo) a.send({ type: 'dev.sword', input: { kind: 'button', color } });
+      await a.wait(m => m.type === 'match.state' && m.match?.fighters.p1.castPhase === 'motion', from);
+      from = a.messages.length;
+      a.send({ type: 'dev.sword', input: { kind: 'gesture', gesture: spell.gesture } });
+      await a.wait(m => m.type === 'match.state' && m.match?.fighters.p1.castPhase === 'armed', from);
+      from = a.messages.length;
+      a.send({ type: 'dev.sword', input: { kind: 'trigger' } });
+      await a.wait(m => m.type === 'match.state' && m.match?.fighters.p1.castPhase === 'enter', from);
+      await new Promise(resolve => setTimeout(resolve, 120));
+    }
+    const ended = await b.wait(m => m.type === 'match.state' && m.match?.phase === 'over');
+    assert.equal(ended.type === 'match.state' && ended.match?.winner, 'p1');
+    assert.deepEqual(a.latestMatch(), b.latestMatch());
+    assert.equal(b.latestMatch()!.fighters.p2.entered, bobBefore.entered);
+    let stored;
+    for (let attempt = 0; attempt < 40; attempt++) {
+      stored = (await call('alice', 'GET', `/matches/${matchId}`)).data.match;
+      if (stored.status === 'completed') break;
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    assert.equal(stored.status, 'completed');
+    assert.equal(stored.winnerPlayerId, ids.alice);
+  } finally { a.ws.close(); b.ws.close(); }
+});
+
+test('online disconnects are visible, reconnects restore the room, and leaving closes it for both', async () => {
+  const matchId = await matchPair();
+  const a = await socketClient('alice', matchId);
+  const b = await socketClient('bob', matchId);
+  b.ws.close();
+  await a.wait(m => m.type === 'lobby.state' && m.lobby?.players.some(p => p.slot === 'p2' && !p.connected) === true);
+  const rejoined = await socketClient('bob', matchId);
+  await rejoined.wait(m => m.type === 'lobby.state' && m.lobby?.you === 'p2');
+  assert.equal((await call('carol', 'POST', `/matches/${matchId}/leave`, {})).status, 404);
+  assert.equal((await call('bob', 'POST', `/matches/${matchId}/leave`, {})).status, 200);
+  await a.wait(m => m.type === 'room.closed');
+  await rejoined.wait(m => m.type === 'room.closed');
+  assert.equal((await call('alice', 'GET', `/matches/${matchId}`)).data.match.status, 'completed');
+  a.ws.close(); rejoined.ws.close();
+});
+
+test('live sockets reject a different website origin', async () => {
+  const ws = new WebSocket(`${base.replace('http:', 'ws:')}/realtime`, { origin: 'https://other.example' });
+  ws.on('error', () => {});
+  const status = await new Promise<number>(resolve => {
+    ws.on('unexpected-response', (_request, response) => { resolve(response.statusCode!); response.resume(); ws.terminate(); });
+  });
+  assert.equal(status, 403);
 });
 
 test('match membership is private; two players and the host control the lifecycle', async () => {

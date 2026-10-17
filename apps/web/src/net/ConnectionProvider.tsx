@@ -1,10 +1,15 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ConnectionContext, type ConnectionContextValue } from '../hooks/useConnection';
 import { MatchProvider } from '../hooks/useMatch';
 import { createPoseStore } from '../hooks/useSwordPoses';
 import { createConnection } from './connection';
+import { createApi } from './api';
+import { useSession } from '../auth/SessionProvider';
 
 export function ConnectionProvider({ children }: { children: ReactNode }) {
+  const session = useSession();
+  const token = useRef(session.getToken);
+  token.current = session.getToken;
   const [value, setValue] = useState<ConnectionContextValue | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -12,7 +17,7 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let connection;
     try {
-      connection = createConnection();
+      connection = createConnection(createApi(() => token.current()));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not connect.');
       return;

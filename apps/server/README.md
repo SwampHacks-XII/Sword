@@ -1,6 +1,6 @@
 # Sword backend
 
-The backend verifies player identity and stores profiles, two-player sessions, sword measurements, and camera tracking in Tiger Data. Physical device connections, live gameplay, Gemini, and the website login button still need to be built.
+The backend verifies player identity, runs online keyboard battles over authenticated WebSockets, and stores profiles, two-player sessions, winners, sword measurements, and camera tracking in Tiger Data. Physical device connections, real IR input, camera capture, and Gemini still need to be built.
 
 Start with the [account and connection guide](../../docs/backend-setup.md). It explains how to create Auth0 and Tiger Data accounts and fill in your local configuration.
 
@@ -48,8 +48,12 @@ password into chat or a command argument. Then retry `npm run db:check`.
 | GET / POST | `/api/swords` | List/register the player's swords |
 | GET / POST | `/api/matches` | List/create the player's sessions |
 | POST | `/api/matches/join` | Join a session by code |
+| POST | `/api/realtime-ticket` | Obtain a short-lived, single-use ticket for the live connection |
+| POST | `/api/matches/:matchId/leave` | Leave and close an online session for both players |
 
 See the [game data API guide](../../docs/game-data-api.md) for sword assignment, start/finish, event history, and both players' sword/camera uploads. Import [the Postman collection](../../tools/sword-api.postman_collection.json) to try the flow without a frontend.
+
+For website login, online room codes, Swamp Bot mode, live combat, and a two-account test, follow [the online play guide](../../docs/play-online.md). The backend uses the rules in `packages/protocol`; npm's pre-scripts compile that shared package automatically. Rooms live in one server process, so restarting it requires a new online room.
 
 Send an Auth0 access token for **Sword API** as `Authorization: Bearer <token>` to all `/api` routes. An ID token is not the API token. Machine-to-machine tokens are rejected for player routes.
 

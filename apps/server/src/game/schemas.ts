@@ -53,7 +53,7 @@ export const cameraBatchSchema = z.object({
 }).strict();
 export type CameraBatch = z.infer<typeof cameraBatchSchema>;
 export const inputSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('button'), button: z.enum(['red', 'blue', 'green', 'trigger']) }).strict(),
+  z.object({ type: z.literal('button'), button: z.enum(['red', 'blue', 'green', 'yellow', 'trigger']) }).strict(),
   z.object({ type: z.literal('gesture'), gesture: z.string().trim().min(1).max(64) }).strict(),
   z.object({ type: z.literal('ir-hit'), shotId: z.string().min(1).max(64), attackerSlot: z.union([z.literal(1), z.literal(2)]) }).strict(),
 ]);

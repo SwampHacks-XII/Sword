@@ -16,7 +16,9 @@ The backend now supports **player profiles, two-player sessions, and sword/camer
 
 The backend can start without account settings, but protected routes stay unavailable. See [the backend README](apps/server/README.md) for endpoints and verified commands.
 
-**Try the website (no server or swords needed).** From `apps/web`, run `npm install`, then `npm run dev`, and open http://localhost:5173. Everything runs against a simulated connection: a fake opponent ("Swamp Bot") joins your lobby and both swords sway. During a battle, the keyboard stands in for your sword:
+**Play online or with Swamp Bot.** From `apps/web`, run `npm ci`, then `npm run dev`, and open http://localhost:5173. The flow is **Welcome → Log in / Sign up → Choose game → Lobby → Battle**. Choose **Get started**, sign in through Auth0, then select **Create game**, **Join game**, or **Play with Swamp Bot**. Friends join the same 12-character room code. Guests can choose Swamp Bot practice from the login page. Online mode also needs `apps/server` running. Follow [the online play guide](docs/play-online.md) for environment settings and a two-account test.
+
+During either mode, the keyboard stands in for your sword:
 
 - `1`–`4`: the red, blue, green and yellow buttons
 - `Q`, `E`, `R`, `W`: swing left, swing right, rotate wrist, hold upright
@@ -24,7 +26,7 @@ The backend can start without account settings, but protected routes stay unavai
 
 All visuals are flat placeholders for now. To use a real 3D model, put a `.glb` in `apps/web/public/models` and set its path in `apps/web/src/scene/models.ts`.
 
-The real WebSocket connection, hardware integration, website login, and Gemini dialogue still need to be built. The message format the swords and server will share is in `apps/web/src/net/messages.ts`; it moves to `packages/protocol` once the server uses it.
+Online battles use an authenticated WebSocket connection and server-owned spell/health state. The browser bot and online backend share messages and rules in `packages/protocol`. Physical sword connections, real IR reception, camera capture, and Gemini dialogue still need to be built. Online keyboard practice simulates successful attack hits.
 
 ## The game we're building
 
@@ -126,14 +128,13 @@ Agree together on wiring, sensor mounting, message formats, and how an IR shot i
 
 ## Proposed tools
 
-The backend API is initialized with Auth0 verification and Tiger Data profile storage. The website skeleton exists with a simulated connection. The hardware tools remain planned.
-The backend API includes Auth0 verification and Tiger Data storage for profiles, matches, sword readings, and camera tracking. The frontend and hardware tools remain planned.
+The website supports Auth0 login, online room codes, and local Swamp Bot games. The backend runs shared online battles and stores profiles, sessions, winners, sword readings, and camera tracking in Tiger Data. Hardware capture remains planned.
 
 | Part | Tools |
 | --- | --- |
 | Website | React + TypeScript + Vite 7 (Vite 8 hits an npm 10.8 install bug) |
 | 3D viewer | Three.js + React Three Fiber |
-| Server | Node.js + TypeScript + Express; WebSockets later |
+| Server | Node.js + TypeScript + Express + WebSockets |
 | Player login | Auth0 |
 | Database | Tiger Data / PostgreSQL |
 | Dialogue and story (planned) | Gemini API |
@@ -146,7 +147,7 @@ The backend API includes Auth0 verification and Tiger Data storage for profiles,
 - **Start with rotation.** A motion sensor does not directly give reliable absolute position. Calibrate it and agree which sensor directions match the 3D model.
 - **Use one message format.** The website and server can share TypeScript definitions. The C++ firmware must send the same format, including agreed units and IDs.
 - **Give each sword its own identity.** Both can use the same firmware project with different device/player settings.
-- **Separate live updates from recordings.** Tiger Data stores profiles, session state, events, and timestamped readings. A future WebSocket channel will deliver live game updates; avoid writing every animation frame to the database.
+- **Separate live updates from recordings.** WebSockets deliver live game updates. Tiger Data stores profiles, session state, events, and timestamped recordings; avoid writing every animation frame to the database.
 - **Keep secrets local.** Don't commit Wi-Fi passwords, database credentials, or tokens. Ignore rules exclude local environment files, dependency folders, and build output.
 
 ## Git basics
