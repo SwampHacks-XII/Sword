@@ -11,6 +11,16 @@ export const MOSS_PROLOGUE = [
   ] },
 ] as const;
 export const MOSS_CHEER = 'I’m cheering you on, adventurer!';
+export const MOSS_COMMAND_REPLIES = {
+  create: 'Got it! I’m opening a new game for you.',
+  bot: 'Got it! Let’s find Swamp Bot for a friendly duel.',
+  unknown: 'Try asking me to create a game, join a room, or play with Swamp Bot.',
+  code: 'Tell me the four room digits, one at a time.',
+  login: 'Sign in first, adventurer. Then I can open an online game for you.',
+  name: 'Your hero needs a name! Enter one before we begin.',
+  busy: 'One little moment! I’m still opening your room.',
+  failed: 'That room didn’t open. Check the room code or connection and try again.',
+} as const;
 export const MOSS_REACTIONS = {
   hit: ['Good hit!', 'Nicely done!', 'That’s the spirit!', 'A little magic, a mighty hit!'],
   hurt: ['Shake it off, adventurer!', 'Your twin got that one!', 'Keep your courage up!'],
@@ -22,7 +32,7 @@ export const MOSS_REACTIONS = {
 const normalize = (text: string) => text.trim().replace(/\s+/g, ' ');
 const publicLines = new Set<string>([
   ...MOSS_PROLOGUE.map(chapter => chapter.text.join(' ')), ...FALLBACK_BRIEFINGS,
-  ...Object.values(MOSS_REACTIONS).flat(), MOSS_CHEER,
+  ...Object.values(MOSS_REACTIONS).flat(), ...Object.values(MOSS_COMMAND_REPLIES), MOSS_CHEER,
 ].map(normalize));
 /** Guests may request built-in lines. Generated quest text requires a player login. */
 export const isPublicMossLine = (text: string) => publicLines.has(normalize(text));

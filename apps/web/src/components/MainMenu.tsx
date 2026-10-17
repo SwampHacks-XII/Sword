@@ -5,8 +5,13 @@ import { useSession } from '../auth/SessionProvider';
 import { createApi, type Profile } from '../net/api';
 import { navigate } from '../hooks/useScreen';
 import { NpcGuide } from './NpcGuide';
+import { MossCommandInput } from './MossCommandInput';
+import { parseMossCommand, planLobbyCommand, type MossCommand } from '../story/commands';
+import { MOSS_COMMAND_REPLIES } from '@sword/protocol';
 
-export function MainMenu({ guestOnly = false }: { guestOnly?: boolean }) {
+export function MainMenu({ guestOnly = false, onVoiceReply, stopVoice }: {
+  guestOnly?: boolean; onVoiceReply(text: string): void; stopVoice(): void;
+}) {
   const { send, error, pending } = useMatch();
   const session = useSession();
   const [accountError, setAccountError] = useState<string | null>(null);
@@ -14,6 +19,7 @@ export function MainMenu({ guestOnly = false }: { guestOnly?: boolean }) {
   const [name, setName] = useState('Player 1');
   const [joining, setJoining] = useState(false);
   const [code, setCode] = useState('');
+  const voiceRequest = useRef(false);
   useEffect(() => {
     if (!session.authenticated) return;
     let cancelled = false;
@@ -26,9 +32,34 @@ export function MainMenu({ guestOnly = false }: { guestOnly?: boolean }) {
   const validName = Boolean(name.trim());
   const canPlayOnline = !guestOnly && session.authenticated && !session.loading && validName && !pending;
 
+  useEffect(() => {
+    if (voiceRequest.current && error && !pending) {
+      voiceRequest.current = false;
+      onVoiceReply(MOSS_COMMAND_REPLIES.failed);
+    }
+  }, [error, pending, onVoiceReply]);
+
+  function submitCommand(command: MossCommand, voice = false) {
+    const plan = planLobbyCommand(command, { name, pending, onlineAllowed: canPlayOnline });
+    if (!plan.ok) { if (voice) onVoiceReply(plan.reply); return; }
+    if (command.kind === 'join') { setJoining(true); setCode(command.code); }
+    voiceRequest.current = voice;
+    if (voice) onVoiceReply(plan.reply);
+    send(plan.message);
+  }
+  function voiceCommand(text: string) {
+    const result = parseMossCommand(text);
+    if (!result.ok) {
+      if (result.reason === 'code' && !guestOnly) setJoining(true);
+      onVoiceReply(MOSS_COMMAND_REPLIES[result.reason]);
+      return;
+    }
+    submitCommand(result.command, true);
+  }
+
   function join(event: FormEvent) {
     event.preventDefault();
-    if (/^\d{4}$/.test(code.trim()) && canPlayOnline) send({ type: 'lobby.join', code, name });
+    submitCommand({ kind: 'join', code: code.trim() });
   }
 
   return (
@@ -41,7 +72,7 @@ export function MainMenu({ guestOnly = false }: { guestOnly?: boolean }) {
         </label>
         <div className="game-options" aria-label="Game options">
           {!guestOnly && <>
-            <button type="button" className="game-option" disabled={!canPlayOnline} onClick={() => send({ type: 'lobby.create', name, mode: 'online' })}>
+            <button type="button" className="game-option" disabled={!canPlayOnline} onClick={() => submitCommand({ kind: 'create', mode: 'online' })}>
               <span className="option-icon" aria-hidden="true">⚔</span><strong>Create game</strong><span>Open a new chapter. Invite your rival.</span><span className="option-arrow" aria-hidden="true">↗</span>
             </button>
             <button type="button" className="game-option" disabled={!canPlayOnline} onClick={() => setJoining(v => !v)} aria-expanded={joining}>
@@ -55,10 +86,11 @@ export function MainMenu({ guestOnly = false }: { guestOnly?: boolean }) {
               <button type="submit" className="primary-button" disabled={!canPlayOnline || code.length !== 4}>Join room</button>
             </form>}
           </>}
-          <button type="button" className="game-option" disabled={!validName || pending} onClick={() => send({ type: 'lobby.create', name, mode: 'bot' })}>
+          <button type="button" className="game-option" disabled={!validName || pending} onClick={() => submitCommand({ kind: 'create', mode: 'bot' })}>
             <span className="option-icon" aria-hidden="true">✿</span><strong>Play with Swamp Bot</strong><span>A friendly duel before destiny calls.</span><span className="option-arrow" aria-hidden="true">↗</span>
           </button>
         </div>
+        <MossCommandInput disabled={pending || session.loading} onTranscript={voiceCommand} stopVoice={stopVoice} />
         {!validName && <p className="hint">Enter a player name to continue.</p>}
         {pending && <p className="hint" role="status">Connecting to your room…</p>}
         {(error || session.error || accountError) && <p className="error" role="alert">{error || session.error || accountError}</p>}

@@ -12,7 +12,7 @@
     "precheck": "npm run protocol:build",
     "prebuild": "npm run protocol:build",
     "pretest": "npm run protocol:build",
-    "test": "tsx --test test/connection.test.ts test/auth.test.ts test/narration.test.ts",
+    "test": "tsx --test test/connection.test.ts test/auth.test.ts test/narration.test.ts test/commands.test.ts",
     "dev": "vite",
     "check": "tsc --noEmit -p tsconfig.json",
     "build": "tsc --noEmit -p tsconfig.json && vite build",

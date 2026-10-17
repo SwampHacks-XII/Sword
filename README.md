@@ -124,6 +124,11 @@ Sword/
 
 ## How it connects
 
+**Voice commands:** on game selection, click **Talk to Moss** to create a game,
+join a four-digit room, or play with Swamp Bot by speaking. Moss acknowledges
+commands using the existing voice. See [voice commands](docs/voice-commands.md)
+for browser support, microphone permissions, and a quick test.
+
 ```text
 Sword 1 / ESP32 ──┐                  ┌── Laptop 1 website
                   ├── Shared server ─┤
