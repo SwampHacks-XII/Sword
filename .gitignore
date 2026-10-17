@@ -10,3 +10,6 @@ dist-hosted/
 *.log
 .DS_Store
 Thumbs.db
+# Google credential files must stay outside the repository.
+application_default_credentials.json
+*-service-account.json

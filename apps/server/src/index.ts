@@ -5,18 +5,22 @@ import { createPlayerStore } from './db/players.js';
 import { createApp } from './app.js';
 import { createGameStore } from './game/store.js';
 import { createRealtimeHub } from './game/realtime.js';
+import { createGeminiGenerator } from './story/gemini.js';
 
 try {
   const config = readConfig();
   const pool = config.databaseUrl ? createPool(config.databaseUrl) : null;
   const players = pool ? createPlayerStore(pool) : null;
   const game = pool ? createGameStore(pool) : null;
-  const realtime = game && players && config.auth0 ? createRealtimeHub(game, players, config.webOrigin) : null;
-  const app = createApp(config, players, game, realtime);
+  const generateStory = config.gemini ? createGeminiGenerator(config.gemini) : undefined;
+  const realtime = game && players && config.auth0 ? createRealtimeHub(game, players, config.webOrigin, { generateStory }) : null;
+  const app = createApp(config, players, game, realtime, generateStory);
   const server = app.listen(config.port, config.host, () => {
     console.log(`Sword backend: http://${config.host}:${config.port}`);
     if (!config.auth0) console.log('Auth0 is not configured; protected routes remain unavailable.');
     if (!pool) console.log('Tiger Data is not configured; player storage remains unavailable.');
+    console.log(config.gemini ? `Gemini quests enabled (${config.gemini.model}); ADC is checked when generating a story.` : 'Gemini is disabled; Moss uses local quests.');
+    console.log(config.elevenlabs ? 'ElevenLabs voice configured; browser speech remains the fallback.' : 'ElevenLabs is disabled; Moss uses the browser voice.');
   });
   realtime?.attach(server);
   server.on('error', () => {

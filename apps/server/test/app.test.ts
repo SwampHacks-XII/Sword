@@ -13,6 +13,7 @@ import { createPlayerStore } from '../src/db/players.js';
 import { createPool } from '../src/db/pool.js';
 import { isAbsolute } from 'node:path';
 import { existsSync } from 'node:fs';
+import { createSpeechService } from '../src/story/speech.js';
 
 let issuerServer: Server;
 let apiServer: Server;
@@ -71,7 +72,9 @@ before(async () => {
     host: '127.0.0.1', port: 3001, webOrigin: 'http://localhost:5173',
     auth0: { issuerBaseURL: issuer, audience }, databaseUrl: null,
   };
-  apiServer = createServer(createApp(config, createPlayerStore(pool)));
+  const speech = createSpeechService({ apiKey: 'private-speech-test-key', voiceId: 'testVoice1234567890', model: 'eleven_flash_v2_5', dailyCharacters: 1000 },
+    { fetch: async () => new Response(new Uint8Array([73, 68, 51]), { headers: { 'Content-Type': 'audio/mpeg' } }) });
+  apiServer = createServer(createApp(config, createPlayerStore(pool), null, null, undefined, speech));
   base = await start(apiServer);
 });
 
@@ -85,6 +88,25 @@ test('health works without a token', async () => {
   const response = await request('/health');
   assert.equal(response.status, 200);
   assert.equal((await response.json()).status, 'ok');
+});
+
+test('voice audio requires player authentication and accepts only bounded text, never keys or voice overrides', async () => {
+  assert.equal((await request('/api/voice/speak', undefined, { text: 'Good hit!' }, 'POST')).status, 401);
+  const accessToken = await token('auth0|voice-player');
+  for (const body of [{ text: 'x'.repeat(801) }, { text: 'Hi', voiceId: 'another-voice' }, { text: '' }]) {
+    assert.equal((await request('/api/voice/speak', accessToken, body, 'POST')).status, 400);
+  }
+  const response = await request('/api/voice/speak', accessToken, { text: 'Good hit!' }, 'POST');
+  assert.equal(response.status, 200); assert.match(response.headers.get('Content-Type')!, /^audio\/mpeg/);
+  assert.equal(response.headers.get('Cache-Control'), 'no-store');
+  assert.equal(response.headers.has('xi-api-key'), false);
+  assert.deepEqual(new Uint8Array(await response.arrayBuffer()), new Uint8Array([73, 68, 51]));
+});
+
+test('built-in Moss speech works before login, but the public route rejects arbitrary speech', async () => {
+  const known = await request('/voice/speak', undefined, { text: 'Good hit!' }, 'POST');
+  assert.equal(known.status, 200); assert.match(known.headers.get('Content-Type')!, /^audio\/mpeg/);
+  assert.equal((await request('/voice/speak', undefined, { text: 'Generate arbitrary expensive speech' }, 'POST')).status, 400);
 });
 
 test('protected routes reject missing and malformed tokens', async () => {

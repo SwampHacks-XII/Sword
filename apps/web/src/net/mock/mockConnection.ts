@@ -1,4 +1,4 @@
-import { createPoseSimulator } from '@sword/protocol';
+import { createPoseSimulator, prepareQuest, type QuestStory } from '@sword/protocol';
 // In-browser stand-in for the game server, the opponent's laptop, and both swords.
 // Lets the whole flow run with no server or hardware. Swap for a WebSocket connection later.
 import { SWORD_COLORS, otherSlot, type CheckId, type Gesture, type PlayerSlot } from '../../game/types';
@@ -15,7 +15,8 @@ const YOUR_HIT_CHANCE = 0.85; // Pretend aim: real IR depends on where the sword
 const BOT_HIT_CHANCE = 0.6;
 const CHECK_ORDER: CheckId[] = ['pairing', 'lights', 'motion', 'camera'];
 
-export function createMockConnection(): GameConnection {
+export type BotStoryLoader = (sessionId: string, roundNumber: number) => Promise<QuestStory>;
+export function createMockConnection(loadStory?: BotStoryLoader): GameConnection {
   const listeners = new Set<(message: ServerMessage) => void>();
   const timeouts = new Set<ReturnType<typeof setTimeout>>();
   let open = true;
@@ -23,7 +24,28 @@ export function createMockConnection(): GameConnection {
   let botSlot: PlayerSlot | null = null;
   let botNextActionAt = 0;
   let shotCounter = 0;
-  let questPending = false;
+  let quest: Extract<ServerMessage, { type: 'quest.state' }>['quest'] = null;
+  let sessionId = '';
+  let roundNumber = 1;
+  let previousBriefings: string[] = [];
+  let briefing: ReturnType<typeof prepareQuest> | undefined;
+
+  function prepareBriefing() {
+    briefing?.dispose();
+    const id = sessionId;
+    briefing = prepareQuest({ roundNumber, previousBriefings: [...previousBriefings] },
+      loadStory ? (context => loadStory(id, context.roundNumber)) : undefined);
+  }
+  function newAdventure() {
+    quest = null;
+    roundNumber = 1;
+    previousBriefings = [];
+    // This is only an idempotency key; authentication is supplied separately by Auth0.
+    sessionId = globalThis.crypto?.randomUUID?.() ?? 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.floor(Math.random() * 16); return (c === 'x' ? r : (r & 3) | 8).toString(16);
+    });
+    prepareBriefing();
+  }
 
   function deliver(message: ServerMessage) {
     later(() => listeners.forEach((listener) => listener(message)), LATENCY_MS);
@@ -60,6 +82,14 @@ export function createMockConnection(): GameConnection {
     if (!botSlot || now < botNextActionAt) return;
     const fighter = rules.fighter(botSlot);
     if (!fighter) return;
+    if (fighter.hp <= 65 && rules.heal(botSlot)) { botNextActionAt = now + 700; return; }
+    if (fighter.castPhase === 'choose') {
+      const choices = ['easy', 'medium', 'hard'] as const;
+      rules.chooseSpell(botSlot, choices[Math.floor(Math.random() * choices.length)]!);
+      botNextActionAt = now + 700;
+      return;
+    }
+    if (!fighter.spellId) return;
     const spell = getSpell(fighter.spellId);
     const swordId = swordIdFor(botSlot);
     let wait = 500 + Math.random() * 500;
@@ -104,7 +134,7 @@ export function createMockConnection(): GameConnection {
       if (!open) return;
       switch (message.type) {
         case 'lobby.create':
-          questPending = false;
+          newAdventure();
           deliver({ type: 'quest.state', quest: null });
           you = 'p1';
           botSlot = 'p2';
@@ -112,6 +142,7 @@ export function createMockConnection(): GameConnection {
           later(() => rules.addPlayer('p2', BOT_NAME), 1000);
           break;
         case 'lobby.join':
+          newAdventure();
           // In the mock, any code joins a room hosted by the bot.
           you = 'p2';
           botSlot = 'p1';
@@ -119,7 +150,8 @@ export function createMockConnection(): GameConnection {
           later(() => rules.addPlayer('p1', BOT_NAME), 300);
           break;
         case 'lobby.leave':
-          questPending = false;
+          quest = null;
+          briefing?.dispose();
           deliver({ type: 'quest.state', quest: null });
           botSlot = null;
           rules.leave();
@@ -128,24 +160,34 @@ export function createMockConnection(): GameConnection {
           runDeviceChecks();
           break;
         case 'match.start':
-          if (questPending) break;
+          if (quest) break;
           if (rules.startMatch()) botNextActionAt = Date.now() + 2500;
           break;
         case 'quest.begin':
-          if (!rules.lobby() || rules.lobby()!.players.length < 2 || rules.snapshot() || questPending) break;
-          questPending = true;
-          deliver({ type: 'quest.state', quest: { accepted: botSlot ? [botSlot] : [] } });
+          if (!rules.lobby() || rules.lobby()!.players.length < 2 || rules.snapshot() || quest) break;
+          quest = { accepted: botSlot ? [botSlot] : [], story: briefing?.peek() ?? null, roundNumber };
+          const currentQuest = quest;
+          if (quest.story) previousBriefings = [...previousBriefings, quest.story.briefing].slice(-20);
+          deliver({ type: 'quest.state', quest: { ...quest } });
+          if (!quest.story && briefing) void briefing.get().then(story => {
+            if (!open || quest !== currentQuest) return;
+            quest.story = story;
+            previousBriefings = [...previousBriefings, story.briefing].slice(-20);
+            deliver({ type: 'quest.state', quest: { ...quest } });
+          });
           break;
         case 'quest.accept':
-          if (!questPending) break;
-          questPending = false;
+          if (!quest?.story) break;
+          quest = null;
           deliver({ type: 'quest.state', quest: null });
           if (rules.startMatch()) botNextActionAt = Date.now() + 2500;
           break;
         case 'match.rematch':
-          questPending = false;
+          if (!rules.returnToLobby()) break;
+          quest = null;
+          roundNumber++;
+          prepareBriefing();
           deliver({ type: 'quest.state', quest: null });
-          rules.returnToLobby();
           break;
         case 'dev.sword': {
           const { input } = message;
@@ -154,10 +196,17 @@ export function createMockConnection(): GameConnection {
           else pressTrigger(you);
           break;
         }
+        case 'spell.choose':
+          rules.chooseSpell(you, message.difficulty);
+          break;
+        case 'player.heal':
+          rules.heal(you);
+          break;
       }
     },
     close() {
       open = false;
+      briefing?.dispose();
       clearInterval(poseTimer);
       clearInterval(rulesTimer);
       timeouts.forEach(clearTimeout);

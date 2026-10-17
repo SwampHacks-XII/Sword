@@ -1,5 +1,5 @@
 import type { ClientMessage, ServerMessage } from './messages';
-import { createMockConnection } from './mock/mockConnection';
+import { createMockConnection, type BotStoryLoader } from './mock/mockConnection';
 import { createOnlineConnection } from './onlineConnection';
 import type { Api } from './api';
 
@@ -15,7 +15,7 @@ export interface GameConnection {
   close(): void;
 }
 
-export function createConnection(api: Api): GameConnection {
+export function createConnection(api: Api, loadBotStory?: BotStoryLoader): GameConnection {
   const listeners = new Set<(message: ServerMessage) => void>();
   let active: ReturnType<typeof createMockConnection> | ReturnType<typeof createOnlineConnection> | null = null;
   let kind: 'mock' | 'ws' = 'mock';
@@ -42,7 +42,7 @@ export function createConnection(api: Api): GameConnection {
         kind = message.type === 'lobby.create' && message.mode === 'bot' ? 'mock' : 'ws';
         emit({ type: 'action.pending', pending: true });
         if (kind === 'mock') {
-          const mock = createMockConnection(); active = mock; unsubscribe = mock.subscribe(emit);
+          const mock = createMockConnection(loadBotStory); active = mock; unsubscribe = mock.subscribe(emit);
           mock.send(message); busy = false; emit({ type: 'action.pending', pending: false });
         } else {
           const online = createOnlineConnection(api, scopedEmit); active = online;

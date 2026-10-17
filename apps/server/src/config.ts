@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import type { GeminiConfig } from './story/gemini.js';
+import type { ElevenLabsConfig } from './story/speech.js';
 
 export interface Config {
   host: string;
@@ -7,6 +9,8 @@ export interface Config {
   auth0: { issuerBaseURL: string; audience: string } | null;
   databaseUrl: string | null;
   serveWeb?: boolean;
+  gemini?: GeminiConfig | null;
+  elevenlabs?: ElevenLabsConfig | null;
 }
 
 export function readConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -51,6 +55,29 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (env.NODE_ENV === 'production' && (!issuer || !databaseUrl)) {
     throw new Error('Production requires Auth0 and DATABASE_URL configuration.');
   }
+  let gemini: GeminiConfig | null = null;
+  if (env.GEMINI_ENABLED === 'true') {
+    const settings = z.object({ project: z.string().regex(/^[a-z][a-z0-9-]{4,61}[a-z0-9]$/),
+      location: z.string().regex(/^(global|[a-z]+-[a-z]+[0-9])$/), model: z.string().regex(/^gemini-[a-z0-9.-]+$/),
+      dailyLimit: z.coerce.number().int().min(1).max(10000) }).safeParse({
+      project: env.GOOGLE_CLOUD_PROJECT?.trim(), location: env.GOOGLE_CLOUD_LOCATION?.trim() || 'global',
+      model: env.GEMINI_MODEL?.trim() || 'gemini-3.5-flash-lite', dailyLimit: env.GEMINI_DAILY_REQUEST_LIMIT || 500,
+    });
+    if (!settings.success) throw new Error('Check GOOGLE_CLOUD_PROJECT, GOOGLE_CLOUD_LOCATION, GEMINI_MODEL, and GEMINI_DAILY_REQUEST_LIMIT.');
+    gemini = settings.data;
+  }
+  let elevenlabs: ElevenLabsConfig | null = null;
+  if (env.ELEVENLABS_ENABLED === 'true') {
+    const voice = z.object({ apiKey: z.string().min(10).max(512).regex(/^[^\s]+$/),
+      voiceId: z.string().regex(/^[a-zA-Z0-9_-]{10,128}$/),
+      model: z.enum(['eleven_flash_v2_5', 'eleven_multilingual_v2']),
+      dailyCharacters: z.coerce.number().int().min(1).max(1000000) }).safeParse({
+      apiKey: env.ELEVENLABS_API_KEY?.trim(), voiceId: env.ELEVENLABS_VOICE_ID?.trim(),
+      model: env.ELEVENLABS_MODEL?.trim() || 'eleven_flash_v2_5', dailyCharacters: env.ELEVENLABS_DAILY_CHARACTER_LIMIT || 10000,
+    });
+    if (!voice.success) throw new Error('Check ELEVENLABS_API_KEY, ELEVENLABS_VOICE_ID, ELEVENLABS_MODEL and ELEVENLABS_DAILY_CHARACTER_LIMIT in the backend environment.');
+    elevenlabs = voice.data;
+  }
   return {
     host: parsed.data.HOST,
     port: parsed.data.PORT,
@@ -58,5 +85,7 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): Config {
     auth0: issuer ? { issuerBaseURL: issuer, audience } : null,
     databaseUrl,
     serveWeb,
+    gemini,
+    elevenlabs,
   };
 }

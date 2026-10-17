@@ -1,11 +1,14 @@
 import { Auth0Provider, useAuth0 } from '@auth0/auth0-react';
-import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react';
-import { describeAuthError, loginOptions, type AuthIssue } from './errors';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { describeAuthError, logoutOptions, type AuthIssue } from './errors';
+import { loginInPopup } from './popupLogin';
+import { navigate } from '../hooks/useScreen';
 
 interface Session {
   configured: boolean; loading: boolean; authenticated: boolean; name: string; error: string | null;
   errorDetails: AuthIssue | null;
   login(mode?: 'login' | 'signup'): Promise<void>; logout(): Promise<void>; getToken(): Promise<string>;
+  cancelLogin(): void;
 }
 const domain = import.meta.env.VITE_AUTH0_DOMAIN?.trim();
 const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID?.trim();
@@ -13,14 +16,25 @@ const audience = import.meta.env.VITE_AUTH0_AUDIENCE?.trim();
 const configured = Boolean(domain && clientId && audience);
 const fallback: Session = {
   configured: false, loading: false, authenticated: false, name: '', error: null, errorDetails: null,
-  async login() {}, async logout() {},
+  async login() {}, async logout() {}, cancelLogin() {},
   async getToken() { throw new Error('Online login is not configured.'); },
 };
 const SessionContext = createContext<Session>(fallback);
 
 function AuthSession({ children }: { children: ReactNode }) {
   const auth = useAuth0();
-  const issue = useMemo(() => auth.error ? describeAuthError(auth.error) : null, [auth.error]);
+  const popupRef = useRef<Window | null>(null);
+  const [popupAttempt, setPopupAttempt] = useState(false);
+  const issue = useMemo(() => {
+    const result = auth.error ? describeAuthError(auth.error) : null;
+    return result?.code === 'popup_closed' ? null : result;
+  }, [auth.error]);
+  useEffect(() => () => { popupRef.current?.close(); }, []);
+  useEffect(() => {
+    if (!popupAttempt || auth.isLoading) return;
+    if (auth.isAuthenticated && !auth.error) navigate('play');
+    setPopupAttempt(false);
+  }, [popupAttempt, auth.isLoading, auth.isAuthenticated, auth.error]);
   useEffect(() => {
     if (!auth.error || auth.isLoading || auth.isAuthenticated) return;
     const query = new URLSearchParams(window.location.search);
@@ -36,14 +50,26 @@ function AuthSession({ children }: { children: ReactNode }) {
     name: auth.user?.nickname ?? auth.user?.name ?? '',
     error: issue?.message ?? null,
     errorDetails: issue,
-    login: (mode = 'login') => auth.loginWithRedirect(loginOptions(mode)),
-    logout: () => auth.logout({ logoutParams: { returnTo: window.location.origin } }),
+    login: (mode = 'login') => loginInPopup(mode, {
+      open: () => window.open('', '_blank', `popup=yes,width=500,height=720,left=${Math.max(0, Math.round(window.screenX + (window.innerWidth - 500) / 2))},top=${Math.max(0, Math.round(window.screenY + (window.innerHeight - 720) / 2))},resizable=yes,scrollbars=yes`),
+      track: popup => {
+        popupRef.current = popup;
+        if (popup) setPopupAttempt(true);
+      },
+      authenticate: auth.loginWithPopup,
+    }),
+    cancelLogin: () => {
+      setPopupAttempt(false);
+      popupRef.current?.close();
+      navigate('login');
+    },
+    logout: () => auth.logout(logoutOptions(window.location.origin)),
     getToken: async () => {
       const token = await auth.getAccessTokenSilently();
       if (!token) throw new Error('Please sign in again.');
       return token;
     },
-  }), [auth.isLoading, auth.isAuthenticated, auth.user, issue, auth.loginWithRedirect, auth.logout, auth.getAccessTokenSilently]);
+  }), [auth.isLoading, auth.isAuthenticated, auth.user, issue, auth.loginWithPopup, auth.logout, auth.getAccessTokenSilently]);
   return <SessionContext value={value}>{children}</SessionContext>;
 }
 

@@ -5,19 +5,29 @@ export interface Spell {
   name: string;
   combo: SwordColor[];
   gesture: Gesture;
-  damage: number;
-  /** Self-cast spells (Shield) protect the caster instead of firing at the opponent. */
-  selfCast?: boolean;
-  slowMs?: number;
-  shieldMs?: number;
+  difficulty: SpellDifficulty;
+  damageRange: readonly [number, number];
 }
 
-// Placeholder balance from the team's idea doc; stronger spells need longer combos or harder motions.
+export const SPELL_DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
+export type SpellDifficulty = typeof SPELL_DIFFICULTIES[number];
+export const DAMAGE_RANGES = { easy: [5, 14], medium: [15, 24], hard: [25, 30] } as const;
+const buttons: Record<string, SwordColor> = { '1': 'red', '2': 'blue', '3': 'green', '4': 'yellow' };
+const spell = (id: string, name: string, difficulty: SpellDifficulty, sequence: string, gesture: Gesture): Spell => ({
+  id, name, difficulty, combo: sequence.split('-').map(number => buttons[number]!), gesture, damageRange: DAMAGE_RANGES[difficulty],
+});
+
+// Numbers match the keyboard and the four sword buttons: 1 red, 2 blue, 3 green, 4 yellow.
 export const SPELLS: readonly Spell[] = [
-  { id: 'fireball', name: 'Fireball', combo: ['red', 'red', 'blue'], gesture: 'swing_right', damage: 20 },
-  { id: 'ice_blast', name: 'Ice Blast', combo: ['blue', 'green', 'blue'], gesture: 'swing_left', damage: 10, slowMs: 4000 },
-  { id: 'thunderstrike', name: 'Thunderstrike', combo: ['green', 'red', 'blue', 'yellow'], gesture: 'wrist_rotate', damage: 30 },
-  { id: 'shield', name: 'Shield', combo: ['blue', 'blue'], gesture: 'upright', damage: 0, selfCast: true, shieldMs: 3000 },
+  spell('flame', 'Flame', 'easy', '2-2-2', 'swing_right'),
+  spell('waterdrop', 'Waterdrop', 'easy', '1-2-3', 'swing_left'),
+  spell('spark', 'Spark', 'easy', '4-2-4', 'wrist_rotate'),
+  spell('fireball', 'Fireball', 'medium', '2-2-4-1-3', 'swing_right'),
+  spell('rainfall', 'Rainfall', 'medium', '1-2-3-1-2', 'swing_left'),
+  spell('thunder', 'Thunder', 'medium', '4-4-2-3-1', 'wrist_rotate'),
+  spell('meteor', 'Meteor', 'hard', '2-4-2-2-3-1-3', 'swing_right'),
+  spell('tsunami', 'Tsunami', 'hard', '1-2-1-3-1-4-1', 'swing_left'),
+  spell('lightning_bolt', 'Lightning Bolt', 'hard', '1-2-4-4-3-2-1', 'wrist_rotate'),
 ];
 
 export function getSpell(id: string): Spell {
@@ -36,3 +46,6 @@ export const GESTURE_LABELS: Record<Gesture, string> = {
 /** How long a spell stays armed after its motion, before it fizzles. */
 export const ARMED_WINDOW_MS = 5000;
 export const MAX_HP = 100;
+export const HEAL_USES = 2;
+export const HEAL_RANGE = [10, 20] as const;
+export const HEAL_COOLDOWN_MS = 5000;
