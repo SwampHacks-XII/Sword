@@ -72,6 +72,20 @@ Use the actual host, port, and database supplied by Tiger Data. If you assemble 
 
 The backend enforces verified TLS using `sslmode=verify-full`. If your service supplies a required root certificate, use its documented certificate settings; the driver supports `sslrootcert` in the connection URL. Do not disable certificate verification to resolve a connection problem. See [Tiger Data connection details](https://www.tigerdata.com/docs/integrate/find-connection-details) and [PostgreSQL driver TLS settings](https://node-postgres.com/features/ssl).
 
+This project's current service uses the public CA pin in `apps/server/certs/tiger-ca.pem`.
+The backend automatically selects it for hostnames ending in
+`.tsdb.cloud.timescale.com` when the URL has no explicit `sslrootcert` setting.
+An explicit CA path takes precedence; no certificate parameter is needed in the
+usual Tiger Cloud connection string. See [the pin's source and fingerprint](../apps/server/certs/README.md)
+for its trust-on-first-use bootstrap and replacement instructions. A different
+database service may use a different CA.
+
+For a missing or rejected password, reset the database service password through
+Tiger Data's service connection panel, then run `npm run db:set-password` from
+`apps/server`. Paste the new password into its hidden prompt and press Enter.
+It updates `.env` and handles special-character encoding without exposing the
+password in terminal output or command history. Then run `npm run db:check`.
+
 ## 4. Configure and run the backend
 
 Open PowerShell at your cloned repo, then:
@@ -98,7 +112,7 @@ npm run db:setup
 npm run dev
 ```
 
-The setup command creates a `players` table with an internal ID, a unique Auth0 subject, a display name, and timestamps. It can be rerun without deleting existing profiles.
+The setup command creates the profile, match, sword, event, and tracking tables. It records applied migrations and can be rerun without deleting existing profiles. See [the game data guide](game-data-api.md) for the schema and two-player Postman walkthrough.
 
 Open http://localhost:3001/health. This confirms the server is running and whether settings are present. `db:check`, not `/health`, confirms a real database connection. Restart the backend after changing `.env`.
 

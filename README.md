@@ -6,13 +6,13 @@ Two physical swords, two laptops, and one shared game. Each sword contains an ES
 
 ## Start here
 
-Our current goal is **player login and a saved profile**. Live sword movement will be added when the hardware is built and connected.
+The backend now supports **player profiles, two-player sessions, and sword/camera data storage**. You can test these before building the website or connecting the hardware.
 
 1. **Create Auth0 and Tiger Data accounts.** Follow [the setup guide](docs/backend-setup.md) for the exact dashboard settings and connection steps.
 2. **Configure the backend.** From `apps/server`, install dependencies and copy `.env.example` to a private `.env`. Fill in the Auth0 tenant URL, API audience, and Tiger Data connection string.
-3. **Create the player table.** Run `npm run db:check`, then `npm run db:setup` from `apps/server`.
+3. **Set up the database tables.** Run `npm run db:check`, then `npm run db:setup` from `apps/server`. Existing profiles are preserved.
 4. **Start the backend.** Run `npm run dev`, then open http://localhost:3001/health.
-5. **Test login and a profile.** The setup guide explains how to use Postman before the website exists. The website login button is a later step.
+5. **Try a two-player session.** Follow [the game data guide](docs/game-data-api.md) and import `tools/sword-api.postman_collection.json` into Postman. It includes profiles, match creation/joining, sword assignment, and sample uploads for both players.
 
 The backend can start without account settings, but protected routes stay unavailable. The website, hardware integration, game rules, and Gemini dialogue still need to be built. See [the backend README](apps/server/README.md) for endpoints and verified commands.
 
@@ -116,7 +116,7 @@ Agree together on wiring, sensor mounting, message formats, and how an IR shot i
 
 ## Proposed tools
 
-The backend API is initialized with Auth0 verification and Tiger Data profile storage. The frontend and hardware tools remain planned.
+The backend API includes Auth0 verification and Tiger Data storage for profiles, matches, sword readings, and camera tracking. The frontend and hardware tools remain planned.
 
 | Part | Tools |
 | --- | --- |
@@ -135,7 +135,7 @@ The backend API is initialized with Auth0 verification and Tiger Data profile st
 - **Start with rotation.** A motion sensor does not directly give reliable absolute position. Calibrate it and agree which sensor directions match the 3D model.
 - **Use one message format.** The website and server can share TypeScript definitions. The C++ firmware must send the same format, including agreed units and IDs.
 - **Give each sword its own identity.** Both can use the same firmware project with different device/player settings.
-- **Keep live match state in memory.** Save player profiles in Tiger Data; add match history when needed.
+- **Separate live updates from recordings.** Tiger Data stores profiles, session state, events, and timestamped readings. A future WebSocket channel will deliver live game updates; avoid writing every animation frame to the database.
 - **Keep secrets local.** Don't commit Wi-Fi passwords, database credentials, or tokens. Ignore rules exclude local environment files, dependency folders, and build output.
 
 ## Git basics

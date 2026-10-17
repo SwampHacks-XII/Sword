@@ -1,6 +1,6 @@
 # Sword backend
 
-The first backend feature is player identity and a saved display name. Hardware, movement, gameplay, Gemini, and the website login button are not implemented here yet.
+The backend verifies player identity and stores profiles, two-player sessions, sword measurements, and camera tracking in Tiger Data. Physical device connections, live gameplay, Gemini, and the website login button still need to be built.
 
 Start with the [account and connection guide](../../docs/backend-setup.md). It explains how to create Auth0 and Tiger Data accounts and fill in your local configuration.
 
@@ -23,7 +23,19 @@ npm run db:check
 npm run db:setup
 ```
 
-`db:check` verifies connectivity. `db:setup` creates the initial `players` table without deleting existing rows; it is not a general-purpose migration framework. Use new migrations for later schema changes. Restart the server after changing `.env`.
+`db:check` verifies connectivity. `db:setup` applies numbered SQL migrations and records their checksums without deleting existing rows. Re-running it skips applied files. Add a new migration for future changes; do not edit applied migrations. Restart the server after changing `.env`.
+
+Tiger Cloud hostnames ending in `.tsdb.cloud.timescale.com` automatically use the
+public CA pin in `certs/tiger-ca.pem` when the URL does not specify `sslrootcert`.
+The default file resolves from the backend module in source and compiled builds.
+An explicit `sslrootcert` setting takes precedence. Certificate and hostname
+verification remain enabled. See [CA source and fingerprint](certs/README.md)
+for the initial trust-on-first-use bootstrap and certificate replacement notes.
+
+If the database rejects the saved password, reset the **database service**
+password in Tiger Data, then run `npm run db:set-password` here. The prompt hides
+your input and safely URL-encodes it into your local `.env`. Do not paste the
+password into chat or a command argument. Then retry `npm run db:check`.
 
 ## Endpoints
 
@@ -33,6 +45,11 @@ npm run db:setup
 | GET | `/api/auth/me` | Verify a player access token and return its subject ID; no database needed |
 | GET | `/api/me` | Read the signed-in player's profile; 404 if it has not been created |
 | PUT | `/api/me` | Create/update that player's profile using only a `displayName` field |
+| GET / POST | `/api/swords` | List/register the player's swords |
+| GET / POST | `/api/matches` | List/create the player's sessions |
+| POST | `/api/matches/join` | Join a session by code |
+
+See the [game data API guide](../../docs/game-data-api.md) for sword assignment, start/finish, event history, and both players' sword/camera uploads. Import [the Postman collection](../../tools/sword-api.postman_collection.json) to try the flow without a frontend.
 
 Send an Auth0 access token for **Sword API** as `Authorization: Bearer <token>` to all `/api` routes. An ID token is not the API token. Machine-to-machine tokens are rejected for player routes.
 
@@ -55,12 +72,20 @@ src/
   config.ts             Validate local configuration
   db/pool.ts            Tiger Data/PostgreSQL connection pool with verified TLS
   db/players.ts         Parameterized queries for the current player's profile
+  db/migrate.ts         Apply pending SQL migrations safely
+  game/routes.ts        Authenticated session and tracking endpoints
+  game/schemas.ts       Validate incoming requests and measurement formats
+  game/store.ts         Ownership checks, transactions, and game data queries
   scripts/check-db.ts   Check the database connection
-  scripts/setup-db.ts   Create the initial table
+  scripts/setup-db.ts   Apply database migrations
 migrations/
   001_players.sql       Initial player schema
+  002_game_storage.sql  Matches, slots, swords, events, and samples
+  003_time_series.sql   Enable Timescale hypertables when available
 test/
   app.test.ts           Token validation and profile-ownership tests
+  game.test.ts          Session permissions and both-player data tests
+  game-live.test.ts     Run game tests in a disposable real-database schema
 ```
 
 ## Verify and build
@@ -74,4 +99,6 @@ npm start
 
 Stop the dev server before `npm start`, or choose a different `PORT`. After the lockfile is present, teammates and CI can use `npm ci` for a repeatable install.
 
-Tests use a local mock identity issuer and an in-memory PostgreSQL emulator. They check real JWT signatures, audience/issuer/expiration rejection, profile ownership, invalid inputs, and missing configuration. They do not connect to Auth0 or Tiger Data. Live login and hosted-database checks require your own accounts and settings.
+`npm test` uses a local mock identity issuer and an in-memory PostgreSQL emulator. It checks JWT validation, ownership, session permissions, invalid inputs, and sample storage without external accounts.
+
+With your existing `DATABASE_URL`, `npm run test:db` also runs the game API tests against a temporary schema in your real database, including Timescale and concurrent joins. It cleans that schema up afterward and leaves your real player/match records alone. These tests do not exercise a real Auth0 browser login.
