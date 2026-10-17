@@ -66,7 +66,7 @@ export function authSpread({ session, pending, issue, signIn, setError }: Return
       kicker: 'Chapter one',
       title: <>Every legend<br />begins with <em>you.</em></>,
       content: <div className="book-art">
-        <Knight className="book-art-knight" label="A small pixel knight holding a sword" />
+        <Knight plain className="book-art-knight" label="A small pixel hero, waiting for a sword" />
         <NpcGuide message="Let’s put your name in the story before your twin takes all the credit." />
       </div>,
     },
