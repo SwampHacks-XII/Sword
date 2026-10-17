@@ -1,5 +1,6 @@
 import { useMatch } from '../hooks/useMatch';
 import { StoryScene } from './StoryScene';
+import { confirmLeaveGame } from '../story/confirmLeaveGame';
 export function QuestScreen() {
   const { lobby, quest, onlineStatus, send, error } = useMatch();
   const accepted = !!lobby && !!quest?.accepted.includes(lobby.you);
@@ -10,5 +11,5 @@ export function QuestScreen() {
     narration={!!story} action={accepted ? 'Quest accepted' : 'Accept my quest'}
     disabled={accepted || !connected || !story} onContinue={() => send({ type: 'quest.accept' })}
     status={!connected ? 'Waiting for both adventurers to reconnect…' : !story ? 'Moss is gathering the latest news…' : accepted ? 'Your sword is ready. Waiting for the other adventurer…' : 'The battle begins when both adventurers accept.'}
-    error={error} onLeave={() => send({ type: 'lobby.leave' })} />;
+    error={error} onLeave={async () => { if (await confirmLeaveGame()) send({ type: 'lobby.leave' }); }} />;
 }

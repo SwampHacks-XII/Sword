@@ -9,6 +9,7 @@ import { executeMenuExit } from '../story/menuExit';
 import { MOSS_COMMAND_REPLIES } from '@sword/protocol';
 import type { BookSpread } from './BookMenu';
 import { HeroNameEditor } from './HeroNameEditor';
+import { confirmLeaveGame } from '../story/confirmLeaveGame';
 
 /** Game-choice state lives above the pages, so the name survives page turns that remount them. */
 export function useHubMenu({ guestOnly, onVoiceReply, stopVoice }: {
@@ -68,6 +69,8 @@ export function useHubMenu({ guestOnly, onVoiceReply, stopVoice }: {
     if (pending || exitingRef.current) { if (voice) void onVoiceReply(MOSS_COMMAND_REPLIES.lobbyBusy); return; }
     exitingRef.current = true; setExiting(true); setAccountError(null);
     try {
+      if (command.kind === 'leave' && !await confirmLeaveGame()) return;
+      if (!mounted.current) return;
       const result = await executeMenuExit(command, {
         authenticated: session.authenticated,
         reply: async text => {

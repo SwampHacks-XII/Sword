@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { browserCommandRecognition, createCommandListener } from '../story/commandRecognition';
+import { audioActivity } from '../audio/activity';
 
 export function MossCommandInput({ disabled, onTranscript, stopVoice, example }: {
   disabled: boolean; onTranscript(text: string): void; stopVoice(): void; example?: string;
@@ -17,8 +18,9 @@ export function MossCommandInput({ disabled, onTranscript, stopVoice, example }:
     setAvailable(Boolean(factory));
     if (!factory) return;
     let mounted = true;
+    const audioSource = Symbol('Moss microphone');
     const input = createCommandListener(factory, {
-      listening: value => { if (mounted) setListening(value); },
+      listening: value => { audioActivity.set(audioSource, 'microphone', value); if (mounted) setListening(value); },
       started: () => { if (mounted) setStarted(true); },
       preview: text => { if (mounted) setHeard(text); },
       transcript: text => {
@@ -28,7 +30,7 @@ export function MossCommandInput({ disabled, onTranscript, stopVoice, example }:
       error: message => { if (mounted) setError(message); },
     });
     listener.current = input;
-    return () => { mounted = false; input.stop(); listener.current = null; };
+    return () => { mounted = false; input.stop(); audioActivity.set(audioSource, 'microphone', false); listener.current = null; };
   }, []);
   useEffect(() => { if (disabled) listener.current?.stop(); }, [disabled]);
   return <div className={`moss-command-input ${listening ? 'is-listening' : ''}`}>

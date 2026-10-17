@@ -22,6 +22,10 @@ The backend can start without account settings, but protected routes stay unavai
 
 **Play again together.** After a battle, either player can choose **rematch** to return both players to the same lobby and room code. The host starts the next battle. Each completed round's result is kept in the database.
 
+The pink **Leave game** button opens Moss's parchment popup asking
+**“Are you sure you want to leave the game?”** Choose **Leave game** to confirm,
+or **Keep playing**, **×** or Escape to stay. Moss's leave commands open the same popup.
+
 Spell combat uses the same rules in both modes.
 
 Choose **Easy**, **Medium**, or **Hard** before each spell to receive a random
@@ -40,6 +44,17 @@ voice on/off button. **ElevenLabs is the main voice** when configured,
 including the prologue and guest games; the lighter browser voice takes over
 when credits run out or playback is unavailable. The browser backup has no speech
 API charge. Follow [ElevenLabs setup](docs/elevenlabs-setup.md).
+
+**Background music.** The welcome, story, login/sign-up, game selection, lobby and quest
+briefing pages share `apps/web/public/audio/lobby.mp3`; battles use
+`apps/web/public/audio/battle.mp3`. Both tracks repeat automatically. Turning pages
+keeps the menu music playing without restarting it. The header has a separate **Music** mute button and volume slider;
+settings are remembered in this browser and do not affect Moss's voice. Music fades
+between the lobby and battle, gets quieter while Moss speaks, and pauses while
+**Talk to Moss** is listening or the tab is hidden. Leaving a battle returns to menu music.
+Playback starts after your first click or keypress. If the browser blocks playback,
+click **Enable music** in the header. To replace a
+track, use the same filename and ensure you have permission to distribute the music.
 
 During either mode, the keyboard stands in for your sword:
 
