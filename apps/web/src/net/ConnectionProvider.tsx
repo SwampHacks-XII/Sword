@@ -5,11 +5,14 @@ import { createPoseStore } from '../hooks/useSwordPoses';
 import { createConnection } from './connection';
 import { createApi } from './api';
 import { useSession } from '../auth/SessionProvider';
+import { fallbackQuest, type QuestStory } from '@sword/protocol';
 
 export function ConnectionProvider({ children }: { children: ReactNode }) {
   const session = useSession();
   const token = useRef(session.getToken);
   token.current = session.getToken;
+  const authenticated = useRef(session.authenticated);
+  authenticated.current = session.authenticated;
   const [value, setValue] = useState<ConnectionContextValue | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,7 +20,12 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let connection;
     try {
-      connection = createConnection(createApi(() => token.current()));
+      const api = createApi(() => token.current());
+      connection = createConnection(api, async (sessionId, roundNumber) => {
+        if (!authenticated.current) return fallbackQuest(roundNumber);
+        const result = await api.request<{ story: QuestStory }>('/quests/story', 'POST', { sessionId, roundNumber });
+        return result.story;
+      });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not connect.');
       return;

@@ -8,6 +8,10 @@ Both players open one public HTTPS website, sign into separate accounts, and
 join the same four-digit room code. They can use different Wi-Fi networks or
 mobile internet. They do not need to install the project or run a backend.
 
+**Gemini stories:** local Google login credentials do not transfer to Render.
+The hosted game uses local stories until you separately configure its Google
+identity and Gemini settings. See [the Gemini guide](gemini-setup.md#render-is-a-separate-setup).
+
 ## 1. Push the tested changes
 
 Review and commit the changes, including `render.yaml`, the hosted helper

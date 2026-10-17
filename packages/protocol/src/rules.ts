@@ -1,5 +1,5 @@
 // One rules engine for the online server and the offline Swamp Bot game.
-import { ARMED_WINDOW_MS, MAX_HP, SPELLS, getSpell } from './spells.js';
+import { ARMED_WINDOW_MS, MAX_HP, SPELLS, getSpell, HEAL_USES, HEAL_RANGE, HEAL_COOLDOWN_MS, type SpellDifficulty } from './spells.js';
 import {
   PLAYER_SLOTS, otherSlot,
   type CheckId, type CheckStatus, type DeviceChecks, type FighterState, type LobbyPlayer,
@@ -10,11 +10,10 @@ import type { ServerMessage, SwordEvent } from './messages.js';
 /** How long after a trigger press an IR hit report still counts. */
 const SHOT_TTL_MS = 1000;
 
-interface PendingShot { attacker: PlayerSlot; spellId: string; firedAt: number }
+interface PendingShot { attacker: PlayerSlot; spellId: string; firedAt: number; damage: number }
 export type TriggerResult = 'fired' | 'self-cast' | 'ignored';
 
 const cleanName = (name: string, fallback: string) => name.trim().slice(0, 40) || fallback;
-const pick = <T,>(items: readonly T[]): T => items[Math.floor(Math.random() * items.length)]!;
 
 export function randomRoomCode() {
   return Math.floor(Math.random() * 10_000).toString().padStart(4, '0');
@@ -29,7 +28,7 @@ export class GameRules {
   private pendingShots = new Map<string, PendingShot>();
   private usedShots = new Set<string>();
 
-  constructor(private readonly emit: (message: ServerMessage) => void, private readonly now = () => Date.now()) {}
+  constructor(private readonly emit: (message: ServerMessage) => void, private readonly now = () => Date.now(), private readonly random = Math.random) {}
 
   // ---- Lobby -------------------------------------------------------------
 
@@ -99,8 +98,9 @@ export class GameRules {
     for (const slot of PLAYER_SLOTS) {
       const player = this.players.find((p) => p.slot === slot)!;
       fighters[slot] = {
-        slot, name: player.name, hp: MAX_HP, maxHp: MAX_HP, spellId: pick(SPELLS).id, entered: 0,
-        castPhase: 'enter', armedAt: null, armedUntil: null, shieldUntil: null, slowedUntil: null,
+        slot, name: player.name, hp: MAX_HP, maxHp: MAX_HP, spellId: null, entered: 0,
+        castPhase: 'choose', armedAt: null, armedUntil: null, shieldUntil: null, slowedUntil: null,
+        healUsesRemaining: HEAL_USES, healReadyAt: null,
       };
     }
     this.match = { phase: 'fighting', fighters, winner: null };
@@ -114,6 +114,33 @@ export class GameRules {
     return this.match?.phase === 'fighting' ? { ...this.match.fighters[slot] } : null;
   }
 
+  chooseSpell(slot: PlayerSlot, difficulty: SpellDifficulty): boolean {
+    const fighter = this.match?.phase === 'fighting' ? this.match.fighters[slot] : null;
+    if (!fighter || fighter.castPhase !== 'choose') return false;
+    const choices = SPELLS.filter(spell => spell.difficulty === difficulty);
+    if (!choices.length) return false;
+    fighter.spellId = choices[Math.floor(this.random() * choices.length)]!.id;
+    fighter.castPhase = 'enter';
+    this.emitMatch();
+    return true;
+  }
+
+  heal(slot: PlayerSlot): boolean {
+    const fighter = this.match?.phase === 'fighting' ? this.match.fighters[slot] : null;
+    const now = this.now();
+    if (!fighter || fighter.hp >= fighter.maxHp || fighter.healUsesRemaining <= 0
+      || (fighter.healReadyAt !== null && now < fighter.healReadyAt)) return false;
+    const before = fighter.hp;
+    fighter.hp = Math.min(fighter.maxHp, fighter.hp + this.roll(HEAL_RANGE));
+    fighter.healUsesRemaining--;
+    fighter.healReadyAt = now + HEAL_COOLDOWN_MS;
+    this.emitEvent({ kind: 'heal', slot, amount: fighter.hp - before }, now);
+    this.emitMatch();
+    return true;
+  }
+
+  private roll([min, max]: readonly [number, number]) { return min + Math.floor(this.random() * (max - min + 1)); }
+
   /** Handles a message from a physical (or simulated) sword. */
   handleSword(event: SwordEvent): TriggerResult | void {
     const match = this.match;
@@ -126,6 +153,7 @@ export class GameRules {
     const slot = slotForSword(event.swordId);
     if (!slot) return;
     const fighter = match.fighters[slot];
+    if (!fighter.spellId) return event.type === 'sword.trigger' ? 'ignored' : undefined;
     const spell = getSpell(fighter.spellId);
 
     switch (event.type) {
@@ -143,28 +171,21 @@ export class GameRules {
       }
       case 'sword.gesture': {
         if (fighter.castPhase !== 'motion' || event.gesture !== spell.gesture) return;
-        // Ice Blast's slow: a slowed player gets half the time to aim.
-        const slowed = fighter.slowedUntil !== null && fighter.slowedUntil > now;
         fighter.castPhase = 'armed';
         fighter.armedAt = now;
-        fighter.armedUntil = now + (slowed ? ARMED_WINDOW_MS / 2 : ARMED_WINDOW_MS);
+        fighter.armedUntil = now + ARMED_WINDOW_MS;
         this.emitMatch();
         return;
       }
       case 'sword.trigger': {
         if (fighter.castPhase !== 'armed') return 'ignored';
+        if (fighter.armedUntil !== null && now > fighter.armedUntil) { this.tick(); return 'ignored'; }
+        if (this.pendingShots.has(event.shotId) || this.usedShots.has(event.shotId)) return 'ignored';
         this.emitEvent({ kind: 'cast', slot, spellId: spell.id }, now);
-        let result: TriggerResult;
-        if (spell.selfCast) {
-          fighter.shieldUntil = now + (spell.shieldMs ?? 0);
-          result = 'self-cast';
-        } else {
-          this.pendingShots.set(event.shotId, { attacker: slot, spellId: spell.id, firedAt: now });
-          result = 'fired';
-        }
+        this.pendingShots.set(event.shotId, { attacker: slot, spellId: spell.id, firedAt: now, damage: this.roll(spell.damageRange) });
         this.nextSpell(fighter);
         this.emitMatch();
-        return result;
+        return 'fired';
       }
     }
   }
@@ -176,7 +197,7 @@ export class GameRules {
     const now = this.now();
     let changed = false;
     for (const fighter of Object.values(match.fighters)) {
-      if (fighter.castPhase === 'armed' && fighter.armedUntil !== null && now > fighter.armedUntil) {
+      if (fighter.castPhase === 'armed' && fighter.spellId && fighter.armedUntil !== null && now > fighter.armedUntil) {
         this.emitEvent({ kind: 'fizzle', slot: fighter.slot, spellId: fighter.spellId }, now);
         this.nextSpell(fighter);
         changed = true;
@@ -204,10 +225,9 @@ export class GameRules {
 
     const target = match.fighters[victim];
     const spell = getSpell(shot.spellId);
-    const blocked = target.shieldUntil !== null && target.shieldUntil > now;
-    const damage = blocked ? 0 : spell.damage;
+    const blocked = false;
+    const damage = shot.damage;
     target.hp = Math.max(0, target.hp - damage);
-    if (!blocked && spell.slowMs) target.slowedUntil = now + spell.slowMs;
     this.emitEvent({ kind: 'hit', attacker, victim, spellId: spell.id, damage, blocked }, now);
     if (target.hp === 0) {
       match.phase = 'over';
@@ -217,9 +237,9 @@ export class GameRules {
   }
 
   private nextSpell(fighter: FighterState) {
-    fighter.spellId = pick(SPELLS).id;
+    fighter.spellId = null;
     fighter.entered = 0;
-    fighter.castPhase = 'enter';
+    fighter.castPhase = 'choose';
     fighter.armedAt = null;
     fighter.armedUntil = null;
   }

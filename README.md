@@ -22,15 +22,34 @@ The backend can start without account settings, but protected routes stay unavai
 
 **Play again together.** After a battle, either player can choose **rematch** to return both players to the same lobby and room code. The host starts the next battle. Each completed round's result is kept in the database.
 
+Spell combat uses the same rules in both modes.
+
+Choose **Easy**, **Medium**, or **Hard** before each spell to receive a random
+spell from that group. Damage ranges are **5–14**, **15–24**, and **25–30**.
+Each player also gets **two 10–20 HP heals per battle**, with a **five-second
+cooldown** between uses. See [combat and voice](docs/combat-and-voice.md) for all
+nine sequences, controls, and testing.
+
+Moss speaks automatically on story pages after you enter the prologue. Use
+**Mute Moss** to silence playback while narration keeps moving; unmuting
+returns at the current point. Choosing the next page stops its audio immediately.
+Playback is slightly faster while preserving the ElevenLabs
+voice’s pitch. In battle, Moss has
+spoken reactions such as “Good hit!” and “That one missed!”, controlled by a
+voice on/off button. **ElevenLabs is the main voice** when configured,
+including the prologue and guest games; the lighter browser voice takes over
+when credits run out or playback is unavailable. The browser backup has no speech
+API charge. Follow [ElevenLabs setup](docs/elevenlabs-setup.md).
+
 During either mode, the keyboard stands in for your sword:
 
 - `1`–`4`: the red, blue, green and yellow buttons
 - `Q`, `E`, `R`, `W`: swing left, swing right, rotate wrist, hold upright
 - `Space`: the trigger
 
-The interface uses a pastel pixel meadow, parchment scrolls, and Moss, the green NPC story guide. Story dialogue is placeholder copy; Gemini is not connected. See [the storyline guide](docs/storyline-ui.md) to edit the scenes. The 3D fighters and swords are still placeholders. To use a real 3D model, put a `.glb` in `apps/web/public/models` and set its path in `apps/web/src/scene/models.ts`.
+The interface uses a pastel pixel meadow, parchment scrolls, and Moss, the green NPC story guide. **Gemini can write Moss’s short quest briefing for each round**, shared by both players, with a different story on rematch and a quick local fallback. Follow [the Gemini setup guide](docs/gemini-setup.md) to enable and test it. See [the storyline guide](docs/storyline-ui.md) to edit the scenes, and [Auth0 appearance](docs/auth0-appearance.md) to match the hosted login screen to the game. The 3D fighters and swords are still placeholders. To use a real 3D model, put a `.glb` in `apps/web/public/models` and set its path in `apps/web/src/scene/models.ts`.
 
-Online battles use an authenticated WebSocket connection and server-owned spell/health state. The browser bot and online backend share messages and rules in `packages/protocol`. Physical sword connections, real IR reception, camera capture, and Gemini dialogue still need to be built. Online keyboard practice simulates successful attack hits.
+Online battles use an authenticated WebSocket connection and server-owned spell/health state. The browser bot and online backend share messages and rules in `packages/protocol`. Physical sword connections, real IR reception, and camera capture still need to be built. Online keyboard practice simulates successful attack hits.
 
 ## The game we're building
 

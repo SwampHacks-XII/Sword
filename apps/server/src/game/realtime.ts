@@ -6,6 +6,7 @@ import { GameRules, createPoseSimulator, otherSlot, swordIdFor, type PlayerSlot,
 import type { PlayerStore } from '../db/players.js';
 import type { GameStore } from './store.js';
 import { ApiError } from './errors.js';
+import { prepareQuest, type QuestGenerator } from '@sword/protocol';
 
 const commandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('session.auth'), ticket: z.string().regex(/^[a-f0-9]{64}$/) }).strict(),
@@ -14,6 +15,8 @@ const commandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('match.rematch') }).strict(),
   z.object({ type: z.literal('quest.begin') }).strict(),
   z.object({ type: z.literal('quest.accept') }).strict(),
+  z.object({ type: z.literal('spell.choose'), difficulty: z.enum(['easy', 'medium', 'hard']) }).strict(),
+  z.object({ type: z.literal('player.heal') }).strict(),
   z.object({ type: z.literal('lobby.leave') }).strict(),
   z.object({ type: z.literal('device.check') }).strict(),
   z.object({ type: z.literal('dev.sword'), input: z.discriminatedUnion('kind', [
@@ -31,12 +34,13 @@ interface Room {
   id: string; snapshot: Snapshot; peers: Set<Peer>; rules: GameRules;
   poses: ReturnType<typeof createPoseSimulator>; hostSubject?: string;
   disconnectDeadline: number | null; shot: number; closing: boolean; closeSubject: string;
-  quest: { accepted: PlayerSlot[] } | null;
+  quest: Extract<ServerMessage, { type: 'quest.state' }>['quest'];
+  briefing: ReturnType<typeof prepareQuest>; previousBriefings: string[];
 }
 
 /** A single backend process owns online practice matches; PostgreSQL keeps session history. */
 export function createRealtimeHub(game: GameStore, players: PlayerStore, origin: string,
-  options: { disconnectGraceMs?: number } = {}) {
+  options: { disconnectGraceMs?: number; generateStory?: QuestGenerator; storyWaitMs?: number } = {}) {
   const wss = new WebSocketServer({ noServer: true, maxPayload: 2048 });
   const tickets = new Map<string, { subject: string; expires: number; sessionExpires: number }>();
   const peers = new Set<Peer>();
@@ -81,6 +85,7 @@ export function createRealtimeHub(game: GameStore, players: PlayerStore, origin:
     for (const peer of room.peers) { peer.room = undefined; peer.slot = undefined; }
     room.peers.clear();
     rooms.delete(room.id);
+    room.briefing.dispose();
   }
   async function subscribe(peer: Peer, matchId: string) {
     if (peer.room && peer.room.id !== matchId) throw new ApiError(409, 'already_in_room', 'Leave your current room first.');
@@ -95,6 +100,7 @@ export function createRealtimeHub(game: GameStore, players: PlayerStore, origin:
       const fresh: Room = {
         id: matchId, snapshot, peers: new Set(), rules: null!, poses: createPoseSimulator(),
         disconnectDeadline: null, shot: 0, closing: false, closeSubject: peer.subject!, quest: null,
+        previousBriefings: [], briefing: prepareQuest({ roundNumber: snapshot.roundNumber, previousBriefings: [] }, options.generateStory, options.storyWaitMs),
       };
       fresh.rules = new GameRules(message => broadcast(fresh, message));
       fresh.rules.openLobby(snapshot.joinCode, 'p1', host.displayName);
@@ -152,12 +158,23 @@ export function createRealtimeHub(game: GameStore, players: PlayerStore, origin:
       if (peer.slot !== 'p1') throw new ApiError(403, 'host_required', 'Only the host can begin the quest.');
       if (room.peers.size !== 2) throw new ApiError(409, 'players_disconnected', 'Both players must be connected to begin.');
       if (room.rules.snapshot() || room.quest) return;
-      room.quest = { accepted: [] };
+      room.quest = { accepted: [], story: room.briefing.peek(), roundNumber: room.snapshot.roundNumber };
+      const quest = room.quest;
+      if (quest.story) room.previousBriefings = [...room.previousBriefings, quest.story.briefing].slice(-20);
       broadcast(room, { type: 'quest.state', quest: room.quest });
+      // Model I/O must never block the command queue for this or any other room.
+      if (!quest.story) void room.briefing.get().then(story => enqueue(async () => {
+        if (stopping || room.closing || rooms.get(room.id) !== room || room.quest !== quest) return;
+        quest.story = story;
+        room.previousBriefings.push(story.briefing);
+        room.previousBriefings = room.previousBriefings.slice(-20);
+        broadcast(room, { type: 'quest.state', quest });
+      }));
       return;
     }
     if (command.type === 'quest.accept') {
       if (!room.quest) return;
+      if (!room.quest.story) throw new ApiError(409, 'story_preparing', 'Moss is finishing your quest. Try again in a moment.');
       if (room.peers.size !== 2) throw new ApiError(409, 'players_disconnected', 'Waiting for your fellow adventurer to reconnect.');
       if (!room.quest.accepted.includes(peer.slot)) room.quest.accepted.push(peer.slot);
       broadcast(room, { type: 'quest.state', quest: room.quest });
@@ -189,6 +206,8 @@ export function createRealtimeHub(game: GameStore, players: PlayerStore, origin:
       if (!room.rules.snapshot() && room.snapshot.roundNumber > 1) return;
       if (room.rules.snapshot()?.phase !== 'over') throw new ApiError(409, 'round_not_finished', 'Finish this battle before requesting a rematch.');
       room.snapshot = await game.rematch(peer.subject, room.id);
+      room.briefing.dispose();
+      room.briefing = prepareQuest({ roundNumber: room.snapshot.roundNumber, previousBriefings: [...room.previousBriefings] }, options.generateStory, options.storyWaitMs);
       room.quest = null;
       broadcast(room, { type: 'quest.state', quest: null });
       room.poses = createPoseSimulator();
@@ -200,6 +219,8 @@ export function createRealtimeHub(game: GameStore, players: PlayerStore, origin:
     room.rules.tick();
     const slot = peer.slot;
     const swordId = swordIdFor(slot);
+    if (command.type === 'spell.choose') { room.rules.chooseSpell(slot, command.difficulty); return; }
+    if (command.type === 'player.heal') { room.rules.heal(slot); return; }
     if (command.input.kind === 'button') room.rules.handleSword({ type: 'sword.button', swordId, color: command.input.color });
     else if (command.input.kind === 'gesture') {
       room.poses.play(slot, command.input.gesture, Date.now());
@@ -301,6 +322,7 @@ export function createRealtimeHub(game: GameStore, players: PlayerStore, origin:
       tickets.clear();
       for (const peer of peers) peer.ws.terminate();
       await tail;
+      for (const room of rooms.values()) room.briefing.dispose();
       rooms.clear();
       await new Promise<void>(resolve => wss.close(() => resolve()));
     },

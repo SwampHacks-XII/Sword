@@ -32,23 +32,25 @@ export type CheckStatus = 'pending' | 'checking' | 'ok' | 'failed';
 export type DeviceChecks = Record<CheckId, CheckStatus>;
 
 /**
- * Casting a spell: enter the button sequence → do the motion → armed (fire before time runs out).
+ * Casting a spell: choose difficulty → enter the sequence → motion → armed (fire before time runs out).
  * Timestamps are epoch milliseconds from the server clock.
  */
-export type CastPhase = 'enter' | 'motion' | 'armed';
+export type CastPhase = 'choose' | 'enter' | 'motion' | 'armed';
 
 export interface FighterState {
   slot: PlayerSlot;
   name: string;
   hp: number;
   maxHp: number;
-  spellId: string;
+  spellId: string | null;
   entered: number;
   castPhase: CastPhase;
   armedAt: number | null;
   armedUntil: number | null;
   shieldUntil: number | null;
   slowedUntil: number | null;
+  healUsesRemaining: number;
+  healReadyAt: number | null;
 }
 
 export interface MatchState {
@@ -58,6 +60,7 @@ export interface MatchState {
 }
 
 export type MatchEvent =
+  | { kind: 'heal'; slot: PlayerSlot; amount: number }
   | { kind: 'cast'; slot: PlayerSlot; spellId: string }
   | { kind: 'hit'; attacker: PlayerSlot; victim: PlayerSlot; spellId: string; damage: number; blocked: boolean }
   | { kind: 'miss'; attacker: PlayerSlot; spellId: string }

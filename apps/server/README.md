@@ -1,6 +1,11 @@
 # Sword backend
 
-The backend verifies player identity, runs online keyboard battles over authenticated WebSockets, and stores profiles, two-player sessions, winners, sword measurements, and camera tracking in Tiger Data. Physical device connections, real IR input, camera capture, and Gemini still need to be built.
+The backend verifies player identity, runs online keyboard battles over authenticated WebSockets, and stores profiles, two-player sessions, winners, sword measurements, and camera tracking in Tiger Data. It also generates shared round briefings with Gemini through server-only Google Cloud credentials. Physical device connections, real IR input, and camera capture still need to be built.
+
+For optional AI stories, follow [Moss’s Gemini setup](../../docs/gemini-setup.md), then run `npm run gemini:check`. The game uses local stories when Gemini is disabled or unavailable.
+
+For Moss’s main voice, follow [ElevenLabs setup](../../docs/elevenlabs-setup.md),
+then run `npm run voice:check`. Browser speech remains the backup.
 
 Start with the [account and connection guide](../../docs/backend-setup.md). It explains how to create Auth0 and Tiger Data accounts and fill in your local configuration.
 
@@ -54,6 +59,9 @@ password into chat or a command argument. Then retry `npm run db:check`.
 | GET / POST | `/api/matches` | List/create the player's sessions |
 | POST | `/api/matches/join` | Join a session by code |
 | POST | `/api/realtime-ticket` | Obtain a short-lived, single-use ticket for the live connection |
+| POST | `/api/quests/story` | Prepare a signed-in bot round’s story using `{ sessionId, roundNumber }` |
+| POST | `/api/voice/speak` | Generate/cache MP3 narration for a signed-in player |
+| POST | `/voice/speak` | Pre-login/guest speech for known built-in Moss dialogue only |
 | POST | `/api/matches/:matchId/leave` | Leave and close an online session for both players |
 
 See the [game data API guide](../../docs/game-data-api.md) for sword assignment, start/finish, event history, and both players' sword/camera uploads. Import [the Postman collection](../../tools/sword-api.postman_collection.json) to try the flow without a frontend.

@@ -16,7 +16,7 @@ import { createPool } from '../src/db/pool.js';
 import { migrate } from '../src/db/migrate.js';
 import { createRealtimeHub, type RealtimeHub } from '../src/game/realtime.js';
 import { WebSocket } from 'ws';
-import { getSpell, type MatchState, type ServerMessage } from '@sword/protocol';
+import { getSpell, isQuestStory, type MatchState, type ServerMessage, type QuestGenerator } from '@sword/protocol';
 
 const live = process.env.GAME_TEST_DATABASE === '1';
 const hosted = Boolean(process.env.GAME_TEST_CERT);
@@ -32,6 +32,15 @@ const sockets = new Set<WebSocket>();
 let base: string;
 const tokens: Record<string, string> = {};
 const ids: Record<string, string> = {};
+let storyCalls = 0;
+let holdStory = false;
+let releaseStory: (() => void) | undefined;
+const generateStory: QuestGenerator = async ({ roundNumber }) => {
+  storyCalls++;
+  if (holdStory) await new Promise<void>(resolve => { releaseStory = resolve; });
+  await new Promise(resolve => setTimeout(resolve, 20));
+  return { title: 'Mischief in the meadow', briefing: `Your evil twin has enchanted ${roundNumber} chickens to sing at midnight. Stop them before the sleepy village runs out of pillows!`, source: 'gemini' };
+};
 
 async function listen(server: Server) {
   server.listen(0, '127.0.0.1'); await once(server, 'listening');
@@ -117,9 +126,9 @@ before(async () => {
   const port = (reservation.address() as AddressInfo).port;
   await close(reservation);
   origin = hosted ? reservedUrl.replace('http:', 'https:') : 'http://localhost:5173';
-  realtime = createRealtimeHub(game, players, origin, { disconnectGraceMs: 2000 });
+  realtime = createRealtimeHub(game, players, origin, { disconnectGraceMs: 2000, generateStory });
   const app = createApp({ host: '127.0.0.1', port, webOrigin: origin, serveWeb: hosted,
-    auth0: { issuerBaseURL: issuer, audience: 'https://sword-api' }, databaseUrl: null }, players, game, realtime);
+    auth0: { issuerBaseURL: issuer, audience: 'https://sword-api' }, databaseUrl: null }, players, game, realtime, generateStory);
   if (hosted) {
     testCa = await readFile(process.env.GAME_TEST_CERT!);
     apiServer = createSecureServer({ cert: testCa, key: await readFile(process.env.GAME_TEST_KEY!) }, app);
@@ -214,7 +223,11 @@ test('online combat saves its winner; rematch returns both players to the same l
     assert.equal(a.messages.some(m => m.type === 'lobby.state' && m.lobby?.players.some(p => p.name === 'Swamp Bot')), false);
     b.send({ type: 'match.start' });
     await b.wait(m => m.type === 'error' && m.message.includes('host'));
-    a.send({ type: 'match.start' });
+    a.send({ type: 'quest.begin' });
+    const firstQuest = await a.wait(m => m.type === 'quest.state' && !!m.quest?.story);
+    const firstStory = firstQuest.type === 'quest.state' ? firstQuest.quest!.story! : null!;
+    assert.equal(isQuestStory(firstStory), true);
+    a.send({ type: 'quest.accept' }); b.send({ type: 'quest.accept' });
     await a.wait(m => m.type === 'match.state' && m.match?.phase === 'fighting');
     await b.wait(m => m.type === 'match.state' && m.match?.phase === 'fighting');
     assert.deepEqual(a.latestMatch(), b.latestMatch());
@@ -222,8 +235,11 @@ test('online combat saves its winner; rematch returns both players to the same l
     await a.wait(m => m.type === 'error' && m.message === 'Invalid game message.');
     const bobBefore = b.latestMatch()!.fighters.p2;
     for (let cast = 0; cast < 40 && a.latestMatch()!.phase === 'fighting'; cast++) {
-      const spell = getSpell(a.latestMatch()!.fighters.p1.spellId);
       let from = a.messages.length;
+      a.send({ type: 'spell.choose', difficulty: 'hard' });
+      await a.wait(m => m.type === 'match.state' && m.match?.fighters.p1.castPhase === 'enter', from);
+      const spell = getSpell(a.latestMatch()!.fighters.p1.spellId!);
+      from = a.messages.length;
       for (const color of spell.combo) a.send({ type: 'dev.sword', input: { kind: 'button', color } });
       await a.wait(m => m.type === 'match.state' && m.match?.fighters.p1.castPhase === 'motion', from);
       from = a.messages.length;
@@ -231,7 +247,25 @@ test('online combat saves its winner; rematch returns both players to the same l
       await a.wait(m => m.type === 'match.state' && m.match?.fighters.p1.castPhase === 'armed', from);
       from = a.messages.length;
       a.send({ type: 'dev.sword', input: { kind: 'trigger' } });
-      await a.wait(m => m.type === 'match.state' && m.match?.fighters.p1.castPhase === 'enter', from);
+      await a.wait(m => m.type === 'match.state' && m.match?.fighters.p1.castPhase === 'choose', from);
+      if (cast === 0) {
+        await b.wait(m => m.type === 'match.state' && !!m.match && m.match.fighters.p2.hp < 100);
+        const beforeHeal = b.latestMatch()!.fighters.p2.hp;
+        const healFrom = b.messages.length;
+        b.send({ type: 'player.heal', slot: 'p1' });
+        await b.wait(m => m.type === 'error' && m.message === 'Invalid game message.', healFrom);
+        b.send({ type: 'player.heal' });
+        await b.wait(m => m.type === 'match.state' && m.match?.fighters.p2.healUsesRemaining === 1, healFrom);
+        const healed = b.latestMatch()!.fighters.p2;
+        assert.ok(healed.hp - beforeHeal >= 10 && healed.hp - beforeHeal <= 20);
+        const cooldownFrom = b.messages.length;
+        b.send({ type: 'player.heal' });
+        b.send({ type: 'device.check' });
+        await b.wait(m => m.type === 'error' && m.message.includes('Keyboard practice'), cooldownFrom);
+        assert.equal(b.latestMatch()!.fighters.p2.hp, healed.hp);
+        assert.equal(b.latestMatch()!.fighters.p2.healUsesRemaining, 1);
+        assert.equal(a.latestMatch()!.fighters.p1.healUsesRemaining, 2);
+      }
       await new Promise(resolve => setTimeout(resolve, 120));
     }
     const ended = await b.wait(m => m.type === 'match.state' && m.match?.phase === 'over');
@@ -262,16 +296,22 @@ test('online combat saves its winner; rematch returns both players to the same l
     assert.equal(rounds.rows.length, 1); assert.equal(rounds.rows[0].winner_player_id, ids.alice);
     const restartFrom = b.messages.length;
     a.send({ type: 'quest.begin' });
-    await b.wait(m => m.type === 'quest.state' && m.quest?.accepted.length === 0, restartFrom);
+    const secondQuest = await b.wait(m => m.type === 'quest.state' && !!m.quest?.story, restartFrom);
+    assert.equal(secondQuest.type === 'quest.state' && secondQuest.quest?.roundNumber, 2);
+    assert.notEqual(secondQuest.type === 'quest.state' && secondQuest.quest?.story?.briefing, firstStory.briefing);
     a.send({ type: 'quest.accept' }); b.send({ type: 'quest.accept' });
     const restarted = await b.wait(m => m.type === 'match.state' && m.match?.phase === 'fighting', restartFrom);
     assert.equal(restarted.type === 'match.state' && restarted.match?.fighters.p1.hp, 100);
     assert.equal(restarted.type === 'match.state' && restarted.match?.fighters.p2.hp, 100);
+    assert.equal(restarted.type === 'match.state' && restarted.match?.fighters.p2.healUsesRemaining, 2);
+    assert.equal(restarted.type === 'match.state' && restarted.match?.fighters.p2.healReadyAt, null);
+    assert.equal(restarted.type === 'match.state' && restarted.match?.fighters.p1.castPhase, 'choose');
     await call('alice', 'POST', `/matches/${matchId}/leave`, {});
   } finally { a.ws.close(); b.ws.close(); }
 });
 
 test('quest briefings wait for both players, survive reconnects, and cannot be skipped by starting combat early', async () => {
+  const callsBefore = storyCalls;
   const matchId = await matchPair();
   const a = await socketClient('alice', matchId);
   const b = await socketClient('bob', matchId);
@@ -280,7 +320,12 @@ test('quest briefings wait for both players, survive reconnects, and cannot be s
     b.send({ type: 'quest.begin' });
     await b.wait(m => m.type === 'error' && m.message.includes('host'));
     a.send({ type: 'quest.begin' });
-    for (const client of [a, b]) await client.wait(m => m.type === 'quest.state' && m.quest?.accepted.length === 0);
+    const stories = [];
+    for (const client of [a, b]) {
+      const message = await client.wait(m => m.type === 'quest.state' && !!m.quest?.story);
+      stories.push(message.type === 'quest.state' && message.quest?.story);
+    }
+    assert.deepEqual(stories[0], stories[1]);
     a.send({ type: 'quest.accept' });
     await b.wait(m => m.type === 'quest.state' && m.quest?.accepted.includes('p1') === true);
     a.send({ type: 'match.start' });
@@ -290,13 +335,53 @@ test('quest briefings wait for both players, survive reconnects, and cannot be s
     b.ws.close();
     await a.wait(m => m.type === 'lobby.state' && m.lobby?.players.some(p => !p.connected) === true);
     rejoined = await socketClient('bob', matchId);
-    await rejoined.wait(m => m.type === 'quest.state' && m.quest?.accepted.includes('p1') === true);
+    const restored = await rejoined.wait(m => m.type === 'quest.state' && m.quest?.accepted.includes('p1') === true);
+    assert.deepEqual(restored.type === 'quest.state' && restored.quest?.story, stories[0]);
+    assert.equal(storyCalls - callsBefore, 1);
     rejoined.send({ type: 'quest.accept' });
     for (const client of [a, rejoined]) await client.wait(m => m.type === 'match.state' && m.match?.phase === 'fighting');
     assert.deepEqual(a.latestMatch(), rejoined.latestMatch());
     assert.equal((await call('bob', 'GET', `/matches/${matchId}`)).data.match.status, 'active');
     await call('alice', 'POST', `/matches/${matchId}/leave`, {});
   } finally { a.ws.close(); b.ws.close(); rejoined?.ws.close(); }
+});
+
+test('slow Gemini does not block room commands; both players receive the same fallback and late output is ignored', async () => {
+  holdStory = true;
+  const matchId = await matchPair();
+  const a = await socketClient('alice', matchId);
+  const b = await socketClient('bob', matchId);
+  holdStory = false;
+  try {
+    a.send({ type: 'quest.begin' });
+    await a.wait(m => m.type === 'quest.state' && m.quest?.story === null);
+    a.send({ type: 'quest.accept' });
+    await a.wait(m => m.type === 'error' && m.message.includes('Moss is finishing'));
+    // This command must be processed before the model/fallback resolves.
+    a.send({ type: 'device.check' });
+    await a.wait(m => m.type === 'error' && m.message.includes('Keyboard practice'));
+    assert.equal(a.messages.some(m => m.type === 'quest.state' && !!m.quest?.story), false);
+    const first = await a.wait(m => m.type === 'quest.state' && m.quest?.story?.source === 'fallback');
+    const second = await b.wait(m => m.type === 'quest.state' && m.quest?.story?.source === 'fallback');
+    assert.deepEqual(first, second);
+    releaseStory?.();
+    await new Promise(resolve => setTimeout(resolve, 60));
+    assert.equal(a.messages.some(m => m.type === 'quest.state' && m.quest?.story?.source === 'gemini'), false);
+    await call('alice', 'POST', `/matches/${matchId}/leave`, {});
+  } finally { holdStory = false; releaseStory?.(); a.ws.close(); b.ws.close(); }
+});
+
+test('bot story API requires login, validates requests and reuses one story per user/session/round', async () => {
+  assert.equal((await testFetch(`${base}/api/quests/story`, { method: 'POST' })).status, 401);
+  assert.equal((await call('alice', 'POST', '/quests/story', { prompt: 'custom' })).status, 400);
+  const body = { sessionId: randomUUID(), roundNumber: 1 };
+  const callsBefore = storyCalls;
+  const [a, b] = await Promise.all([call('alice', 'POST', '/quests/story', body), call('alice', 'POST', '/quests/story', body)]);
+  assert.equal(a.status, 200); assert.deepEqual(a.data, b.data); assert.equal(storyCalls - callsBefore, 1);
+  assert.equal(isQuestStory(a.data.story), true);
+  const next = await call('alice', 'POST', '/quests/story', { ...body, roundNumber: 2 });
+  assert.equal(next.status, 200); assert.notEqual(next.data.story.briefing, a.data.story.briefing);
+  assert.equal((await call('bob', 'POST', '/quests/story', { ...body, roundNumber: 2 })).status, 409);
 });
 
 test('online disconnects are visible, reconnects restore the room, and leaving closes it for both', async () => {
@@ -454,6 +539,7 @@ test('hosted build serves HTML and assets with Auth0/WSS policy while API authen
   const policy = response.headers.get('content-security-policy')!;
   assert.ok(policy.includes(origin.replace('https:', 'wss:')));
   assert.ok(policy.includes('frame-src'));
+  assert.ok(policy.includes("media-src 'self' blob:"));
   assert.equal((await testFetch(`${base}/health`)).status, 200);
   const unknown = await call('alice', 'GET', '/does-not-exist');
   assert.equal(unknown.status, 404); assert.equal(unknown.data.error, 'not_found');
