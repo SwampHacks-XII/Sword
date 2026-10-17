@@ -90,7 +90,8 @@ export function MainMenu({ guestOnly = false, onVoiceReply, stopVoice }: {
             <span className="option-icon" aria-hidden="true">✿</span><strong>Play with Swamp Bot</strong><span>A friendly duel before destiny calls.</span><span className="option-arrow" aria-hidden="true">↗</span>
           </button>
         </div>
-        <MossCommandInput disabled={pending || session.loading} onTranscript={voiceCommand} stopVoice={stopVoice} />
+        <MossCommandInput disabled={pending || (!guestOnly && session.loading)} onTranscript={voiceCommand} stopVoice={stopVoice}
+          example={guestOnly ? 'Try “Hey Moss, play with Swamp Bot.” No sign-in needed.' : undefined} />
         {!validName && <p className="hint">Enter a player name to continue.</p>}
         {pending && <p className="hint" role="status">Connecting to your room…</p>}
         {(error || session.error || accountError) && <p className="error" role="alert">{error || session.error || accountError}</p>}

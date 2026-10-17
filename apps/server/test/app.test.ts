@@ -109,6 +109,8 @@ test('built-in Moss speech works before login, but the public route rejects arbi
   assert.equal(known.status, 200); assert.match(known.headers.get('Content-Type')!, /^audio\/mpeg/);
   const command = await request('/voice/speak', undefined, { text: MOSS_COMMAND_REPLIES.bot }, 'POST');
   assert.equal(command.status, 200); assert.match(command.headers.get('Content-Type')!, /^audio\/mpeg/);
+  const lobby = await request('/voice/speak', undefined, { text: MOSS_COMMAND_REPLIES.waitForRival }, 'POST');
+  assert.equal(lobby.status, 200); assert.match(lobby.headers.get('Content-Type')!, /^audio\/mpeg/);
   assert.equal((await request('/voice/speak', undefined, { text: 'Generate arbitrary expensive speech' }, 'POST')).status, 400);
 });
 

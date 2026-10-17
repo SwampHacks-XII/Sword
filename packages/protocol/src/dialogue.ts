@@ -20,6 +20,13 @@ export const MOSS_COMMAND_REPLIES = {
   name: 'Your hero needs a name! Enter one before we begin.',
   busy: 'One little moment! I’m still opening your room.',
   failed: 'That room didn’t open. Check the room code or connection and try again.',
+  lobbyUnknown: 'Here in the lobby, ask me to start your quest or leave the room.',
+  startQuest: 'Let’s turn the page and begin your quest!',
+  leaveRoom: 'Got it! Let’s return to the crossroads.',
+  waitForRival: 'Your rival hasn’t arrived yet. We need both players before the quest begins.',
+  hostOnly: 'The room’s host must begin this quest. Your adventure will start together.',
+  reconnecting: 'One moment, adventurer. We’re reconnecting to the game server.',
+  lobbyBusy: 'One moment, adventurer. Your room is still getting ready.',
 } as const;
 export const MOSS_REACTIONS = {
   hit: ['Good hit!', 'Nicely done!', 'That’s the spirit!', 'A little magic, a mighty hit!'],

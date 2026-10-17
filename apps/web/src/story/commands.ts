@@ -1,5 +1,7 @@
 import { MOSS_COMMAND_REPLIES } from '@sword/protocol';
 import type { ClientMessage } from '../net/messages';
+import type { LobbyState } from '../game/types';
+import type { ConnectionStatus } from '../net/connection';
 
 export type MossCommand = { kind: 'create'; mode: 'online' | 'bot' } | { kind: 'join'; code: string };
 type ParsedCommand = { ok: true; command: MossCommand } | { ok: false; reason: 'unknown' | 'code' };
@@ -8,15 +10,19 @@ const digits: Record<string, string> = {
   three: '3', four: '4', for: '4', five: '5', six: '6', seven: '7', eight: '8', ate: '8', nine: '9',
 };
 
+const commandWords = (transcript: string) => transcript.toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim()
+  .replace(/^please /, '').replace(/^(?:(?:hey|hi|hello) )?moss(?: |$)/, '').replace(/^please /, '')
+  .replace(/^(?:(?:can|could|would|will) you|i want to|i would like to|id like to|lets) /, '')
+  .replace(/^please /, '').replace(/ please$/, '');
+
 /** One small command vocabulary; transcripts are never evaluated as code. */
 export function parseMossCommand(transcript: string): ParsedCommand {
   if (transcript.length > 200) return { ok: false, reason: 'unknown' };
-  const words = transcript.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim()
-    .replace(/^(?:(?:hey|hi|hello) )?moss(?: |$)/, '').replace(/^please /, '').replace(/ please$/, '');
+  const words = commandWords(transcript);
   if (/^(?:create|make|start|open) (?:a |an |the )?(?:new )?(?:online )?(?:game|room|lobby)$/.test(words)) {
     return { ok: true, command: { kind: 'create', mode: 'online' } };
   }
-  if (/^(?:play|practice|train|fight)(?: a game)? (?:with |against )?(?:the )?swamp ?bot$/.test(words)) {
+  if (/^(?:(?:play|practice|train|fight)(?: a game)? (?:with |against )?|(?:start|create|open) (?:a |the )?(?:new )?game (?:with|against) )(?:the )?(?:swamp ?)?bot$/.test(words)) {
     return { ok: true, command: { kind: 'create', mode: 'bot' } };
   }
   const join = /^join(?: the)?(?: (?:room|game|lobby))?(?: (?:with )?(?:the )?code)?(?: (.*))?$/.exec(words);
@@ -27,6 +33,31 @@ export function parseMossCommand(transcript: string): ParsedCommand {
     return /^\d{4}$/.test(code) ? { ok: true, command: { kind: 'join', code } } : { ok: false, reason: 'code' };
   }
   return { ok: false, reason: 'unknown' };
+}
+
+export type MossLobbyCommand = { kind: 'begin' } | { kind: 'leave' };
+/** The same words can have different meanings on game selection and in a room. */
+export function parseMossLobbyCommand(transcript: string): MossLobbyCommand | null {
+  if (transcript.length > 200) return null;
+  const words = commandWords(transcript);
+  if (/^(?:start|begin) (?:(?:my|our|the|a) )?(?:quest|game|adventure)$/.test(words)) return { kind: 'begin' };
+  if (/^(?:leave|exit) (?:(?:this|the|my) )?(?:room|lobby|game)$/.test(words)) return { kind: 'leave' };
+  return null;
+}
+
+type LobbyControlAction = Extract<ClientMessage, { type: 'quest.begin' | 'lobby.leave' }>;
+type LobbyControlPlan = { ok: true; message: LobbyControlAction; reply: string } | { ok: false; reply: string };
+/** Buttons and voice share the host, readiness and connection checks. */
+export function planLobbyControl(command: MossLobbyCommand, context: {
+  lobby: LobbyState; pending: boolean; onlineStatus: ConnectionStatus;
+}): LobbyControlPlan {
+  if (context.pending) return { ok: false, reply: MOSS_COMMAND_REPLIES.lobbyBusy };
+  if (command.kind === 'leave') return { ok: true, message: { type: 'lobby.leave' }, reply: MOSS_COMMAND_REPLIES.leaveRoom };
+  const online = context.lobby.mode === 'online';
+  if (online && context.onlineStatus !== 'open') return { ok: false, reply: MOSS_COMMAND_REPLIES.reconnecting };
+  if (online && context.lobby.you !== 'p1') return { ok: false, reply: MOSS_COMMAND_REPLIES.hostOnly };
+  if (context.lobby.players.filter(player => player.connected).length !== 2) return { ok: false, reply: MOSS_COMMAND_REPLIES.waitForRival };
+  return { ok: true, message: { type: 'quest.begin' }, reply: MOSS_COMMAND_REPLIES.startQuest };
 }
 
 type LobbyAction = Extract<ClientMessage, { type: 'lobby.create' | 'lobby.join' }>;
