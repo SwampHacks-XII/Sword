@@ -24,7 +24,7 @@ button { touch-action: manipulation; }
 /* Pixel frame: a 1-"pixel" outline with notched corners, a bevel, and a hard offset shadow.
    Each surface sets --b (pixel size), --edge, --hi, --lo, --lip and the shadow offset --sx/--sy. */
 .parchment, .health-bars, .npc-guide-compact .npc-caption, .event-log, .camera-frame, .slot, .fatal,
-.quest-button, .primary-button, .secondary-button, .field input, .rune, kbd, .chip, .health-track, .armed-bar, .step.active {
+.quest-button, .primary-button, .secondary-button, .difficulty-button, .heal-button, .battle-voice-control, .field input, .rune, kbd, .chip, .health-track, .armed-bar, .step.active {
   --b: 4px; --edge: var(--frame); --hi: transparent; --lo: transparent; --lip: transparent; --sx: 0px; --sy: 0px;
   border: 0; border-radius: 0;
   box-shadow:
@@ -102,9 +102,23 @@ button { touch-action: manipulation; }
 .npc-caption p { margin: 0; font-size: .8rem; line-height: 1.4; color: #5f5640; }
 
 .flow-card .field { margin: 1rem 0; }
-.login-screen { max-width: 550px; }
 .auth-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0 1rem; }
 .guest-option { display: grid; gap: .35rem; border-top: 4px dashed #b7a27370; padding-top: 1rem; margin-top: 1.2rem; font-size: .84rem; }
+/* Sign-in as an open BookMenu: the tale on the left page, the hero's ledger on the right. */
+.entry-layout > .login-book { align-self: center; }
+.login-book .book-wrap { width: min(940px, 92vw); }
+.login-tale { display: flex; flex-direction: column; align-items: center; }
+.login-book h2 em { color: var(--leaf); font-style: normal; }
+.login-tale .npc-guide { position: static; width: 100%; display: flex; flex-direction: column; align-items: center; margin-top: 10px; gap: 0; }
+.login-tale .npc-moss { width: 96px; }
+.login-tale .npc-caption { width: 100%; max-width: 260px; padding: 6px 0 0; }
+.login-ledger { width: 100%; text-align: left; }
+.login-ledger h1 { font-size: clamp(1.3rem, 2.3vw, 1.9rem); margin: 0 0 .8rem; }
+.login-ledger .auth-actions { grid-template-columns: 1fr; margin-block: 1rem .6rem; }
+@media (max-width: 720px) {
+  .login-tale .npc-guide { flex-direction: row; justify-content: center; gap: 10px; text-align: left; }
+  .login-tale .npc-moss { width: 72px; }
+}
 .back-button { margin-top: 1.1rem; }
 .auth-error-details { font-size: .84rem; line-height: 1.5; overflow-wrap: anywhere; }
 .auth-error-details summary { cursor: pointer; text-decoration: underline; }
@@ -184,6 +198,21 @@ button { touch-action: manipulation; }
 .runes { list-style: none; padding: 0; margin: 0 0 1rem; display: flex; flex-wrap: wrap; justify-content: center; gap: .8rem; }
 .rune { --edge: #5a5236; --hi: #ffffff55; --lo: #00000022; width: 43px; height: 43px; display: grid; place-items: center; opacity: .5; transition: opacity 120ms steps(1), transform 120ms steps(1); }
 .rune.lit { --edge: #2f2b1c; --hi: #ffffffaa; --lip: #2f2b1c55; --sy: 4px; opacity: 1; transform: translateY(-4px); }
+.difficulty-options { display: grid; gap: .7rem; margin-bottom: .4rem; }
+.difficulty-button, .heal-button {
+  --edge: #8a7448; --hi: #fffaea; --lo: #d8c49a; --lip: #8a7448; --sy: 4px;
+  display: grid; gap: .2rem; width: 100%; padding: .55rem .7rem; margin: 4px 0; background: #f5e7c7; color: var(--ink); cursor: pointer;
+  transition: transform 100ms steps(1), background 100ms steps(1);
+}
+.difficulty-button > span { font-family: var(--label-font); text-transform: capitalize; }
+.difficulty-button small, .heal-button small { font-size: .72rem; line-height: 1.4; color: var(--ink-soft); }
+.difficulty-button:hover:not(:disabled), .heal-button:hover:not(:disabled) { background: #fbf0d6; transform: translateY(-4px); --sy: 8px; }
+.difficulty-button:active:not(:disabled), .heal-button:active:not(:disabled) { transform: translateY(4px); --sy: 0px; }
+.heal-control { margin-top: 1rem; border-top: 4px dashed #b7a27370; padding-top: .9rem; }
+.heal-button { --edge: #3f4a26; --hi: #c6d79a; --lo: #8ea35c; --lip: #3f4a26; background: var(--rune-green); }
+.heal-button:hover:not(:disabled) { background: #b3d186; }
+.moss-voice { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-bottom: .7rem; }
+.battle-voice-control { --hi: var(--parchment-hi); --lo: var(--parchment-lo); --lip: var(--drop); --sx: 6px; --sy: 6px; position: absolute; bottom: 80px; right: 3vw; max-width: 240px; padding: .35rem .65rem; background: #f1e3c2f2; }
 .rune-red { background: var(--rune-red); } .rune-blue { background: var(--rune-blue); }
 .rune-green { background: var(--rune-green); } .rune-yellow { background: var(--rune-yellow); }
 .rune-key { font-weight: 700; color: #3a372b; }

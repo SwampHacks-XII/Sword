@@ -1,15 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Parchment } from './Parchment';
 import { NpcGuide } from './NpcGuide';
+import { MossVoice, type MossVoiceControls } from './MossVoice';
 
 interface StorySceneProps {
   title: string; paragraphs: readonly string[];
   action: string; onContinue(): void; disabled?: boolean; status?: string;
   onLeave?(): void; page?: string; error?: string | null;
+  narration?: boolean;
 }
-/** Animated dialogue wireframe; its content is currently local placeholder copy. */
-export function StoryScene({ title, paragraphs, action, onContinue, disabled, status, onLeave, page, error }: StorySceneProps) {
+/** Animated dialogue shared by the fixed prologue and server-provided quests. */
+export function StoryScene({ title, paragraphs, action, onContinue, disabled, status, onLeave, page, error, narration = true }: StorySceneProps) {
   const total = paragraphs.join('').length;
+  const voice = useRef<MossVoiceControls>(null);
   const [visible, setVisible] = useState(0);
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { setVisible(total); return; }
@@ -24,6 +27,7 @@ export function StoryScene({ title, paragraphs, action, onContinue, disabled, st
   return <Parchment className="story-scroll dialogue-scroll">
     <h1>{title}</h1>
     <div className="speaker-line"><span className="speaker-dot" /> Moss</div>
+    {narration && <MossVoice text={paragraphs.join(' ')} controlRef={voice} />}
     <div className="story-dialogue">
       <div className="sr-only" aria-live="polite">{paragraphs.map(text => <p key={text}>{text}</p>)}</div>
       <div aria-hidden="true">{paragraphs.map(text => {
@@ -37,10 +41,10 @@ export function StoryScene({ title, paragraphs, action, onContinue, disabled, st
         : <span className="dialogue-finished">A new page is waiting.</span>}
     </div>
     <div className="story-actions">
-      <button type="button" className="quest-button" disabled={disabled} onClick={onContinue}>{action}<span aria-hidden="true">→</span></button>
+      <button type="button" className="quest-button" disabled={disabled} onClick={() => { voice.current?.stop(); onContinue(); }}>{action}<span aria-hidden="true">→</span></button>
       {status && <p className="hint quest-status" role="status">{status}</p>}
       {error && <p className="error" role="alert">{error}</p>}
-      {onLeave && <button type="button" className="text-button" onClick={onLeave}>Leave this quest</button>}
+      {onLeave && <button type="button" className="text-button" onClick={() => { voice.current?.stop(); onLeave(); }}>Leave this quest</button>}
     </div>
     <NpcGuide message="A little courage goes a long way." />
   </Parchment>;

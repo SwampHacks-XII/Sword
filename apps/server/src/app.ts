@@ -11,11 +11,16 @@ import { ApiError } from './game/errors.js';
 import type { RealtimeHub } from './game/realtime.js';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { createBotStories } from './story/bot-stories.js';
+import { isPublicMossLine, type QuestGenerator } from '@sword/protocol';
+import { createSpeechService, type SpeechService } from './story/speech.js';
 
 const profileSchema = z.object({ displayName: z.string().trim().min(1).max(40) }).strict();
 
-export function createApp(config: Config, players: PlayerStore | null, game: GameStore | null = null, realtime: RealtimeHub | null = null) {
+export function createApp(config: Config, players: PlayerStore | null, game: GameStore | null = null, realtime: RealtimeHub | null = null, generateStory?: QuestGenerator, voiceService?: SpeechService) {
   const app = express();
+  const botStory = createBotStories(generateStory);
+  const speech = voiceService ?? createSpeechService(config.elevenlabs ?? null);
   app.disable('x-powered-by');
   const authOrigin = config.auth0 ? new URL(config.auth0.issuerBaseURL).origin : null;
   const socketOrigin = config.webOrigin.replace(/^http/, 'ws');
@@ -23,6 +28,7 @@ export function createApp(config: Config, players: PlayerStore | null, game: Gam
     connectSrc: ["'self'", socketOrigin, ...(authOrigin ? [authOrigin] : [])],
     frameSrc: ["'self'", ...(authOrigin ? [authOrigin] : [])],
     imgSrc: ["'self'", 'data:', 'blob:'],
+    mediaSrc: ["'self'", 'blob:'],
     upgradeInsecureRequests: config.webOrigin.startsWith('https:') ? [] : null,
   } } } : undefined));
   app.use(cors({ origin: [config.webOrigin] }));
@@ -37,6 +43,16 @@ export function createApp(config: Config, players: PlayerStore | null, game: Gam
   });
 
   const api = express.Router();
+  // Only known game dialogue is available without login; this is not an anonymous TTS proxy.
+  app.post('/voice/speak', express.json({ limit: '4kb' }), async (request, response) => {
+    response.set('Cache-Control', 'no-store');
+    const parsed = z.object({ text: z.string().trim().min(1).max(800) }).strict().safeParse(request.body);
+    if (!parsed.success || !isPublicMossLine(parsed.data.text)) {
+      throw new ApiError(400, 'unknown_voice_line', 'Choose a built-in Moss dialogue line.');
+    }
+    const audio = await speech.synthesize(`public:${request.ip}`, parsed.data.text);
+    response.type('audio/mpeg').send(audio);
+  });
   api.use((_request, response, next) => { response.set('Cache-Control', 'no-store'); next(); });
   if (config.auth0) {
     api.use(auth({ ...config.auth0, tokenSigningAlg: 'RS256' }));
@@ -58,6 +74,17 @@ export function createApp(config: Config, players: PlayerStore | null, game: Gam
   });
   api.get('/auth/me', (_request, response) => {
     response.json({ subject: response.locals.subject });
+  });
+  api.post('/quests/story', express.json({ limit: '1kb' }), async (request, response) => {
+    const parsed = z.object({ sessionId: z.uuid(), roundNumber: z.number().int().min(1).max(10000) }).strict().safeParse(request.body);
+    if (!parsed.success) throw new ApiError(400, 'invalid_quest', 'Send a bot session UUID and round number.');
+    response.json(await botStory(response.locals.subject, parsed.data.sessionId, parsed.data.roundNumber));
+  });
+  api.post('/voice/speak', express.json({ limit: '4kb' }), async (request, response) => {
+    const parsed = z.object({ text: z.string().trim().min(1).max(800) }).strict().safeParse(request.body);
+    if (!parsed.success) throw new ApiError(400, 'invalid_voice_text', 'Send only 1–800 characters of dialogue.');
+    const audio = await speech.synthesize(response.locals.subject, parsed.data.text);
+    response.type('audio/mpeg').send(audio);
   });
   api.post('/realtime-ticket', async (request, response) => {
     if (!realtime) throw new ApiError(503, 'realtime_unavailable', 'Online play is unavailable. Check the server configuration.');

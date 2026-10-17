@@ -6,7 +6,7 @@ import { CameraPlaceholder } from './CameraPlaceholder';
 import { HealthBars } from './HealthBars';
 import { Parchment } from './Parchment';
 import { SpellPanel } from './SpellPanel';
-import { NpcGuide } from './NpcGuide';
+import { BattleMoss } from './BattleMoss';
 
 export function BattleScreen({ match, you, now }: { match: MatchState; you: PlayerSlot; now: number }) {
   const { send, log, lobby, onlineStatus, error } = useMatch();
@@ -20,12 +20,12 @@ export function BattleScreen({ match, you, now }: { match: MatchState; you: Play
   return (
     <div className="battle">
       <HealthBars you={mine} opponent={theirs} now={now} />
-      <SpellPanel fighter={mine} />
+      <SpellPanel fighter={mine} disabled={!fighting || !connected} />
       <ul className="event-log" aria-live="polite">
         {log.map(({ id, event }) => <li key={id}>{describe(event, match.fighters, you)}</li>)}
       </ul>
       <CameraPlaceholder />
-      {fighting && <NpcGuide compact message="Remember the runes. Let your courage do the rest." />}
+      <BattleMoss you={you} active={fighting} />
       <div className="battle-controls">
         <p>{online ? 'Online · keyboard practice' : 'Swamp Bot · keyboard practice'}</p>
         {!connected && <p role="status">Waiting for both players to reconnect…</p>}
@@ -49,6 +49,7 @@ export function BattleScreen({ match, you, now }: { match: MatchState; you: Play
 
 function describe(event: MatchEvent, fighters: Record<PlayerSlot, FighterState>, you: PlayerSlot): string {
   const who = (slot: PlayerSlot) => (slot === you ? 'You' : fighters[slot].name);
+  if (event.kind === 'heal') return `${who(event.slot)} recovered ${event.amount} HP`;
   const spell = getSpell(event.spellId).name;
   switch (event.kind) {
     case 'cast': return `${who(event.slot)} cast ${spell}`;

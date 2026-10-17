@@ -3,6 +3,8 @@
 import type {
   DeviceChecks, Gesture, LobbyState, MatchEvent, MatchState, PlayerSlot, Quat, SwordColor,
 } from './types.js';
+import type { QuestStory } from './quests.js';
+import type { SpellDifficulty } from './spells.js';
 
 /** Sent by an ESP32 sword to the server. */
 export type SwordEvent =
@@ -24,6 +26,8 @@ export type ClientMessage =
   | { type: 'quest.accept' }
   | { type: 'match.start' }
   | { type: 'match.rematch' }
+  | { type: 'spell.choose'; difficulty: SpellDifficulty }
+  | { type: 'player.heal' }
   /** Keyboard stand-in for this player's sword while testing without hardware. */
   | { type: 'dev.sword'; input: DevSwordInput };
 
@@ -38,7 +42,7 @@ export type ServerMessage =
   | { type: 'action.pending'; pending: boolean }
   | { type: 'room.closed'; message: string }
   | { type: 'lobby.state'; lobby: LobbyState | null }
-  | { type: 'quest.state'; quest: { accepted: PlayerSlot[] } | null }
+  | { type: 'quest.state'; quest: { accepted: PlayerSlot[]; story: QuestStory | null; roundNumber: number } | null }
   | { type: 'device.state'; checks: DeviceChecks }
   | { type: 'match.state'; match: MatchState | null }
   | { type: 'match.event'; event: MatchEvent; at: number }

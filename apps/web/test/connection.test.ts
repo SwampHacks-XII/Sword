@@ -5,6 +5,7 @@ import type { Api } from '../src/net/api';
 import type { ServerMessage } from '@sword/protocol';
 import { GameRules, getSpell } from '@sword/protocol';
 import { resolveApiBaseUrl } from '../src/net/api';
+import { createMockConnection, type BotStoryLoader } from '../src/net/mock/mockConnection';
 
 const originalSocket = globalThis.WebSocket;
 class PracticeSocket {
@@ -132,6 +133,49 @@ test('hosted API follows the website origin while local development keeps its ex
   assert.equal(resolveApiBaseUrl('http://192.168.1.50:3001/'), 'http://192.168.1.50:3001');
 });
 
+test('bot stories prefetch once in the lobby and reach the existing acceptance gate', async () => {
+  const calls: { sessionId: string; roundNumber: number }[] = [];
+  const story = { title: 'The missing hens', briefing: 'Your evil twin has hidden all the chickens. Find them before the village misses breakfast!', source: 'gemini' as const };
+  const load: BotStoryLoader = async (sessionId, roundNumber) => { calls.push({ sessionId, roundNumber }); return story; };
+  const connection = createMockConnection(load);
+  const messages: ServerMessage[] = [];
+  connection.subscribe(message => messages.push(message));
+  try {
+    connection.send({ type: 'lobby.create', name: 'Hero', mode: 'bot' });
+    await until(() => calls.length === 1);
+    assert.match(calls[0]!.sessionId, /^[a-f0-9-]{36}$/); assert.equal(calls[0]!.roundNumber, 1);
+    await until(() => messages.some(m => m.type === 'lobby.state' && m.lobby?.players.length === 2));
+    connection.send({ type: 'quest.begin' }); connection.send({ type: 'quest.begin' });
+    await until(() => messages.some(m => m.type === 'quest.state' && m.quest?.story?.source === 'gemini'));
+    const briefing = messages.find(m => m.type === 'quest.state' && m.quest?.story);
+    assert.deepEqual(briefing?.type === 'quest.state' && briefing.quest?.story, story);
+    assert.equal(calls.length, 1);
+    connection.send({ type: 'quest.accept' });
+    await until(() => messages.some(m => m.type === 'match.state' && m.match?.phase === 'fighting'));
+  } finally { connection.close(); }
+});
+
+test('a slow bot story falls back quickly and leaving ignores its late response', async () => {
+  let finish!: (story: { title: string; briefing: string; source: 'gemini' }) => void;
+  const connection = createMockConnection(() => new Promise(resolve => { finish = resolve; }));
+  const messages: ServerMessage[] = [];
+  connection.subscribe(message => messages.push(message));
+  try {
+    connection.send({ type: 'lobby.create', name: 'Hero', mode: 'bot' });
+    await until(() => messages.some(m => m.type === 'lobby.state' && m.lobby?.players.length === 2));
+    const start = performance.now();
+    connection.send({ type: 'quest.begin' }); connection.send({ type: 'quest.accept' });
+    await until(() => messages.some(m => m.type === 'quest.state' && m.quest?.story?.source === 'fallback'));
+    assert.ok(performance.now() - start < 1500);
+    assert.equal(messages.some(m => m.type === 'match.state' && m.match), false);
+    connection.send({ type: 'lobby.leave' });
+    finish({ title: 'Too late', briefing: 'Your twin has hidden the teapot. Stop them!', source: 'gemini' });
+    await pause(40);
+    assert.equal(messages.filter(m => m.type === 'quest.state').at(-1)?.quest, null);
+    assert.equal(messages.some(m => m.type === 'quest.state' && m.quest?.story?.source === 'gemini'), false);
+  } finally { connection.close(); }
+});
+
 test('Swamp Bot rules return to the same lobby after a round and start with fresh health', () => {
   const messages: ServerMessage[] = [];
   const rules = new GameRules(message => messages.push(message), () => 1000);
@@ -139,7 +183,8 @@ test('Swamp Bot rules return to the same lobby after a round and start with fres
   rules.startMatch();
   assert.equal(rules.returnToLobby(), false);
   for (let i = 0; i < 200 && rules.snapshot()?.phase !== 'over'; i++) {
-    const spell = getSpell(rules.snapshot()!.fighters.p1.spellId);
+    rules.chooseSpell('p1', 'hard');
+    const spell = getSpell(rules.snapshot()!.fighters.p1.spellId!);
     for (const color of spell.combo) rules.handleSword({ type: 'sword.button', swordId: 'sword-1', color });
     rules.handleSword({ type: 'sword.gesture', swordId: 'sword-1', gesture: spell.gesture });
     const shotId = `test-${i}`;

@@ -3,20 +3,36 @@ import type { FighterState } from '../game/types';
 import { GESTURE_KEYS, KEY_BUTTONS } from '../hooks/useKeyboardSword';
 import { useNow } from '../hooks/useNow';
 import { Parchment } from './Parchment';
+import { DAMAGE_RANGES, SPELL_DIFFICULTIES, HEAL_RANGE, HEAL_USES } from '@sword/protocol';
+import { useMatch } from '../hooks/useMatch';
 
 const COLOR_KEYS = Object.fromEntries(Object.entries(KEY_BUTTONS).map(([key, color]) => [color, key]));
 
 /** Your current spell: rune sequence (flat circles for now), then motion, then fire. */
-export function SpellPanel({ fighter }: { fighter: FighterState }) {
-  const spell = getSpell(fighter.spellId);
+export function SpellPanel({ fighter, disabled = false }: { fighter: FighterState; disabled?: boolean }) {
+  const { send } = useMatch();
+  const spell = fighter.spellId ? getSpell(fighter.spellId) : null;
   const armed = fighter.castPhase === 'armed';
-  const now = useNow(100, armed);
+  const now = useNow(100, true);
+  const healWait = Math.max(0, Math.ceil(((fighter.healReadyAt ?? 0) - now) / 1000));
   const remaining = armed && fighter.armedUntil && fighter.armedAt
     ? Math.max(0, (fighter.armedUntil - now) / (fighter.armedUntil - fighter.armedAt))
     : 0;
 
   return (
     <Parchment className="spell-panel">
+      {!spell ? <>
+        <p className="label">Your next move</p>
+        <h2 className="spell-name">Choose your spell difficulty</h2>
+        <div className="difficulty-options">
+          {SPELL_DIFFICULTIES.map(difficulty => <button type="button" className="difficulty-button" key={difficulty}
+            disabled={disabled} onClick={() => send({ type: 'spell.choose', difficulty })}>
+            <span>{difficulty}</span><small>{DAMAGE_RANGES[difficulty].join('–')} damage · {difficulty === 'easy' ? 3 : difficulty === 'medium' ? 5 : 7} runes</small>
+          </button>)}
+        </div>
+        <p className="hint">Receive one random spell from your chosen difficulty.</p>
+      </> : <>
+      <p className="label">{spell.difficulty} · {spell.damageRange.join('–')} damage</p>
       <h2 className="spell-name">{spell.name}</h2>
       <ol className="runes">
         {spell.combo.map((color, i) => (
@@ -35,6 +51,15 @@ export function SpellPanel({ fighter }: { fighter: FighterState }) {
         </div>
       )}
       <p className="hint">Keys stand in for the sword: 1–4 runes · Q/E/R/W motions · Space fire</p>
+      </>}
+      <div className="heal-control">
+        <button type="button" className="heal-button" disabled={disabled || fighter.healUsesRemaining <= 0 || healWait > 0 || fighter.hp >= fighter.maxHp}
+          onClick={() => send({ type: 'player.heal' })}>
+          {healWait > 0 && fighter.healUsesRemaining > 0 ? `Heal ready in ${healWait}s` : 'Heal'}
+          <small>{fighter.healUsesRemaining} of {HEAL_USES} uses left · +{HEAL_RANGE.join('–')} HP</small>
+        </button>
+        <p className="hint">{fighter.healUsesRemaining === 0 ? 'Both heals used this battle.' : fighter.hp >= fighter.maxHp ? 'Your health is full.' : 'Five-second cooldown between heals.'}</p>
+      </div>
     </Parchment>
   );
 }

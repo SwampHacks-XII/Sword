@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="{{ locale | escape }}" dir="{{ dir | default: 'auto' | escape }}">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {%- auth0:head -%}
+    {% if application.id == 'M5zNcKJOswrwafsCXpkJwAtwesX0mSq5' %}
+    <style>
+      .sword-login {
+        margin: 0;
+        min-height: 100vh;
+        min-height: 100svh;
+        padding: 48px 24px;
+        display: grid;
+        place-items: center;
+        color: #514832;
+        background: radial-gradient(ellipse at 15% 15%, #f2dce9 0, transparent 45%),
+          linear-gradient(#aaa0e4, #d1cae6 75%, #b5cc89);
+        font-family: Georgia, 'Times New Roman', serif;
+        --prompt-width: 100%;
+      }
+      .sword-login .sword-auth-shell {
+        position: relative; display: grid; grid-template-columns: 1fr 1fr;
+        width: min(100%, 1020px); color: #514832;
+        border: 9px solid #6a684d; border-bottom-width: 13px; border-radius: 9px 13px 13px 9px;
+        background: #f6ecd2; box-shadow: 0 7px 0 #4c503d, 0 11px 0 #bfae89, 0 25px 65px #44395640;
+      }
+      .sword-login .sword-auth-shell::after {
+        content: ''; position: absolute; inset: 0 auto 0 50%; width: 44px; transform: translateX(-50%);
+        background: linear-gradient(90deg, transparent, #7f674228 42%, #6e593b38 50%, #fff9e13b 65%, transparent);
+        pointer-events: none;
+      }
+      .sword-login .sword-auth-page { position: relative; min-width: 0; padding: 40px 28px 58px; background: radial-gradient(ellipse at 20% 15%, #fffbedb3, transparent 70%); }
+      .sword-login .sword-auth-heading { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding-inline: 44px; }
+      .sword-login .sword-auth-heading p { margin: 12px 0; line-height: 1.7; max-width: 290px; }
+      .sword-login .sword-auth-kicker { text-transform: uppercase; letter-spacing: .17em; font-size: 11px; }
+      .sword-login .sword-auth-heading h1 { margin: 20px 0; font-size: clamp(32px, 4vw, 48px); font-weight: normal; line-height: 1.15; letter-spacing: -.04em; }
+      .sword-login .sword-auth-heading em { color: #65753f; }
+      .sword-login .sword-auth-note { font-size: 15px; font-style: italic; color: #73674f; }
+      .sword-login .sword-auth-crest { margin: 26px 0 12px; color: #65753f; }
+      .sword-login .sword-auth-page-number { position: absolute; bottom: 18px; left: 0; right: 0; text-align: center; font-size: 12px; color: #9b8c6b; }
+      .sword-login .sword-auth-footer { margin-top: 24px; text-align: center; }
+      .sword-login .sword-auth-back {
+        display: inline-block;
+        padding: 14px 22px;
+        color: #514832;
+        background: #efe0b8;
+        border: 1px solid #b59b66;
+        border-radius: 2px;
+        box-shadow: 0 3px 0 #a68e5d;
+        text-decoration: none;
+        line-height: 1.4;
+      }
+      .sword-login .sword-auth-back:hover { background: #fff0cc; }
+      .sword-login .sword-auth-back:focus-visible { outline: 3px solid #514832; outline-offset: 5px; }
+      @media (max-width: 760px) {
+        .sword-login { padding: 24px 12px; }
+        .sword-login .sword-auth-shell { grid-template-columns: 1fr; max-width: 480px; }
+        .sword-login .sword-auth-shell::after { display: none; }
+        .sword-login .sword-auth-page { padding: 24px 18px 48px; }
+        .sword-login .sword-auth-heading { border-bottom: 1px solid #bda98266; }
+        .sword-login .sword-auth-heading h1 { font-size: 32px; margin: 12px 0; }
+        .sword-login .sword-auth-crest { margin: 10px 0 0; }
+      }
+    </style>
+    {% endif %}
+  </head>
+  <body class="{% if application.id == 'M5zNcKJOswrwafsCXpkJwAtwesX0mSq5' %}sword-login{% else %}_widget-auto-layout{% endif %}">
+    {% if application.id == 'M5zNcKJOswrwafsCXpkJwAtwesX0mSq5' %}
+    <div class="sword-auth-shell">
+      <header class="sword-auth-page sword-auth-heading">
+        <p class="sword-auth-kicker">Sword · A tale of two selves</p>
+        <h1>Every legend<br>begins with <em>you.</em></h1>
+        <p>Somewhere beyond these pages, your evil twin is writing the wrong ending.</p>
+        <svg class="sword-auth-crest" width="100" height="110" viewBox="0 0 100 110" aria-hidden="true" focusable="false">
+          <path d="M50 8 60 25 55 70 45 70 40 25Z" fill="#cec3df" stroke="#847494" stroke-width="2"/>
+          <path d="M50 18V65M30 72Q50 63 70 72M50 72V94" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
+          <circle cx="50" cy="99" r="5" fill="#b59b66"/>
+          <path d="M18 35Q5 58 25 77M82 35Q95 58 75 77" fill="none" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <p class="sword-auth-note">“I saved you a place in the story.”<br>— Moss, keeper of the glade</p>
+        <span class="sword-auth-page-number" aria-hidden="true">— i —</span>
+      </header>
+      <div class="sword-auth-page">
+    {% endif %}
+    {%- auth0:widget -%}
+    {% if application.id == 'M5zNcKJOswrwafsCXpkJwAtwesX0mSq5' %}
+      <footer class="sword-auth-footer">
+        {% if application.metadata.sword_web_url != blank %}
+        <a class="sword-auth-back" href="{{ application.metadata.sword_web_url | escape }}/#login">← Back to Sword</a>
+        {% endif %}
+      </footer>
+      <span class="sword-auth-page-number" aria-hidden="true">— ii —</span>
+      </div>
+    </div>
+    {% endif %}
+  </body>
+</html>

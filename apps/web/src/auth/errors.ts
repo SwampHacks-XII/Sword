@@ -6,6 +6,18 @@ export function describeAuthError(error: unknown): AuthIssue {
   const providerCode = typeof object.error === 'string' && /^[a-z_]{1,64}$/.test(object.error) ? object.error : 'login_failed';
   const message = typeof object.message === 'string' ? object.message : '';
   const description = typeof object.error_description === 'string' ? object.error_description : message;
+  if (providerCode === 'cancelled') {
+    return { code: 'popup_closed', message: 'You’re back in the book.',
+      details: 'The sign-in window was closed. Choose Log in or Sign up whenever you are ready.' };
+  }
+  if (providerCode === 'popup_open') {
+    return { code: 'popup_blocked', message: 'Your browser blocked the sign-in window.',
+      details: 'Allow popups for this game, then choose Log in or Sign up again. Your place in the book is saved.' };
+  }
+  if (providerCode === 'timeout' && 'popup' in object) {
+    return { code: 'popup_timeout', message: 'The sign-in window timed out. Please try again.',
+      details: 'Your place in the book is saved. Start a new login and finish signing in within five minutes.' };
+  }
   if (/sign.?ups? (?:are |is )?(?:disabled|not allowed)|public signup.*disabled|signup_disabled/i.test(description)) {
     return { code: 'signup_disabled', message: 'New account registration is disabled for this game.',
       details: 'The game host should check the Auth0 database connection’s sign-up settings and any Pre User Registration Actions. Existing accounts may still be able to log in.' };
@@ -47,4 +59,10 @@ export function loginOptions(mode: 'login' | 'signup') {
     appState: { returnTo: '/#play' },
     authorizationParams: { prompt: 'login' as const, screen_hint: mode },
   };
+}
+
+export function logoutOptions(origin: string) {
+  // Auth0's /v2/logout allowlist compares the URL without its fragment.
+  // Keep the existing allowed origin while returning to the hero ledger.
+  return { logoutParams: { returnTo: new URL('/#login', origin).href } };
 }

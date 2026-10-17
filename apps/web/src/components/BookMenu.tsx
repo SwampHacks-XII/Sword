@@ -4,7 +4,7 @@ import './BookMenu.css';
 /** One side of a spread. `content` holds menu controls and renders below the title. */
 export type BookPage = {
   kicker?: string;
-  title?: string;
+  title?: ReactNode;
   text?: string;
   content?: ReactNode;
 };
@@ -43,12 +43,13 @@ function PageContent({ page, number }: { page: BookPage; number: number }) {
  * already shows the destination spread, while a 3D leaf flips over it: its front is the
  * page being lifted and its back is the page it lands as.
  */
-export function BookMenu({ spreads, initialSpread = 0, onSpreadChange, label = 'Storybook menu', showNav = true }: {
+export function BookMenu({ spreads, initialSpread = 0, onSpreadChange, label = 'Storybook menu', showNav = true, className = '' }: {
   spreads: BookSpread[];
   initialSpread?: number;
   onSpreadChange?: (spread: number) => void;
   label?: string;
   showNav?: boolean;
+  className?: string;
 }) {
   const [spread, setSpread] = useState(() => Math.min(Math.max(initialSpread, 0), spreads.length - 1));
   const [turning, setTurning] = useState<Direction | null>(null);
@@ -96,7 +97,7 @@ export function BookMenu({ spreads, initialSpread = 0, onSpreadChange, label = '
   const visibleRightNumber = turning === 'next' ? spread * 2 + 4 : spread * 2 + 2;
 
   return (
-    <div className="book-menu" style={{ '--book-turn-ms': `${TURN_MS}ms` } as CSSProperties}>
+    <div className={`book-menu ${spreads.length === 1 ? 'book-menu-static' : ''} ${className}`} style={{ '--book-turn-ms': `${TURN_MS}ms` } as CSSProperties}>
       <section className="book-wrap" aria-label={label}>
         <div className="book">
           <div className="book-stack book-stack-left" aria-hidden="true" />

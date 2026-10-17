@@ -40,7 +40,9 @@
     10px 10px 0 1px var(--book-edge), 15px 15px 0 -1px var(--book-stack), 15px 15px 0 1px var(--book-edge);
 }
 
-.book-paper { position: relative; z-index: 1; overflow: hidden; border: 4px solid var(--book-edge); background: var(--book-paper); cursor: pointer; }
+/* No overflow clipping, so a tall page (e.g. a form) grows the book instead of being cut off. */
+.book-paper { position: relative; z-index: 1; min-width: 0; border: 4px solid var(--book-edge); background: var(--book-paper); cursor: pointer; }
+.book-menu-static .book-paper { cursor: auto; }
 .book-left, .book-leaf.next .back, .book-leaf.prev .front {
   clip-path: polygon(0 12px, 6px 12px, 6px 6px, 12px 6px, 12px 0, 100% 0, 100% 100%, 12px 100%, 12px calc(100% - 6px), 6px calc(100% - 6px), 6px calc(100% - 12px), 0 calc(100% - 12px));
 }
@@ -58,8 +60,8 @@
 }
 .book-kicker { color: var(--book-accent); font-family: var(--label-font); font-size: clamp(7px, 1vw, 11px); letter-spacing: .28em; text-transform: uppercase; }
 .book-ornament { margin: clamp(12px, 2vw, 22px); color: var(--rune-red); font-size: 8px; }
-.book-page-content h2 { max-width: 360px; margin: 0; font: 400 clamp(15px, 2.4vw, 27px)/1.4 var(--label-font); color: var(--ink); }
-.book-page-content p { max-width: 330px; margin: clamp(12px, 2vw, 24px) 0 0; color: var(--ink-soft); font: 400 clamp(11px, 1.4vw, 17px)/1.45 var(--pixel-font); }
+.book-page-content > h2 { max-width: 360px; margin: 0; font: 400 clamp(15px, 2.4vw, 27px)/1.4 var(--label-font); color: var(--ink); }
+.book-page-content > p { max-width: 330px; margin: clamp(12px, 2vw, 24px) 0 0; color: var(--ink-soft); font: 400 clamp(11px, 1.4vw, 17px)/1.45 var(--pixel-font); }
 .book-page-slot { width: 100%; margin-top: clamp(12px, 2vw, 24px); cursor: auto; }
 .book-page-number { position: absolute; bottom: 5%; color: var(--book-accent); opacity: .6; font: 400 12px var(--label-font); }
 
@@ -94,13 +96,14 @@
 .book-progress span { width: 5px; height: 5px; background: var(--parchment-lo); transition: width .25s; }
 .book-progress span.active { width: 20px; background: var(--frame); }
 
-@media (max-width: 620px) {
+/* Narrow screens: pages stack top to bottom and change without the 3D turn. */
+@media (max-width: 720px) {
   .book-wrap { width: 96vw; }
-  .book { padding: 2.8%; }
-  .book-paper, .book-face { border-width: 2px; }
-  .book-leaf { top: calc(2.8% + 5px); bottom: calc(2.8% + 5px); width: 47.2%; }
-  .book-leaf.prev { left: 2.8%; }
-  .book-page-content p { display: none; }
+  .book { grid-template-columns: 1fr; aspect-ratio: auto; padding: 12px; }
+  .book-left { grid-area: 1 / 1; border-right-width: 4px; border-bottom-width: 2px; }
+  .book-right { grid-area: 2 / 1; border-left-width: 4px; border-top-width: 2px; }
+  .book-stack, .book-spine, .book-leaf { display: none; }
+  .book-page-content { padding: 28px 22px 44px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

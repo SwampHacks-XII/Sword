@@ -17,11 +17,14 @@
     "check": "tsc --noEmit -p tsconfig.check.json",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
-    "test": "tsx --test test/app.test.ts test/game.test.ts",
+    "test": "tsx --test test/app.test.ts test/game.test.ts test/quests.test.ts test/combat.test.ts test/speech.test.ts",
     "test:db": "tsx --test test/game-live.test.ts",
     "db:check": "tsx src/scripts/check-db.ts",
     "db:set-password": "tsx src/scripts/set-db-password.ts",
-    "db:setup": "tsx src/scripts/setup-db.ts"
+    "db:setup": "tsx src/scripts/setup-db.ts",
+    "pregemini:check": "npm run protocol:build",
+    "gemini:check": "tsx src/scripts/check-gemini.ts",
+    "voice:check": "tsx src/scripts/check-voice.ts"
   },
   "dependencies": {
     "@sword/protocol": "file:../../packages/protocol",
@@ -29,6 +32,7 @@
     "dotenv": "^17.2.0",
     "express": "^5.3.0",
     "express-oauth2-jwt-bearer": "^1.11.0",
+    "google-auth-library": "^11.3.1",
     "helmet": "^8.1.0",
     "pg": "^8.23.1",
     "ws": "^8.22.0",
