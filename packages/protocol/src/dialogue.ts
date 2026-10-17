@@ -14,7 +14,7 @@ export const MOSS_CHEER = 'I’m cheering you on, adventurer!';
 export const MOSS_COMMAND_REPLIES = {
   create: 'Got it! I’m opening a new game for you.',
   bot: 'Got it! Let’s find Swamp Bot for a friendly duel.',
-  unknown: 'Try asking me to create a game, join a room, or play with Swamp Bot.',
+  unknown: 'Ask me to create a game, join a room, play with Swamp Bot, sign out, or leave the game.',
   code: 'Tell me the four room digits, one at a time.',
   login: 'Sign in first, adventurer. Then I can open an online game for you.',
   name: 'Your hero needs a name! Enter one before we begin.',
@@ -27,6 +27,10 @@ export const MOSS_COMMAND_REPLIES = {
   hostOnly: 'The room’s host must begin this quest. Your adventure will start together.',
   reconnecting: 'One moment, adventurer. We’re reconnecting to the game server.',
   lobbyBusy: 'One moment, adventurer. Your room is still getting ready.',
+  signOut: 'Signing you out. Until our next adventure!',
+  leaveGame: 'Leaving the game. Back to the welcome page!',
+  guestSignOut: 'You’re playing as a guest. Let’s return to sign-in.',
+  signOutFailed: 'I couldn’t sign you out. Please try again.',
 } as const;
 export const MOSS_REACTIONS = {
   hit: ['Good hit!', 'Nicely done!', 'That’s the spirit!', 'A little magic, a mighty hit!'],

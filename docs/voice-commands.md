@@ -14,6 +14,8 @@ example prompt.
 | “Hey Moss, create a new game” | Creates an online room using your hero name |
 | “Hey Moss, join room code zero one two three” | Joins room `0123` |
 | “Hey Moss, play with Swamp Bot” | Opens a bot practice lobby |
+| “Hey Moss, sign out” / “Log me out” | Signs out through Auth0 and returns to sign-in |
+| “Hey Moss, leave game” | Returns to the welcome page; keeps an existing login |
 
 “Hey Moss” is optional after clicking the microphone. Say room digits one at a
 time, including any leading zero. Ordinary four-digit numerals also work.
@@ -24,7 +26,7 @@ You can see what the browser heard on the game-selection page. If a code is
 incomplete or a command is unfamiliar, Moss asks you to try again and does not
 create/join a room.
 
-Online commands require a signed-in account and an entered hero name. Guests
+Online room commands require a signed-in account and an entered hero name. Guests
 can start Swamp Bot practice. Voice and buttons use the same lobby actions and
 checks. Existing room errors remain visible; Moss also reports a failed opening.
 
@@ -33,6 +35,14 @@ with browser speech as backup. Joining a room reads its digits back. The
 microphone stops before Moss replies, and the reply continues into the lobby.
 The existing **Mute Moss** preference also applies to these replies; muting
 Moss does not enable the microphone.
+
+Moss gives spoken feedback and an on-screen caption for commands, including
+sign-out, leaving, and requests that cannot run. Quest start, room exit and
+sign-out wait for the short acknowledgement before changing pages, so it is
+not cut off. A seven-second limit prevents stalled audio from trapping a player.
+Muted voice still advances; unavailable audio leaves the caption as feedback.
+Cancelling a pending reply by leaving its page cancels the waiting action.
+Guests asking to sign out return to the sign-in page without calling Auth0.
 
 ## In the lobby
 
@@ -46,7 +56,8 @@ in both online rooms and guest Swamp Bot rooms.
 | “Hey Moss, leave the room” | Uses the same leave action as the button |
 
 Online quests require the host, two connected players, and an open server
-connection. Moss explains if a rival is missing, the host needs to act, or the
+connection. Readiness is checked again after Moss finishes speaking. Moss
+explains if a rival is missing, the host needs to act, or the
 connection is recovering. Bot practice does not require login. Voice cannot
 create or join a different room from inside a lobby. The story narration takes
 over when the briefing opens. Leaving an online room ends it for both players,
@@ -89,6 +100,10 @@ No database migration or new environment variables are needed.
    Check that the briefing opens and **Accept my quest** still precedes battle.
    In an online lobby, try as the waiting player and as the host; only the host
    should be able to begin. Try **leave the room** in a fresh lobby too.
+6. On game selection, say **leave game** and check that the welcome page opens
+   after the acknowledgement. Say **sign out** while signed in and check that
+   Auth0 returns to sign-in. Try guest sign-out, muted speech and unavailable
+   audio too; each should remain usable.
 
 Automated tests cover command parsing, leading zeros, lobby eligibility,
 duplicate/late recognition events, cancellation, timeouts, and input errors.

@@ -9,6 +9,12 @@ import type { ServerMessage, LobbyState } from '@sword/protocol';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MossCommandInput } from '../src/components/MossCommandInput';
+import { createCommandFeedback } from '../src/story/commandFeedback';
+import { executeMenuExit } from '../src/story/menuExit';
+import { ConnectionContext } from '../src/hooks/useConnection';
+import { MatchProvider } from '../src/hooks/useMatch';
+import { LobbyScreen } from '../src/components/LobbyScreen';
+import { createMossNarrator } from '../src/story/elevenLabsNarration';
 
 test('Moss recognizes one supported game command, including spoken leading-zero room codes', () => {
   assert.deepEqual(parseMossCommand('Hey, Moss! Create a new game.'), { ok: true, command: { kind: 'create', mode: 'online' } });
@@ -29,6 +35,110 @@ test('incomplete, ambiguous and multiple commands never become actions', () => {
   for (const words of ['delete my account', 'create a new game and join 1234', '', 'x'.repeat(201)]) {
     assert.deepEqual(parseMossCommand(words), { ok: false, reason: 'unknown' });
   }
+});
+
+test('game selection understands sign-out and leave commands, rejecting combined or negative requests', () => {
+  for (const words of ['Hey Moss, sign out', 'Log me out', 'Please log out', 'Can you sign out of the game?']) {
+    assert.deepEqual(parseMossCommand(words), { ok: true, command: { kind: 'signout' } }, words);
+  }
+  for (const words of ['Hey Moss, leave game', 'Leave the game', 'Exit this game please']) {
+    assert.deepEqual(parseMossCommand(words), { ok: true, command: { kind: 'leave' } }, words);
+  }
+  for (const words of ['do not sign out', 'sign out and create a game', 'leave game then join room 1234']) {
+    assert.equal(parseMossCommand(words).ok, false, words);
+  }
+});
+
+test('menu exits acknowledge before navigation; only authenticated sign-out calls Auth0 logout', async () => {
+  for (const authenticated of [true, false]) {
+    for (const kind of ['signout', 'leave'] as const) {
+      const calls: string[] = [];
+      let finishReply!: (value: boolean) => void;
+      const result = executeMenuExit({ kind }, {
+        authenticated,
+        reply: async text => { calls.push(text); return new Promise(resolve => { finishReply = resolve; }); },
+        logout: async () => { calls.push('logout'); }, navigate: page => { calls.push(page); },
+      });
+      assert.deepEqual(calls, [kind === 'leave' ? MOSS_COMMAND_REPLIES.leaveGame
+        : authenticated ? MOSS_COMMAND_REPLIES.signOut : MOSS_COMMAND_REPLIES.guestSignOut]);
+      finishReply(true); assert.equal(await result, 'done');
+      assert.equal(calls[1], kind === 'leave' ? 'home' : authenticated ? 'logout' : 'login');
+      assert.equal(calls.length, 2);
+    }
+  }
+});
+
+test('cancelled speech does not navigate, and logout failures receive safe spoken feedback', async () => {
+  assert.equal(await executeMenuExit({ kind: 'signout' }, {
+    authenticated: true, reply: async () => false,
+    logout: async () => assert.fail('Cancelled action must not log out'), navigate: () => assert.fail('Cancelled action must not navigate'),
+  }), 'cancelled');
+  const replies: string[] = [];
+  assert.equal(await executeMenuExit({ kind: 'signout' }, {
+    authenticated: true, reply: async text => { replies.push(text); return true; },
+    logout: async () => { throw new Error('private provider diagnostic'); }, navigate: () => assert.fail('No navigation on failure'),
+  }), 'failed');
+  assert.deepEqual(replies, [MOSS_COMMAND_REPLIES.signOut, MOSS_COMMAND_REPLIES.signOutFailed]);
+});
+
+test('a command acknowledgement finishes before its action, ignoring the narrator’s initial reset', async () => {
+  const captions: string[] = [];
+  const feedback = createCommandFeedback({
+    speak() { feedback.stateChanged('idle'); feedback.stateChanged('loading'); },
+    stop() {}, show: text => captions.push(text),
+  });
+  let done = false;
+  const reply = feedback.speak('Starting your quest!').then(value => { done = true; return value; });
+  await Promise.resolve(); assert.equal(done, false);
+  feedback.stateChanged('speaking'); await Promise.resolve(); assert.equal(done, false);
+  feedback.stateChanged('idle'); assert.equal(await reply, true);
+  assert.deepEqual(captions, ['Starting your quest!']); feedback.stop();
+});
+
+test('replaced or stopped feedback cancels its pending action, while unavailable audio and timeouts release it', async () => {
+  const feedback = createCommandFeedback({ speak() {}, stop() {}, show() {} }, 10);
+  const old = feedback.speak('First command'); const current = feedback.speak('Second command');
+  assert.equal(await old, false); feedback.stop(); assert.equal(await current, false);
+  const unavailable = feedback.speak('Audio unavailable'); feedback.stateChanged('unavailable'); assert.equal(await unavailable, true);
+  assert.equal(await feedback.speak('Slow audio'), true);
+  feedback.stop();
+});
+
+test('browser backup finishes its acknowledgement before navigation, including while muted', async () => {
+  for (const muted of [false, true]) {
+    const spoken: SpeechSynthesisUtterance[] = [];
+    const synth = { getVoices: () => [], cancel() {}, speak: (words: SpeechSynthesisUtterance) => spoken.push(words) } as unknown as SpeechSynthesis;
+    const narrator = createMossNarrator(synth, text => ({ text }) as SpeechSynthesisUtterance,
+      state => feedback.stateChanged(state), {
+        load: async () => { throw new Error('No provider credits'); },
+        makeAudio: () => { throw new Error('Must use browser backup'); }, createUrl: () => '', revokeUrl() {},
+      });
+    const feedback = createCommandFeedback({ speak: text => narrator.speak(text), stop: () => narrator.stop(), show() {} });
+    narrator.setMuted(muted);
+    let done = false;
+    const reply = feedback.speak(MOSS_COMMAND_REPLIES.signOut).then(result => { done = true; return result; });
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.equal(spoken.length, 1); assert.equal(done, false);
+    assert.equal(spoken[0]!.volume, muted ? 0 : 1);
+    spoken[0]!.onend?.call(spoken[0]!, {} as SpeechSynthesisEvent);
+    assert.equal(await reply, true); feedback.stop();
+  }
+});
+
+test('online and guest lobby pages both render Talk to Moss beside quest controls', () => {
+  const connection = createConnection({ request: async () => assert.fail('Rendering needs no API') } as Api);
+  try {
+    for (const mode of ['online', 'bot'] as const) {
+      const lobby: LobbyState = { mode, code: '0123', you: 'p1', players: [] };
+      const html = renderToStaticMarkup(createElement(ConnectionContext, { value: {
+        connection, poses: { p1: [1, 0, 0, 0], p2: [1, 0, 0, 0] },
+      } }, createElement(MatchProvider, { children: createElement(LobbyScreen, {
+        lobby, onVoiceReply: async () => true, stopVoice() {},
+      }) })));
+      assert.match(html, /Talk to Moss/); assert.match(html, /Heard: /);
+      assert.match(html, /Start my quest/);
+    }
+  } finally { connection.close(); }
 });
 
 test('guest bot requests accept conversational phrasing without becoming online commands', () => {

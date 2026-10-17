@@ -4,7 +4,8 @@ import type { LobbyState } from '../game/types';
 import type { ConnectionStatus } from '../net/connection';
 
 export type MossCommand = { kind: 'create'; mode: 'online' | 'bot' } | { kind: 'join'; code: string };
-type ParsedCommand = { ok: true; command: MossCommand } | { ok: false; reason: 'unknown' | 'code' };
+export type MossMenuExitCommand = { kind: 'signout' } | { kind: 'leave' };
+type ParsedCommand = { ok: true; command: MossCommand | MossMenuExitCommand } | { ok: false; reason: 'unknown' | 'code' };
 const digits: Record<string, string> = {
   zero: '0', oh: '0', o: '0', one: '1', won: '1', two: '2', to: '2', too: '2',
   three: '3', four: '4', for: '4', five: '5', six: '6', seven: '7', eight: '8', ate: '8', nine: '9',
@@ -19,6 +20,8 @@ const commandWords = (transcript: string) => transcript.toLowerCase().replace(/[
 export function parseMossCommand(transcript: string): ParsedCommand {
   if (transcript.length > 200) return { ok: false, reason: 'unknown' };
   const words = commandWords(transcript);
+  if (/^(?:(?:sign|log)(?: me)? out|signout|logout)(?: (?:of )?(?:the )?game)?$/.test(words)) return { ok: true, command: { kind: 'signout' } };
+  if (/^(?:leave|exit)(?: (?:this|the|my))? game$/.test(words)) return { ok: true, command: { kind: 'leave' } };
   if (/^(?:create|make|start|open) (?:a |an |the )?(?:new )?(?:online )?(?:game|room|lobby)$/.test(words)) {
     return { ok: true, command: { kind: 'create', mode: 'online' } };
   }
