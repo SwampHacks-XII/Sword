@@ -123,6 +123,9 @@ button { touch-action: manipulation; }
 .book-hero-figure { display: grid; justify-items: center; gap: .4rem; margin-bottom: .4rem; }
 .book-hero-figure img { height: clamp(90px, 23vh, 220px); transform: scaleX(-1); filter: drop-shadow(6px 6px 0 #5b4a3a33); animation: hero-breathe 5s steps(3) infinite; }
 .book-hero-name { padding: .15rem .8rem; background: #fff4d7; box-shadow: 0 0 0 3px var(--frame); font-size: 1.05rem; overflow-wrap: anywhere; text-align: center; }
+.hero-identity { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: .8rem; margin: .3rem 0 .6rem; }
+.hero-identity .book-hero-name { min-width: 0; max-width: 100%; }
+.hero-name-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .8rem; }
 /* The lobby: both duellists face each other on the left page. */
 .book-party { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .book-party-member { display: grid; justify-items: center; gap: .35rem; text-align: center; }

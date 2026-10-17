@@ -2,6 +2,9 @@ export interface ApiMatch {
   id: string; joinCode: string; status: 'waiting' | 'active' | 'completed';
 }
 export interface Profile { id: string; displayName: string }
+export class ApiRequestError extends Error {
+  constructor(message: string, readonly status: number) { super(message); this.name = 'ApiRequestError'; }
+}
 export function resolveApiBaseUrl(value?: string, origin?: string) {
   if (value === 'same-origin') {
     if (!origin) throw new Error('The hosted API needs the website origin.');
@@ -27,8 +30,8 @@ export function createApi(getToken: () => Promise<string>) {
       } catch { throw new Error('Cannot reach the game server. Check that the backend is running.'); }
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        if (response.status === 401) throw new Error('Your login expired. Sign out and sign in again.');
-        throw new Error(typeof data.message === 'string' ? data.message : 'The server could not complete that action.');
+        if (response.status === 401) throw new ApiRequestError('Your login expired. Sign out and sign in again.', response.status);
+        throw new ApiRequestError(typeof data.message === 'string' ? data.message : 'The server could not complete that action.', response.status);
       }
       return data as T;
     },
