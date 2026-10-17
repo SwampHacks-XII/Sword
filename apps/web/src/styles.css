@@ -24,7 +24,7 @@ button { touch-action: manipulation; }
 /* Pixel frame: a 1-"pixel" outline with notched corners, a bevel, and a hard offset shadow.
    Each surface sets --b (pixel size), --edge, --hi, --lo, --lip and the shadow offset --sx/--sy. */
 .parchment, .health-bars, .npc-guide-compact .npc-caption, .event-log, .camera-frame, .slot, .fatal,
-.quest-button, .primary-button, .secondary-button, .difficulty-button, .heal-button, .battle-voice-control, .field input, .rune, kbd, .chip, .health-track, .armed-bar, .step.active {
+.quest-button, .primary-button, .secondary-button, .difficulty-button, .heal-button, .battle-voice-control, .battle-mode, .field input, .rune, kbd, .chip, .health-track, .armed-bar, .step.active {
   --b: 4px; --edge: var(--frame); --hi: transparent; --lo: transparent; --lip: transparent; --sx: 0px; --sy: 0px;
   border: 0; border-radius: 0;
   box-shadow:
@@ -48,8 +48,7 @@ button { touch-action: manipulation; }
 .distant-knight { right: 4%; bottom: 26%; width: 26%; }
 .duel-caption { position: absolute; left: 12%; bottom: 7%; color: #3f553f; font-size: .9rem; }
 
-.world-header { position: absolute; z-index: 5; inset: 0 0 auto; height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0 3.2vw; color: #3f3a30; background: #f8efdfb8; box-shadow: 0 4px 0 #5b4a3a33; pointer-events: none; }
-.world-header p { position: absolute; left: 50%; transform: translateX(-50%); margin: 0; font-size: .9rem; white-space: nowrap; }
+.world-header { position: absolute; z-index: 5; inset: 0 0 auto; height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0 3.2vw; color: #3f3a30; background: transparent; pointer-events: none; }
 .wordmark { display: inline-flex; align-items: center; gap: .6rem; border: 0; padding: .25rem 0; background: none; letter-spacing: .12em; font-weight: 700; font-size: 1.6rem; text-shadow: 3px 3px 0 #c9bde8; pointer-events: auto; cursor: pointer; }
 .wordmark:disabled { opacity: 1; }
 .wordmark > span:first-child { font-size: 1.6rem; letter-spacing: 0; }
@@ -89,6 +88,38 @@ button { touch-action: manipulation; }
 .quest-button:active:not(:disabled), .primary-button:active:not(:disabled), .secondary-button:active:not(:disabled) { transform: translateY(4px); --sy: 0px; }
 .secondary-button { --edge: #8a7448; --hi: #fffaea; --lo: #d8c49a; --lip: #8a7448; color: #4f4c35; background: #f5e7c7; text-shadow: none; }
 .secondary-button:hover:not(:disabled) { background: #fbf0d6; transform: translateY(-4px); --sy: 8px; }
+
+/* A rose-tinted exit button and Moss's little parchment confirmation. */
+.secondary-button.leave-game-button {
+  --edge: #82606a; --hi: #fff0ed; --lo: #d8aeb5; --lip: #82606a;
+  background: #f2d4d8; color: #65474e; gap: .65rem; font-size: .92rem;
+}
+.secondary-button.leave-game-button:hover:not(:disabled) { background: #f9e2e3; }
+.leave-dialog {
+  width: min(500px, calc(100vw - 24px)); max-height: calc(100svh - 24px);
+  border: 0; padding: 8px 16px 16px 8px; background: transparent; color: var(--ink);
+  overflow-y: auto; margin: auto;
+}
+.leave-dialog::backdrop {
+  background: repeating-conic-gradient(#33244899 0 25%, #33244877 0 50%) 0 0 / 4px 4px;
+}
+.leave-dialog-card { text-align: center; padding: 1.2rem 1.4rem 1.6rem; }
+.leave-dialog-close {
+  position: absolute; top: 12px; right: 12px; width: 36px; height: 36px;
+  display: grid; place-items: center; border: 2px solid #b99c74; background: #fff3d8;
+  color: var(--ink-soft); font-size: 1.6rem; cursor: pointer;
+}
+.leave-dialog-close:hover { background: #f2d4d8; }
+.leave-dialog-portrait { display: flex; align-items: center; justify-content: center; gap: .4rem; }
+.leave-dialog-portrait .npc-moss { width: 104px; }
+.leave-dialog-spark { color: #ac8bba; font-size: 1.2rem; }
+.leave-dialog-kicker { font-family: var(--label-font); font-size: .68rem; color: var(--leaf); }
+.leave-dialog-card h2 { margin: .65rem 0 .75rem; font-weight: 500; font-size: clamp(1.6rem, 5vw, 2rem); }
+.leave-dialog-card p { margin: .6rem 0; line-height: 1.5; }
+.leave-dialog-card .leave-dialog-note { font-size: .85rem; color: var(--ink-soft); }
+.leave-dialog-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: .7rem; margin-top: 1.1rem; }
+.leave-dialog-actions > button { flex: 1 1 155px; }
+.battle-controls .leave-game-button { margin: 4px; min-height: 44px; }
 
 .npc-guide { position: absolute; bottom: -31px; left: -75px; display: flex; align-items: flex-end; gap: 3px; pointer-events: none; width: calc(100% + 30px); }
 /* moss-fly.png is a 24-frame boomerang strip (frames 1→13→2), so a plain forward loop plays it back and forth. */
@@ -253,9 +284,12 @@ button { touch-action: manipulation; }
 .story-actions > .text-button { display: block; margin: .8rem 0 0 auto; }
 
 .battle { position: absolute; inset: 0; }
-.stage-battle .world-header { background: #faf0e3d9; }
-.health-bars { --hi: var(--parchment-hi); --lo: var(--parchment-lo); --lip: var(--drop); --sx: 8px; --sy: 8px; position: absolute; top: 94px; left: 2.5vw; width: min(330px, 32vw); display: grid; gap: .85rem; padding: 1rem 1.2rem; background: #efe3c2f2; }
+.battle-left-hud { position: absolute; top: 94px; bottom: 18px; left: 2.5vw; width: min(350px, 32vw); display: flex; flex-direction: column; gap: 1.25rem; padding: 4px 12px 8px 4px; overflow-y: auto; scrollbar-width: thin; pointer-events: none; }
+.battle-status { display: grid; gap: .9rem; flex: 0 0 auto; pointer-events: auto; }
+.health-bars { --hi: var(--parchment-hi); --lo: var(--parchment-lo); --lip: var(--drop); --sx: 8px; --sy: 8px; width: 100%; display: grid; gap: .85rem; padding: 1rem 1.2rem; background: #efe3c2f2; }
 .health-label { display: flex; justify-content: space-between; gap: .6rem; font-size: .92rem; line-height: 1.5; }
+.health-label > span { min-width: 0; overflow-wrap: anywhere; }
+.health-label > span:last-child { flex-shrink: 0; white-space: nowrap; }
 .health-label small { font-size: .74rem; color: #6e5f42; }
 .health-track { --b: 2px; --edge: #4a3d2e; height: 14px; background: #4a3d2e55; margin-top: .5rem; overflow: hidden; }
 /* Chunky segmented bar with a 3px highlight strip along the top. */
@@ -264,7 +298,7 @@ button { touch-action: manipulation; }
 .chips { display: flex; gap: .5rem; }
 .chip { --b: 2px; --edge: #5f8a7e; font-size: .72rem; padding: .1rem .4rem; margin-top: .5rem; background: #c8e2da; }
 .chip-slow { --edge: #6f78a8; background: #c6cce9; }
-.spell-panel { position: absolute; top: 98px; right: 3vw; width: min(300px, 30vw); padding: 1.3rem; text-align: center; }
+.spell-panel { position: absolute; top: 98px; bottom: 22px; right: 3vw; width: min(300px, 30vw); overflow-y: auto; scrollbar-width: thin; padding: 1.3rem; text-align: center; }
 .spell-name { font-size: 1.6rem; font-weight: 500; margin: .6rem 0 1rem; }
 .runes { list-style: none; padding: 0; margin: 0 0 1rem; display: flex; flex-wrap: wrap; justify-content: center; gap: .8rem; }
 .rune { --edge: #5a5236; --hi: #ffffff55; --lo: #00000022; width: 43px; height: 43px; display: grid; place-items: center; opacity: .5; transition: opacity 120ms steps(1), transform 120ms steps(1); }
@@ -283,7 +317,10 @@ button { touch-action: manipulation; }
 .heal-button { --edge: #3f4a26; --hi: #c6d79a; --lo: #8ea35c; --lip: #3f4a26; background: var(--rune-green); }
 .heal-button:hover:not(:disabled) { background: #b3d186; }
 .moss-voice { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-bottom: .7rem; }
-.battle-voice-control { --hi: var(--parchment-hi); --lo: var(--parchment-lo); --lip: var(--drop); --sx: 6px; --sy: 6px; position: absolute; bottom: 80px; right: 3vw; max-width: 240px; padding: .35rem .65rem; background: #f1e3c2f2; }
+.battle-voice-control { --hi: var(--parchment-hi); --lo: var(--parchment-lo); --lip: var(--drop); --sx: 6px; --sy: 6px; max-width: 100%; padding: .25rem .55rem; background: #f1e3c2f2; text-shadow: none; }
+.battle-voice-toggle { display: flex; align-items: center; gap: .75rem; min-height: 34px; border: 0; padding: .2rem 0; background: transparent; cursor: pointer; font-size: .85rem; }
+.battle-voice-state { border: 2px solid #65753f; padding: .1rem .4rem; background: #cde0a7; color: #3f4a26; font-size: .75rem; }
+.battle-voice-toggle[aria-checked='false'] .battle-voice-state { border-color: #94727b; background: #f2d4d8; color: #65474e; }
 .rune-red { background: var(--rune-red); } .rune-blue { background: var(--rune-blue); }
 .rune-green { background: var(--rune-green); } .rune-yellow { background: var(--rune-yellow); }
 .rune-key { font-weight: 700; color: #3a372b; }
@@ -294,25 +331,39 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
 .armed p { margin: 0 0 .5rem; }
 .armed-bar { --b: 2px; --edge: #5a5236; height: 10px; background: #aa987044; overflow: hidden; }
 .armed-bar > div { height: 100%; background: repeating-linear-gradient(90deg, #7fa1b3 0 8px, transparent 8px 10px); }
-.battle-controls { position: absolute; left: 2.5vw; top: 275px; max-width: min(300px, 32vw); padding: .5rem 0; font-size: .8rem; text-shadow: 2px 2px 0 #fffae0; }
-.battle-controls p { margin: 0 0 .4rem; }
-.battle > .npc-guide-compact { position: absolute; left: .5vw; bottom: 8px; width: min(420px, 48vw); }
-.npc-guide-compact .npc-moss { width: 164px; }
-.npc-guide-compact .npc-caption { --hi: var(--parchment-hi); --lo: var(--parchment-lo); --lip: var(--drop); --sx: 6px; --sy: 6px; padding: .6rem .9rem .7rem; background: #f1e3c2f2; width: 230px; }
+.battle-controls { display: grid; justify-items: start; gap: .65rem; padding: .1rem 0; font-size: .8rem; text-shadow: 2px 2px 0 #fffae0; }
+.battle-controls p { margin: 0; }
+.battle-controls .battle-mode { --hi: #fffef8; --lo: #dfcfae; --lip: var(--drop); --sx: 6px; --sy: 6px; max-width: 100%; padding: .55rem .7rem; background: #fffaf0; color: var(--ink); text-shadow: none; overflow-wrap: anywhere; }
+.battle-conversation { display: flex; flex-direction: column; gap: 1rem; margin-top: auto; min-height: 0; pointer-events: none; }
+.battle-conversation .npc-guide-compact { position: static; inset: auto; display: flex; align-items: center; gap: .4rem; flex: 0 0 auto; width: 100%; }
+.battle-conversation .npc-guide-compact .npc-moss { width: 96px; }
+.battle-conversation .npc-portrait { flex: 0 0 auto; padding: 4px; border-radius: 50%; background: radial-gradient(ellipse, #fff9e9 0 55%, #f2e4be 78%, #deca9c 100%); box-shadow: 0 0 0 2px #b69a6d, 3px 4px 0 1px #5b4a3a26; }
+.battle-conversation .npc-portrait .npc-moss { filter: url(#pixelate-soft) drop-shadow(0 2px 0 #675333); }
+.battle-conversation .npc-caption { --hi: var(--parchment-hi); --lo: var(--parchment-lo); --lip: var(--drop); --sx: 6px; --sy: 6px; align-self: center; flex: 1; min-width: 0; width: auto; max-width: none; margin: 0; padding: .6rem .75rem; background: #f1e3c2f2; }
 .npc-guide-compact .npc-caption p { font-size: .8rem; }
-.event-log { --edge: #6f7d45; --hi: #fffaea; --lip: var(--drop); --sx: 6px; --sy: 6px; position: absolute; left: 2.5vw; bottom: 137px; list-style: none; margin: 0; padding: .7rem 1rem .7rem 1.3rem; max-width: min(380px, 40vw); background: #f1e5c7ee; font-size: .82rem; line-height: 1.6; }
+.event-log { --edge: #6f7d45; --hi: #fffaea; --lip: var(--drop); --sx: 6px; --sy: 6px; flex: 0 1 auto; min-height: 0; max-height: min(140px, 22svh); overflow-y: auto; scrollbar-width: thin; pointer-events: auto; list-style: none; margin: 0; padding: .7rem 1rem; width: 100%; background: #f1e5c7ee; font-size: .82rem; line-height: 1.6; overflow-wrap: anywhere; }
 .event-log:empty { display: none; }
-.camera-frame { --b: 6px; --edge: #5b4a3a; --hi: #eee0bb; --lo: #c9b48a; --lip: var(--drop); --sx: 8px; --sy: 8px; position: absolute; right: 2.5vw; bottom: 22px; width: min(225px, 25vw); aspect-ratio: 16/10; display: grid; place-items: center; color: #5f5577; background: #d7cce4e6; }
+.camera-widget { position: absolute; bottom: 22px; right: calc(3vw + min(300px, 30vw) + 24px); width: min(320px, calc(32vw - 3rem)); display: flex; flex-direction: column; align-items: flex-end; pointer-events: none; }
+.camera-frame { --b: 6px; --edge: #5b4a3a; --hi: #eee0bb; --lo: #c9b48a; --lip: var(--drop); --sx: 8px; --sy: 8px; width: 100%; aspect-ratio: 16/10; display: grid; place-items: center; padding-top: 28px; color: #5f5577; background: #d7cce4e6; }
+.camera-frame[hidden] { display: none; }
+.camera-toggle { position: absolute; top: 6px; right: 6px; z-index: 1; display: inline-flex; align-items: center; gap: .35rem; min-height: 30px; padding: .2rem .45rem; border: 2px solid var(--frame); background: var(--parchment-hi); color: var(--ink); font-size: .75rem; cursor: pointer; pointer-events: auto; }
+.camera-toggle:hover { background: #fffdf3; }
+.camera-widget.is-collapsed .camera-toggle { position: static; min-height: 44px; box-shadow: 4px 4px 0 var(--drop); }
 .camera-frame > div { display: grid; justify-items: center; gap: .45rem; padding: .5rem; text-align: center; }
 .camera-frame span:not(.camera-sigil) { font-size: .88rem; }
 .camera-frame small { font-family: var(--label-font); font-size: .58rem; }
 .camera-sigil { font-size: 1.7rem; }
 /* Dithered dim instead of a soft blur. */
 .modal { position: absolute; inset: 0; display: grid; place-items: center; padding: 2rem; background: repeating-conic-gradient(#2e2244aa 0 25%, #2e224455 0 50%) 0 0 / 4px 4px; }
-.ending-scroll { width: min(480px, 92%); text-align: center; padding: 2.5rem; animation: scroll-arrive .3s steps(3); }
+.ending-scroll { width: min(480px, 92%); max-height: calc(100svh - 64px); overflow-y: auto; text-align: center; padding: clamp(1.2rem, 4vw, 2.5rem); animation: scroll-arrive .3s steps(3); }
 .ending-scroll .parchment-title { font-size: 2.6rem; font-weight: 700; text-shadow: 4px 4px 0 #d9c391; }
 .ending-scroll p { line-height: 1.6; }
 .ending-scroll .row { justify-content: center; flex-wrap: wrap; }
+.ending-moss { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: .6rem; margin: 1.2rem 0; text-align: left; }
+.ending-moss .npc-moss { width: 72px; }
+.ending-moss .speaker-line { margin: 0; }
+.ending-moss p { font-size: .95rem; margin: .4rem 0 .6rem; }
+.ending-moss .moss-voice { margin-bottom: 0; }
 .fatal { --hi: var(--parchment-hi); --lo: var(--parchment-lo); padding: 2rem; margin: 1rem; background: var(--parchment); }
 
 @keyframes scroll-arrive { from { opacity: 0; translate: 0 16px; } to { opacity: 1; translate: 0 0; } }
@@ -358,6 +409,12 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
   .choice-footer { margin-top: .8rem; gap: .5rem; }
   .room-code { font-size: 2.8rem; }
 }
+/* Moss peeks around the scroll's lower-left corner, with his bubble on the paper above him. */
+.quest-layout .story-scroll > .npc-guide { left: 0; right: auto; bottom: 0; display: block; width: 260px; height: 0; }
+.quest-layout .npc-guide > .npc-moss { position: absolute; left: -80px; bottom: -100px; width: 200px; }
+.quest-layout .npc-guide > .npc-caption { position: absolute; left: 24px; bottom: 100px; width: 220px; max-width: none; margin: 0; padding: .65rem .85rem; background: var(--parchment-hi); box-shadow: 0 0 0 3px var(--frame), 4px 4px 0 3px var(--drop); }
+.quest-layout .npc-guide > .npc-caption::after { content: ''; position: absolute; left: 8px; bottom: -8px; width: 12px; height: 12px; background: var(--parchment-hi); box-shadow: 3px 3px 0 var(--frame); transform: rotate(45deg); }
+.quest-layout .story-actions { min-height: 160px; padding-left: 210px; }
 /* Medium screens lack room beside the panel, so Moss tucks back into its bottom corner. */
 @media (min-width: 721px) and (max-width: 1000px) {
   .story-scroll { padding-bottom: 112px; }
@@ -367,7 +424,6 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
 }
 @media (min-width: 1500px) { .story-scroll { width: min(650px, 48vw); padding-inline: 52px; } .entry-layout { padding-right: 9vw; } }
 @media (max-width: 1000px) {
-  .world-header p { font-size: .8rem; }
   .story-scroll { width: min(590px, 66vw); padding-inline: 35px; }
   .duel-illustration { width: 48%; opacity: .8; }
   .near-knight { left: -18%; width: 65%; }
@@ -377,10 +433,13 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
 @media (max-width: 720px) {
   .world-header { height: 68px; padding-inline: 20px; }
   .wordmark { font-size: 1.2rem; }
-  .world-header p { position: static; transform: none; text-align: right; white-space: normal; max-width: 180px; line-height: 1.4; }
   .world-edition { display: none; }
   .entry-layout { align-items: center; padding: 96px 34px 110px; }
   .story-scroll { width: 100%; max-width: 540px; padding: 25px 30px 126px; }
+  .quest-layout .story-scroll { padding-bottom: 160px; }
+  .quest-layout .story-actions { min-height: 0; padding-left: 0; }
+  .quest-layout .npc-guide > .npc-moss { left: -54px; bottom: -80px; width: 160px; }
+  .quest-layout .npc-guide > .npc-caption { left: 26px; bottom: 72px; width: min(220px, calc(100vw - 100px)); }
   .story-scroll h1 { font-size: 2.2rem; }
   .npc-guide { left: -28px; bottom: -30px; }
   .npc-moss { width: 220px; }
@@ -391,21 +450,23 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
   .world-footer { bottom: 15px; justify-content: center; text-align: center; font-size: .7rem; }
   .world-footer > span:last-child { display: none; }
   .connect-panel { width: 100%; max-width: 340px; margin: 0; }
-  .health-bars { top: 83px; left: 16px; width: 43vw; padding: .7rem; gap: .6rem; }
+  .battle-left-hud { top: 83px; bottom: 14px; left: 12px; width: 46vw; gap: .9rem; }
+  .health-bars { padding: .7rem; gap: .6rem; }
   .health-label { font-size: .78rem; flex-wrap: wrap; gap: .1rem; }
   .health-label small { display: none; }
-  .spell-panel { top: 87px; right: 18px; width: 43vw; padding: .9rem .65rem; }
+  .spell-panel { top: 87px; bottom: auto; right: 18px; width: 43vw; max-height: calc(100svh - 240px); padding: .9rem .65rem; }
   .spell-name { font-size: 1.25rem; }
   .rune { width: 29px; height: 33px; --b: 3px; }
   .runes { gap: .5rem; }
   .spell-panel .hint { font-size: .72rem; }
-  .battle-controls { left: 16px; top: 278px; max-width: 42vw; font-size: .72rem; }
-  .battle > .npc-guide-compact { width: 55vw; left: -6px; bottom: 8px; gap: 0; }
-  .npc-guide-compact .npc-moss { width: 113px; }
-  .npc-guide-compact .npc-caption { padding: .5rem; }
+  .battle-controls { gap: .55rem; font-size: .72rem; }
+  .battle-voice-toggle { gap: .4rem; font-size: .76rem; }
+  .battle-voice-state { padding-inline: .25rem; font-size: .7rem; }
+  .battle-conversation .npc-guide-compact .npc-moss { width: 64px; }
+  .battle-conversation .npc-caption { padding: .5rem; }
   .npc-guide-compact .npc-caption p { font-size: .72rem; }
-  .event-log { left: 16px; bottom: 128px; max-width: 51vw; font-size: .72rem; padding: .5rem .5rem .5rem .8rem; }
-  .camera-frame { right: 14px; bottom: 20px; width: 34vw; }
+  .event-log { font-size: .72rem; padding: .5rem .6rem; }
+  .camera-widget { bottom: 20px; right: 18px; width: min(180px, 40vw); }
   .camera-frame small { font-size: .5rem; }
   .camera-sigil { font-size: 1.25rem; }
 }
@@ -422,6 +483,17 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
   .slot { gap: .4rem; padding-inline: 1.1rem .5rem; }
   .slot-name { font-size: .9rem; }
   .join-form { flex-wrap: wrap; }
+}
+@media (max-height: 650px) {
+  .battle-left-hud { gap: .75rem; }
+  .battle-status { gap: .65rem; }
+  .battle-left-hud .health-bars { padding: .65rem .8rem; gap: .55rem; }
+  .battle-left-hud .health-label { font-size: .78rem; }
+  .battle-controls { gap: .45rem; }
+  .battle-controls .leave-game-button { min-height: 40px; padding-block: .5rem; }
+  .battle-voice-toggle { min-height: 30px; }
+  .battle-conversation .npc-guide-compact .npc-moss { width: 64px; }
+  .event-log { max-height: 100px; padding-block: .45rem; }
 }
 /* Medium, short screens: the decorative footer gives its space to the panel. */
 @media (min-width: 721px) and (max-width: 1000px) and (max-height: 760px) {

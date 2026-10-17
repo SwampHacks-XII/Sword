@@ -3,6 +3,7 @@ import type { NarrationState } from '../story/narration';
 import { createMossNarrator } from '../story/elevenLabsNarration';
 import { loadMossAudio } from '../net/voice';
 import { useSession } from '../auth/SessionProvider';
+import { audioActivity } from '../audio/activity';
 
 const preference = 'sword.mossVoice';
 const preferenceChanged = 'sword:mossVoiceChanged';
@@ -23,6 +24,11 @@ export function useMossSpeech(defaultEnabled = true, onStateChanged?: (state: Na
   const enabledRef = useRef(enabled);
   enabledRef.current = enabled;
   const narrator = useRef<ReturnType<typeof createMossNarrator> | null>(null);
+  const [audioSource] = useState(() => Symbol('Moss narration'));
+  useEffect(() => {
+    audioActivity.set(audioSource, 'speech', state === 'speaking' && enabled);
+    return () => audioActivity.set(audioSource, 'speech', false);
+  }, [audioSource, state, enabled]);
   useEffect(() => {
     const sync = (event: Event) => {
       if (event instanceof StorageEvent && event.key !== preference && event.key !== null) return;

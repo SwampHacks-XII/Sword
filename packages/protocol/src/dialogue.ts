@@ -11,6 +11,10 @@ export const MOSS_PROLOGUE = [
   ] },
 ] as const;
 export const MOSS_CHEER = 'I’m cheering you on, adventurer!';
+export const MOSS_ENDINGS = {
+  win: 'You did it, adventurer! The glade is safe again. I knew you had a little magic in you!',
+  loss: 'Even heroes stumble, brave one. Dust off your sword! Your story still has plenty of magic left.',
+} as const;
 export const MOSS_COMMAND_REPLIES = {
   create: 'Got it! I’m opening a new game for you.',
   bot: 'Got it! Let’s find Swamp Bot for a friendly duel.',
@@ -44,7 +48,7 @@ export const MOSS_REACTIONS = {
 const normalize = (text: string) => text.trim().replace(/\s+/g, ' ');
 const publicLines = new Set<string>([
   ...MOSS_PROLOGUE.map(chapter => chapter.text.join(' ')), ...FALLBACK_BRIEFINGS,
-  ...Object.values(MOSS_REACTIONS).flat(), ...Object.values(MOSS_COMMAND_REPLIES), MOSS_CHEER,
+  ...Object.values(MOSS_REACTIONS).flat(), ...Object.values(MOSS_COMMAND_REPLIES), ...Object.values(MOSS_ENDINGS), MOSS_CHEER,
 ].map(normalize));
 /** Guests may request built-in lines. Generated quest text requires a player login. */
 export const isPublicMossLine = (text: string) => publicLines.has(normalize(text));

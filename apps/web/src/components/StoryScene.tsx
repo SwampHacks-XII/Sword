@@ -36,7 +36,7 @@ export function StoryScene({ title, paragraphs, action, onContinue, disabled, st
       <button type="button" className="quest-button" disabled={disabled} onClick={() => { voice.current?.stop(); onContinue(); }}>{action}<span aria-hidden="true">→</span></button>
       {status && <p className="hint quest-status" role="status">{status}</p>}
       {error && <p className="error" role="alert">{error}</p>}
-      {onLeave && <button type="button" className="text-button" onClick={() => { voice.current?.stop(); onLeave(); }}>Leave this quest</button>}
+      {onLeave && <button type="button" className="secondary-button leave-game-button" onClick={onLeave}>Leave game <span aria-hidden="true">↗</span></button>}
     </div>
     <NpcGuide message="A little courage goes a long way." />
   </Parchment>;

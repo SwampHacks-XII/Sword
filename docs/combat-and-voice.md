@@ -78,6 +78,12 @@ missed!”**, and **“A little healing magic!”**. Captions continue when soun
 Reactions are spaced apart, and ones that arrive while Moss is speaking are
 not added to an audio queue.
 
+When the battle ends, Moss automatically celebrates your victory or offers
+encouragement after a loss. His line appears on the results card with mute and
+replay controls. It replaces any unfinished hit reaction, uses ElevenLabs with
+the browser backup (including guest practice), and stops on rematch or leaving.
+The existing Moss mute preference applies to the ending too.
+
 The backup uses the browser/device’s available English voices, preferring a
 lighter voice and raising its pitch. Sound and available voices vary by device. If
 speech is unavailable or blocked, the dialogue remains readable.

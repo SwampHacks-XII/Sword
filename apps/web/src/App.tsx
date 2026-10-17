@@ -10,6 +10,8 @@ import { PLAYER_SLOTS, type PlayerSlot } from './game/types';
 import { useMatch } from './hooks/useMatch';
 import { useNow } from './hooks/useNow';
 import { useSwordPoses } from './hooks/useSwordPoses';
+import { MusicControls } from './components/MusicControls';
+import { LeaveGameDialog } from './components/LeaveGameDialog';
 const loadArena = () => import('./scene/Arena');
 const Arena = lazy(() => loadArena().then(module => ({ default: module.Arena })));
 
@@ -36,9 +38,6 @@ export function App() {
   const choosingGame = screen === 'practice' || (screen === 'play' && session.authenticated);
   const handoff = !!quest && bookClosed;
   const battle = !!match && !quest;
-  const chapter = battle ? 'The duel · Write your own ending' : handoff ? 'Chapter I · The stolen dawn'
-    : lobby ? 'The gathering · Two swords, one story' : choosingGame ? 'The crossroads · Choose your duel'
-    : screen === 'home' ? 'A tale of two selves' : screen === 'lore' ? 'Prologue · A crack in the mirror' : 'The beginning · Name your hero';
 
   return (
     <div className={`stage ${battle ? 'stage-battle' : 'stage-story'}`}>
@@ -48,7 +47,7 @@ export function App() {
       </Suspense>}
       <header className="world-header">
         <button type="button" className="wordmark" disabled={!!lobby || !!match} onClick={() => navigate('home')} aria-label="Sword home"><span aria-hidden="true">⚔</span> SWORD<span className="wordmark-star" aria-hidden="true">✦</span></button>
-        <p>{chapter}</p><span className="world-edition">SwampHacks XII</span>
+        <MusicControls scene={battle ? 'battle' : 'lobby'} />
       </header>
       <main className="overlay">
         {handoff ? <QuestHandoff />
@@ -60,6 +59,7 @@ export function App() {
       </main>
       <MossCommandVoice controlRef={commandVoice} stopWhen={!!quest || !!match || (!choosingGame && !lobby)} />
       {!battle && <footer className="world-footer"><span>Remember your runes. Rewrite your fate.</span><span>✦ A little magic goes a long way.</span></footer>}
+      <LeaveGameDialog scope={`${screen}:${lobby?.mode ?? ''}:${lobby?.code ?? ''}:${quest ? 'quest' : match?.phase ?? 'menu'}`} />
     </div>
   );
 }

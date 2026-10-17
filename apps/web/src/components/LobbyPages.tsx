@@ -6,6 +6,7 @@ import { parseMossLobbyCommand, planLobbyControl, type MossLobbyCommand } from '
 import { MOSS_COMMAND_REPLIES } from '@sword/protocol';
 import type { BookSpread } from './BookMenu';
 import { Knight } from './Knight';
+import { confirmLeaveGame } from '../story/confirmLeaveGame';
 
 /** Start/leave by button or voice. Voice commands wait for Moss to finish replying before acting. */
 export function useLobbyControls(lobby: LobbyState | null, { onVoiceReply, stopVoice }: {
@@ -28,10 +29,13 @@ export function useLobbyControls(lobby: LobbyState | null, { onVoiceReply, stopV
     if (actingRef.current || !context) return;
     const plan = planLobbyControl(command, context);
     if (!plan.ok) { if (voice) void onVoiceReply(plan.reply); return; }
-    if (!voice) { send(plan.message); return; }
+    if (!voice && command.kind !== 'leave') { send(plan.message); return; }
     actingRef.current = true; setActing(true);
     try {
-      if (!await onVoiceReply(plan.reply) || !mounted.current || !latestContext.current) return;
+      if (command.kind === 'leave' && !await confirmLeaveGame()) return;
+      if (!mounted.current || !latestContext.current) return;
+      if (voice && !await onVoiceReply(plan.reply)) return;
+      if (!mounted.current || !latestContext.current) return;
       const refreshed = planLobbyControl(command, latestContext.current);
       if (refreshed.ok) send(refreshed.message);
       else void onVoiceReply(refreshed.reply);
@@ -88,7 +92,7 @@ export function lobbySpread(lobby: LobbyState | null, { error, onlineStatus, pen
           <button type="button" className="quest-button" disabled={acting || !canStart} onClick={() => void submitCommand({ kind: 'begin' })}>
             Start my quest <span aria-hidden="true">→</span>
           </button>
-          <button type="button" className="link-button" disabled={acting || !canLeave} onClick={() => void submitCommand({ kind: 'leave' })}>leave</button>
+          <button type="button" className="secondary-button leave-game-button" disabled={acting || !canLeave} onClick={() => void submitCommand({ kind: 'leave' })}>Leave game <span aria-hidden="true">↗</span></button>
         </div>
         <MossCommandInput disabled={pending || acting} onTranscript={voiceCommand} stopVoice={stopVoice}
           example="Try “Hey Moss, start my quest” or “leave the room.”" />
