@@ -97,7 +97,9 @@ button { touch-action: manipulation; }
 .handwritten-note { font-size: .8rem; margin: .85rem 0 0; color: var(--ink-soft); }
 
 .npc-guide { position: absolute; bottom: -31px; left: -75px; display: flex; align-items: flex-end; gap: 3px; pointer-events: none; width: calc(100% + 30px); }
-.npc-moss { width: 164px; height: auto; flex: 0 0 auto; filter: url(#pixelate) drop-shadow(0 6px 0 #5b673a33); transform-origin: 50% 100%; animation: moss-bob 2s steps(2) infinite; }
+/* moss-fly.png is a 24-frame boomerang strip (frames 1→13→2), so a plain forward loop plays it back and forth. */
+/* moss-fly.png holds the original 192px frames; pixelated rendering keeps hard edges when scaled. */
+.npc-moss { width: 256px; aspect-ratio: 1; flex: 0 0 auto; background: url(/art/moss-fly.png) 0 0 / 2400% 100% no-repeat; image-rendering: pixelated; filter: url(#pixelate-soft); animation: moss-fly 2s steps(24) infinite; }
 .npc-caption { align-self: center; width: min(240px, 65%); padding-top: 47px; }
 .npc-caption p { margin: 0; font-size: .8rem; line-height: 1.4; color: #5f5640; }
 
@@ -110,14 +112,14 @@ button { touch-action: manipulation; }
 .login-tale { display: flex; flex-direction: column; align-items: center; }
 .login-book h2 em { color: var(--leaf); font-style: normal; }
 .login-tale .npc-guide { position: static; width: 100%; display: flex; flex-direction: column; align-items: center; margin-top: 10px; gap: 0; }
-.login-tale .npc-moss { width: 96px; }
+.login-tale .npc-moss { width: 150px; }
 .login-tale .npc-caption { width: 100%; max-width: 260px; padding: 6px 0 0; }
 .login-ledger { width: 100%; text-align: left; }
 .login-ledger h1 { font-size: clamp(1.3rem, 2.3vw, 1.9rem); margin: 0 0 .8rem; }
 .login-ledger .auth-actions { grid-template-columns: 1fr; margin-block: 1rem .6rem; }
 @media (max-width: 720px) {
   .login-tale .npc-guide { flex-direction: row; justify-content: center; gap: 10px; text-align: left; }
-  .login-tale .npc-moss { width: 72px; }
+  .login-tale .npc-moss { width: 113px; }
 }
 .back-button { margin-top: 1.1rem; }
 .auth-error-details { font-size: .84rem; line-height: 1.5; overflow-wrap: anywhere; }
@@ -226,7 +228,7 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
 .battle-controls { position: absolute; left: 2.5vw; top: 275px; max-width: min(300px, 32vw); padding: .5rem 0; font-size: .8rem; text-shadow: 2px 2px 0 #fffae0; }
 .battle-controls p { margin: 0 0 .4rem; }
 .battle > .npc-guide-compact { position: absolute; left: .5vw; bottom: 8px; width: min(420px, 48vw); }
-.npc-guide-compact .npc-moss { width: 105px; }
+.npc-guide-compact .npc-moss { width: 164px; }
 .npc-guide-compact .npc-caption { --hi: var(--parchment-hi); --lo: var(--parchment-lo); --lip: var(--drop); --sx: 6px; --sy: 6px; padding: .6rem .9rem .7rem; background: #f1e3c2f2; width: 230px; }
 .npc-guide-compact .npc-caption p { font-size: .8rem; }
 .event-log { --edge: #6f7d45; --hi: #fffaea; --lip: var(--drop); --sx: 6px; --sy: 6px; position: absolute; left: 2.5vw; bottom: 137px; list-style: none; margin: 0; padding: .7rem 1rem .7rem 1.3rem; max-width: min(380px, 40vw); background: #f1e5c7ee; font-size: .82rem; line-height: 1.6; }
@@ -245,7 +247,7 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
 .fatal { --hi: var(--parchment-hi); --lo: var(--parchment-lo); padding: 2rem; margin: 1rem; background: var(--parchment); }
 
 @keyframes scroll-arrive { from { opacity: 0; translate: 0 16px; } to { opacity: 1; translate: 0 0; } }
-@keyframes moss-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes moss-fly { to { background-position-x: calc(100% * 24 / 23); } }
 @keyframes hero-breathe { 0%, 100% { transform: scaleX(-1) translateY(0); } 50% { transform: scaleX(-1) translateY(-6px); } }
 @keyframes twin-breathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 @keyframes cloud-wander { from { transform: translateX(-2%); } to { transform: translateX(6%); } }
@@ -258,7 +260,7 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
   .entry-layout { padding-block: 92px 60px; }
   .story-scroll, .welcome-screen, .lobby { padding-bottom: 32px; }
   .npc-guide { left: auto; right: calc(100% + 16px); bottom: -8px; width: max-content; gap: 8px; }
-  .npc-moss { width: 120px; }
+  .npc-moss { width: 187px; }
   .npc-caption {
     --b: 4px; align-self: flex-start; width: 200px; padding: .6rem .85rem .7rem; margin-top: -1rem; background: #f1e3c2f2;
     box-shadow: 0 -4px 0 0 var(--frame), 0 4px 0 0 var(--frame), -4px 0 0 0 var(--frame), 4px 0 0 0 var(--frame),
@@ -289,7 +291,7 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
 @media (min-width: 721px) and (max-width: 1000px) {
   .story-scroll, .welcome-screen, .lobby { padding-bottom: 112px; }
   .npc-guide { left: -40px; right: auto; bottom: -24px; width: calc(100% + 30px); gap: 3px; }
-  .npc-moss { width: 112px; }
+  .npc-moss { width: 175px; }
   .npc-caption { align-self: center; width: min(240px, 65%); padding: 16px 0 0; margin: 0; background: none; box-shadow: none; }
 }
 @media (min-width: 1500px) { .story-scroll { width: min(650px, 48vw); padding-inline: 52px; } .entry-layout { padding-right: 9vw; } .lobby { width: 550px; } .menu-layout { padding-right: 9vw; } }
@@ -312,7 +314,7 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
   .story-scroll h1 { font-size: 2.2rem; }
   .story-scroll .welcome-title { font-size: clamp(3.6rem, 12vw, 4.8rem); }
   .npc-guide { left: -28px; bottom: -30px; }
-  .npc-moss { width: 141px; }
+  .npc-moss { width: 220px; }
   .npc-caption { width: 210px; padding-top: 32px; }
   .duel-illustration { width: 100%; opacity: .24; }
   .near-knight { left: -6%; width: 37%; }
@@ -332,7 +334,7 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
   .spell-panel .hint { font-size: .72rem; }
   .battle-controls { left: 16px; top: 278px; max-width: 42vw; font-size: .72rem; }
   .battle > .npc-guide-compact { width: 55vw; left: -6px; bottom: 8px; gap: 0; }
-  .npc-guide-compact .npc-moss { width: 72px; }
+  .npc-guide-compact .npc-moss { width: 113px; }
   .npc-guide-compact .npc-caption { padding: .5rem; }
   .npc-guide-compact .npc-caption p { font-size: .72rem; }
   .event-log { left: 16px; bottom: 128px; max-width: 51vw; font-size: .72rem; padding: .5rem .5rem .5rem .8rem; }
@@ -345,7 +347,7 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
   .story-scroll { padding-inline: 23px; }
   .story-actions { padding-left: 0; }
   .quest-button { font-size: .95rem; gap: .7rem; }
-  .npc-moss { width: 125px; }
+  .npc-moss { width: 196px; }
   .npc-caption { max-width: 180px; }
   .npc-caption p { font-size: .78rem; }
   .story-scroll h1 { font-size: 1.95rem; }
