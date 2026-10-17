@@ -25,10 +25,6 @@ const OPEN_MS = 1400;
 const FOLD_MS = 1300;
 const SHRINK_MS = 600;
 
-function prefersReducedMotion() {
-  return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
-
 /** Clicks on controls inside a page should use the control, not turn the page. */
 function isInteractive(target: EventTarget | null) {
   return target instanceof Element && !!target.closest('button, a, input, select, textarea, label, form, [role="button"]');
@@ -95,7 +91,6 @@ export function BookMenu({
       setTurning(null);
       onSpreadChange?.(to);
     };
-    if (prefersReducedMotion()) return finish();
     setTurning({ direction: to > spread ? 'next' : 'prev', to });
     timer.current = window.setTimeout(finish, TURN_MS);
   }, [turning, spread, spreads.length, onSpreadChange]);
@@ -110,18 +105,17 @@ export function BookMenu({
 
   useEffect(() => {
     const from = shownRef.current;
-    const animate = !prefersReducedMotion();
     let timeout: number | undefined;
     if (phase === 'cover') {
       setShown('cover');
     } else if (phase === 'open') {
-      if (from === 'cover' && animate) {
+      if (from === 'cover') {
         setShown('opening');
         timeout = window.setTimeout(() => setShown('open'), OPEN_MS);
       } else {
         setShown('open');
       }
-    } else if (from === 'cover' || !animate) {
+    } else if (from === 'cover') {
       onClosedRef.current?.();
     } else {
       setShown('closing');
