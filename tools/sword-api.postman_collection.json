@@ -1,0 +1,924 @@
+{
+  "info": {
+    "name": "Sword — Two-player backend walkthrough",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Run requests in order. Set tokenA and tokenB to two different players' Auth0 access tokens for Sword API. Keep tokens private; do not export or commit populated secrets. IDs and the join code are saved automatically from responses. Each complete walkthrough creates a new session and two new sample sword registrations. This tests storage/session management; it does not implement hardware connections or combat rules. Full instructions: docs/game-data-api.md."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001",
+      "type": "string"
+    },
+    {
+      "key": "tokenA",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenB",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "playerAId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "playerBId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "swordAId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "swordBId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "matchId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "joinCode",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 — Health",
+      "request": {
+        "method": "GET",
+        "auth": {
+          "type": "noauth"
+        },
+        "header": [],
+        "url": "{{baseUrl}}/health",
+        "description": "Public server status. This does not check database connectivity."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Request succeeded', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 — A: Save profile",
+      "request": {
+        "method": "PUT",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenA}}",
+              "type": "string"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/me",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"displayName\": \"Player A\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Requires player A's Auth0 access token. See docs/game-data-api.md for instructions."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Request succeeded', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "if (pm.response.code >= 200 && pm.response.code < 300) {",
+              "  const data = pm.response.json();",
+              "  pm.collectionVariables.set('playerAId', data.player.id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 — B: Save profile",
+      "request": {
+        "method": "PUT",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenB}}",
+              "type": "string"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/me",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"displayName\": \"Player B\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Requires player B's Auth0 access token. See docs/game-data-api.md for instructions."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Request succeeded', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "if (pm.response.code >= 200 && pm.response.code < 300) {",
+              "  const data = pm.response.json();",
+              "  pm.collectionVariables.set('playerBId', data.player.id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 — A: Register sword",
+      "request": {
+        "method": "POST",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenA}}",
+              "type": "string"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/swords",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"deviceId\": \"postman-a-{{$guid}}\",\n  \"label\": \"Sword A\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Requires player A's Auth0 access token. See docs/game-data-api.md for instructions."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Request succeeded', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "if (pm.response.code >= 200 && pm.response.code < 300) {",
+              "  const data = pm.response.json();",
+              "  pm.collectionVariables.set('swordAId', data.sword.id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 — B: Register sword",
+      "request": {
+        "method": "POST",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenB}}",
+              "type": "string"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/swords",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"deviceId\": \"postman-b-{{$guid}}\",\n  \"label\": \"Sword B\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Requires player B's Auth0 access token. See docs/game-data-api.md for instructions."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Request succeeded', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "if (pm.response.code >= 200 && pm.response.code < 300) {",
+              "  const data = pm.response.json();",
+              "  pm.collectionVariables.set('swordBId', data.sword.id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 — A: Create match",
+      "request": {
+        "method": "POST",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenA}}",
+              "type": "string"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/matches",
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Requires player A's Auth0 access token. See docs/game-data-api.md for instructions."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Request succeeded', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "if (pm.response.code >= 200 && pm.response.code < 300) {",
+              "  const data = pm.response.json();",
+              "  pm.collectionVariables.set('matchId', data.match.id);",
+              "  pm.collectionVariables.set('joinCode', data.match.joinCode);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 — B: Join match",
+      "request": {
+        "method": "POST",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenB}}",
+              "type": "string"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/matches/join",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"joinCode\": \"{{joinCode}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Requires player B's Auth0 access token. See docs/game-data-api.md for instructions."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Request succeeded', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 — A: Assign own sword",
+      "request": {
+        "method": "PUT",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenA}}",
+              "type": "string"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/matches/{{matchId}}/sword",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"swordId\": \"{{swordAId}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Requires player A's Auth0 access token. See docs/game-data-api.md for instructions."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Request succeeded', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 — B: Assign own sword",
+      "request": {
+        "method": "PUT",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenB}}",
+              "type": "string"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/matches/{{matchId}}/sword",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"swordId\": \"{{swordBId}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Requires player B's Auth0 access token. See docs/game-data-api.md for instructions."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Request succeeded', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 — A: Start match",
+      "request": {
+        "method": "POST",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenA}}",
+              "type": "string"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/matches/{{matchId}}/start",
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Requires player A's Auth0 access token. See docs/game-data-api.md for instructions."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Request succeeded', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 — A: Save sword sample",
+      "request": {
+        "method": "POST",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenA}}",
+              "type": "string"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/matches/{{matchId}}/sword-samples",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"swordId\": \"{{swordAId}}\",\n  \"samples\": [\n    {\n      \"sampleId\": \"{{$guid}}\",\n      \"capturedAt\": \"{{$isoTimestamp}}\",\n      \"orientation\": [\n        0,\n        0,\n        0,\n        1\n      ],\n      \"acceleration\": [\n        0,\n        9.81,\n        0\n      ],\n      \"angularVelocity\": [\n        0,\n        0,\n        0\n      ],\n      \"sequenceNumber\": 1,\n      \"coordinateFrame\": \"sword-y-up\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Requires player A's Auth0 access token. See docs/game-data-api.md for instructions."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Request succeeded', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 — B: Save sword sample",
+      "request": {
+        "method": "POST",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenB}}",
+              "type": "string"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/matches/{{matchId}}/sword-samples",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"swordId\": \"{{swordBId}}\",\n  \"samples\": [\n    {\n      \"sampleId\": \"{{$guid}}\",\n      \"capturedAt\": \"{{$isoTimestamp}}\",\n      \"orientation\": [\n        0,\n        0,\n        0,\n        1\n      ],\n      \"acceleration\": [\n        0,\n        9.81,\n        0\n      ],\n      \"angularVelocity\": [\n        0,\n        0,\n        0\n      ],\n      \"sequenceNumber\": 1,\n      \"coordinateFrame\": \"sword-y-up\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Requires player B's Auth0 access token. See docs/game-data-api.md for instructions."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Request succeeded', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 — A: Save own camera result",
+      "request": {
+        "method": "POST",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenA}}",
+              "type": "string"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/matches/{{matchId}}/camera-samples",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cameraId\": \"laptop-a\",\n  \"samples\": [\n    {\n      \"confidence\": 0.95,\n      \"imagePoint\": [\n        0.4,\n        0.6\n      ],\n      \"frameNumber\": 1,\n      \"coordinateFrame\": \"image-normalized\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Requires player A's Auth0 access token. See docs/game-data-api.md for instructions."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Request succeeded', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 — B: Save own camera result",
+      "request": {
+        "method": "POST",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenB}}",
+              "type": "string"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/matches/{{matchId}}/camera-samples",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cameraId\": \"laptop-b\",\n  \"samples\": [\n    {\n      \"confidence\": 0.93,\n      \"imagePoint\": [\n        0.7,\n        0.5\n      ],\n      \"frameNumber\": 1,\n      \"coordinateFrame\": \"image-normalized\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Requires player B's Auth0 access token. See docs/game-data-api.md for instructions."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Request succeeded', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "14 — A: Shared camera tracks B",
+      "request": {
+        "method": "POST",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenA}}",
+              "type": "string"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/matches/{{matchId}}/camera-samples",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cameraId\": \"shared-camera\",\n  \"trackedPlayerId\": \"{{playerBId}}\",\n  \"samples\": [\n    {\n      \"confidence\": 0.9,\n      \"imagePoint\": [\n        0.6,\n        0.5\n      ],\n      \"frameNumber\": 2,\n      \"coordinateFrame\": \"image-normalized\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Requires player A's Auth0 access token. See docs/game-data-api.md for instructions."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Request succeeded', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "15 — A: Report an unverified gesture",
+      "request": {
+        "method": "POST",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenA}}",
+              "type": "string"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/matches/{{matchId}}/events",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"gesture\",\n  \"gesture\": \"circle-clockwise\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Requires player A's Auth0 access token. See docs/game-data-api.md for instructions."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Request succeeded', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "16 — B: Read match details",
+      "request": {
+        "method": "GET",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenB}}",
+              "type": "string"
+            }
+          ]
+        },
+        "header": [],
+        "url": "{{baseUrl}}/api/matches/{{matchId}}",
+        "description": "Requires player B's Auth0 access token. See docs/game-data-api.md for instructions."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Request succeeded', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "17 — B: Read both swords",
+      "request": {
+        "method": "GET",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenB}}",
+              "type": "string"
+            }
+          ]
+        },
+        "header": [],
+        "url": "{{baseUrl}}/api/matches/{{matchId}}/sword-samples?limit=50&offset=0",
+        "description": "Requires player B's Auth0 access token. See docs/game-data-api.md for instructions."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Request succeeded', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "18 — A: Read both camera recordings",
+      "request": {
+        "method": "GET",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenA}}",
+              "type": "string"
+            }
+          ]
+        },
+        "header": [],
+        "url": "{{baseUrl}}/api/matches/{{matchId}}/camera-samples?limit=50&offset=0",
+        "description": "Requires player A's Auth0 access token. See docs/game-data-api.md for instructions."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Request succeeded', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "19 — A: Finish with recorded winner",
+      "request": {
+        "method": "POST",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenA}}",
+              "type": "string"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/matches/{{matchId}}/finish",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"winnerPlayerId\": \"{{playerAId}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Requires player A's Auth0 access token. See docs/game-data-api.md for instructions."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Request succeeded', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "20 — B: Read session history",
+      "request": {
+        "method": "GET",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenB}}",
+              "type": "string"
+            }
+          ]
+        },
+        "header": [],
+        "url": "{{baseUrl}}/api/matches/{{matchId}}/events?limit=50&offset=0",
+        "description": "Requires player B's Auth0 access token. See docs/game-data-api.md for instructions."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Request succeeded', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

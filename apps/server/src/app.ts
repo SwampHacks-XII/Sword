@@ -5,10 +5,13 @@ import { auth } from 'express-oauth2-jwt-bearer';
 import { z } from 'zod';
 import type { Config } from './config.js';
 import type { PlayerStore } from './db/players.js';
+import type { GameStore } from './game/store.js';
+import { gameRoutes } from './game/routes.js';
+import { ApiError } from './game/errors.js';
 
 const profileSchema = z.object({ displayName: z.string().trim().min(1).max(40) }).strict();
 
-export function createApp(config: Config, players: PlayerStore | null) {
+export function createApp(config: Config, players: PlayerStore | null, game: GameStore | null = null) {
   const app = express();
   app.disable('x-powered-by');
   app.use(helmet());
@@ -66,9 +69,14 @@ export function createApp(config: Config, players: PlayerStore | null) {
     const player = await players!.save(response.locals.subject as string, parsed.data.displayName);
     response.json({ player });
   });
+  api.use(gameRoutes(game));
   app.use('/api', api);
   app.use((_request, response) => { response.status(404).json({ error: 'not_found' }); });
   const errorHandler: ErrorRequestHandler = (error: unknown, _request, response, _next) => {
+    if (error instanceof ApiError) {
+      response.status(error.status).json({ error: error.code, message: error.message });
+      return;
+    }
     const status = typeof error === 'object' && error !== null && 'status' in error ? Number(error.status) : 500;
     if (status === 401) {
       response.set('WWW-Authenticate', 'Bearer').status(401).json({ error: 'unauthorized', message: 'A valid access token for Sword API is required.' });

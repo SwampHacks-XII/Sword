@@ -10,6 +10,9 @@ import type { Pool } from 'pg';
 import { createApp } from '../src/app.js';
 import { readConfig, type Config } from '../src/config.js';
 import { createPlayerStore } from '../src/db/players.js';
+import { createPool } from '../src/db/pool.js';
+import { isAbsolute } from 'node:path';
+import { existsSync } from 'node:fs';
 
 let issuerServer: Server;
 let apiServer: Server;
@@ -151,4 +154,24 @@ test('configuration rejects partial Auth0 setup and incomplete production setup'
   assert.throws(() => readConfig({ AUTH0_AUDIENCE: audience }));
   assert.throws(() => readConfig({ AUTH0_ISSUER_BASE_URL: 'http://not-https/', AUTH0_AUDIENCE: audience }));
   assert.throws(() => readConfig({ NODE_ENV: 'production' }));
+});
+
+test('Tiger Cloud connections retain certificate verification when the URL omits its CA setting', async () => {
+  const candidate = createPool('postgresql://test:unused@example.test.tsdb.cloud.timescale.com:5432/test?sslmode=require');
+  try {
+    const url = new URL(candidate.options.connectionString!);
+    assert.equal(url.searchParams.get('sslmode'), 'verify-full');
+    const caPath = url.searchParams.get('sslrootcert');
+    assert.ok(caPath && isAbsolute(caPath) && existsSync(caPath));
+  } finally { await candidate.end(); }
+
+  const explicit = createPool('postgresql://test:unused@example.test.tsdb.cloud.timescale.com:5432/test?sslrootcert=custom.pem');
+  try {
+    assert.equal(new URL(explicit.options.connectionString!).searchParams.get('sslrootcert'), 'custom.pem');
+  } finally { await explicit.end(); }
+
+  const otherProvider = createPool('postgresql://test:unused@localhost:5432/test');
+  try {
+    assert.equal(new URL(otherProvider.options.connectionString!).searchParams.has('sslrootcert'), false);
+  } finally { await otherProvider.end(); }
 });
