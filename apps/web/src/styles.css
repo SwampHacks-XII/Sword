@@ -179,14 +179,14 @@ button { touch-action: manipulation; }
   .book-form .game-option { padding-block: .4rem; }
   .book-form .game-option > span:not(.option-icon):not(.option-arrow) { display: none; }
 }
-.moss-command-input { margin-top: 1.1rem; padding-top: 1rem; border-top: 1px solid #b7a27370; }
-.moss-command-input .secondary-button { min-height: 42px; gap: .6rem; font-size: .85rem; }
+.moss-command-input { margin-top: 1.1rem; padding-top: 1rem; border-top: 4px dashed #b7a27370; }
+.moss-command-input .secondary-button { min-height: 44px; gap: .6rem; }
 .moss-command-input .hint { margin: .65rem 0 .3rem; }
-.moss-command-input.is-listening .secondary-button { background: #dce8b9; border-color: #65753f; box-shadow: 0 0 0 3px #a5c57860; }
-.voice-input-notice { margin: .3rem 0; font-size: .63rem; line-height: 1.5; color: var(--ink-soft); }
-.heard-command { font-size: .76rem; line-height: 1.5; font-style: italic; overflow-wrap: anywhere; }
-.moss-command-reply { position: absolute; z-index: 8; left: 50%; bottom: 54px; transform: translateX(-50%); margin: 0; width: max-content; max-width: min(520px, 85vw); padding: .8rem 1rem; background: #f6ecd2f5; border: 1px solid #b59b66; box-shadow: 0 4px 15px #51483220; font-size: .8rem; line-height: 1.5; pointer-events: none; }
-.moss-command-reply strong { color: #65753f; margin-right: .3rem; }
+.moss-command-input.is-listening .secondary-button { --edge: #65753f; --hi: #edf5d4; --lo: #a5c578; --lip: #65753f; background: #dce8b9; }
+.voice-input-notice { margin: .3rem 0; font-size: .76rem; line-height: 1.5; color: var(--ink-soft); }
+.heard-command { font-size: .9rem; line-height: 1.5; overflow-wrap: anywhere; }
+.moss-command-reply { position: absolute; z-index: 8; left: 50%; bottom: 54px; transform: translateX(-50%); margin: 0; width: max-content; max-width: min(520px, 85vw); padding: .8rem 1rem; background: var(--parchment); border: 4px solid var(--frame); box-shadow: 4px 4px 0 var(--drop); font-size: 1rem; line-height: 1.5; pointer-events: none; }
+.moss-command-reply strong { color: var(--leaf); margin-right: .3rem; }
 .back-button { margin-top: 1.1rem; }
 .auth-error-details { font-size: .84rem; line-height: 1.5; overflow-wrap: anywhere; }
 .auth-error-details summary { cursor: pointer; text-decoration: underline; }

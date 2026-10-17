@@ -55,7 +55,7 @@ export function App() {
           : match && !quest ? <BattleScreen match={match} you={you} now={now} />
           : <div className="entry-layout storybook-layout">
             <Storybook onClosed={() => setBookClosed(true)}
-              onVoiceReply={text => commandVoice.current?.speak(text)} stopVoice={() => commandVoice.current?.stop()} />
+              onVoiceReply={text => commandVoice.current?.speak(text) ?? Promise.resolve(false)} stopVoice={() => commandVoice.current?.stop()} />
           </div>}
       </main>
       <MossCommandVoice controlRef={commandVoice} stopWhen={!!quest || !!match || (!choosingGame && !lobby)} />

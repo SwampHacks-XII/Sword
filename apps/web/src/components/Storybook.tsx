@@ -6,7 +6,7 @@ import { PROLOGUE } from '../story/chapters';
 import { authSpread, useAuthLedger } from './AuthPages';
 import { BookMenu, type BookPhase, type BookSpread } from './BookMenu';
 import { hubSpread, useHubMenu } from './HubPages';
-import { lobbySpread } from './LobbyPages';
+import { lobbySpread, useLobbyControls } from './LobbyPages';
 import { SwordConnectPanel } from './SwordConnectPanel';
 
 /** Swap in an image path (e.g. '/art/logo.png') once the logo art exists. */
@@ -48,7 +48,7 @@ function loreSpread(): BookSpread {
  * the lobby are spreads, and app state turns the pages. When the quest begins the book folds shut.
  */
 export function Storybook({ onClosed, onVoiceReply, stopVoice }: {
-  onClosed(): void; onVoiceReply(text: string): void; stopVoice(): void;
+  onClosed(): void; onVoiceReply(text: string): Promise<boolean>; stopVoice(): void;
 }) {
   const screen = useScreen();
   const session = useSession();
@@ -56,14 +56,15 @@ export function Storybook({ onClosed, onVoiceReply, stopVoice }: {
   const { lobby, quest } = match;
   const choosingGame = screen === 'practice' || (screen === 'play' && session.authenticated);
   const auth = useAuthLedger();
-  const hub = useHubMenu({ guestOnly: screen !== 'play' || !session.authenticated, onVoiceReply });
+  const hub = useHubMenu({ guestOnly: screen !== 'play' || !session.authenticated, onVoiceReply, stopVoice });
+  const lobbyControls = useLobbyControls(lobby, { onVoiceReply, stopVoice });
   // Keep the last lobby so the party is still on its page while the book turns away after leaving.
   const [shownLobby, setShownLobby] = useState(lobby);
   if (lobby && lobby !== shownLobby) setShownLobby(lobby);
 
   const target = lobby ? SPREAD.lobby : choosingGame ? SPREAD.hub : screen === 'login' || screen === 'play' ? SPREAD.auth : SPREAD.lore;
   const phase: BookPhase = quest ? 'closing' : screen === 'home' && !lobby ? 'cover' : 'open';
-  const spreads = [loreSpread(), authSpread(auth), hubSpread(hub, stopVoice), lobbySpread(shownLobby, match)];
+  const spreads = [loreSpread(), authSpread(auth), hubSpread(hub, stopVoice), lobbySpread(shownLobby, match, lobbyControls)];
 
   return <div className="storybook">
     <BookMenu className="story-book" label="Sword storybook" showNav={false} interactive={false}

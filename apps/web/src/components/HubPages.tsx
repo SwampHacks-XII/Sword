@@ -4,13 +4,25 @@ import { useSession } from '../auth/SessionProvider';
 import { createApi, type Profile } from '../net/api';
 import { navigate } from '../hooks/useScreen';
 import { MossCommandInput } from './MossCommandInput';
-import { parseMossCommand, planLobbyCommand, type MossCommand } from '../story/commands';
+import { parseMossCommand, planLobbyCommand, type MossCommand, type MossMenuExitCommand } from '../story/commands';
+import { executeMenuExit } from '../story/menuExit';
 import { MOSS_COMMAND_REPLIES } from '@sword/protocol';
 import type { BookSpread } from './BookMenu';
 
 /** Game-choice state lives above the pages, so the name survives page turns that remount them. */
-export function useHubMenu({ guestOnly, onVoiceReply }: { guestOnly: boolean; onVoiceReply(text: string): void }) {
-  const { send, error, pending } = useMatch();
+export function useHubMenu({ guestOnly, onVoiceReply, stopVoice }: {
+  guestOnly: boolean; onVoiceReply(text: string): Promise<boolean>; stopVoice(): void;
+}) {
+  const { send, error, pending: roomPending } = useMatch();
+  const [exiting, setExiting] = useState(false);
+  const exitingRef = useRef(false);
+  const mounted = useRef(true);
+  const latestStopVoice = useRef(stopVoice); latestStopVoice.current = stopVoice;
+  const pending = roomPending || exiting;
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; if (exitingRef.current) latestStopVoice.current(); };
+  }, []);
   const session = useSession();
   const [accountError, setAccountError] = useState<string | null>(null);
   const editedName = useRef(false);
@@ -52,7 +64,25 @@ export function useHubMenu({ guestOnly, onVoiceReply }: { guestOnly: boolean; on
       onVoiceReply(MOSS_COMMAND_REPLIES[result.reason]);
       return;
     }
-    submitCommand(result.command, true);
+    if (result.command.kind === 'leave' || result.command.kind === 'signout') void exitMenu(result.command, true);
+    else submitCommand(result.command, true);
+  }
+
+  async function exitMenu(command: MossMenuExitCommand, voice = false) {
+    if (pending || exitingRef.current) { if (voice) void onVoiceReply(MOSS_COMMAND_REPLIES.lobbyBusy); return; }
+    exitingRef.current = true; setExiting(true); setAccountError(null);
+    try {
+      const result = await executeMenuExit(command, {
+        authenticated: session.authenticated,
+        reply: async text => {
+          if (!mounted.current) return false;
+          return voice ? onVoiceReply(text) : true;
+        },
+        logout: session.logout,
+        navigate: destination => { if (mounted.current) navigate(destination); },
+      });
+      if (result === 'failed' && mounted.current) setAccountError(MOSS_COMMAND_REPLIES.signOutFailed);
+    } finally { exitingRef.current = false; if (mounted.current) setExiting(false); }
   }
   function join(event: FormEvent) {
     event.preventDefault();
@@ -64,15 +94,15 @@ export function useHubMenu({ guestOnly, onVoiceReply }: { guestOnly: boolean; on
   }
 
   return {
-    guestOnly, session, error, pending, accountError, setAccountError, name, rename, validName, canPlayOnline,
-    joining, setJoining, code, setCode, submitCommand, voiceCommand, join,
+    guestOnly, session, error, pending, exiting, accountError, name, rename, validName, canPlayOnline,
+    joining, setJoining, code, setCode, submitCommand, voiceCommand, exitMenu, join,
   };
 }
 
 /** Your hero on the left page; create, join or Swamp Bot on the right. */
 export function hubSpread(hub: ReturnType<typeof useHubMenu>, stopVoice: () => void): BookSpread {
-  const { guestOnly, session, error, pending, accountError, setAccountError, name, rename, validName, canPlayOnline,
-    joining, setJoining, code, setCode, submitCommand, voiceCommand, join } = hub;
+  const { guestOnly, session, error, pending, exiting, accountError, name, rename, validName, canPlayOnline,
+    joining, setJoining, code, setCode, submitCommand, voiceCommand, exitMenu, join } = hub;
   return {
     left: {
       kicker: guestOnly ? 'Practice' : 'The hero',
@@ -88,7 +118,7 @@ export function hubSpread(hub: ReturnType<typeof useHubMenu>, stopVoice: () => v
         </label>
         {!validName && <p className="hint">Enter a player name to continue.</p>}
         {!guestOnly && <p className="hint">Signed in as {session.name || 'a player'} · <button type="button" className="link-button small" disabled={pending}
-          onClick={() => void session.logout().catch(() => setAccountError('Could not sign out. Please try again.'))}>Sign out</button></p>}
+          onClick={() => void exitMenu({ kind: 'signout' })}>Sign out</button></p>}
       </div>,
     },
     right: {
@@ -115,13 +145,15 @@ export function hubSpread(hub: ReturnType<typeof useHubMenu>, stopVoice: () => v
             <span className="option-icon" aria-hidden="true">✿</span><strong>Play with Swamp Bot</strong><span>A friendly duel before destiny calls.</span><span className="option-arrow" aria-hidden="true">↗</span>
           </button>
         </div>
-        <MossCommandInput disabled={pending || session.loading} onTranscript={voiceCommand} stopVoice={stopVoice} />
-        {pending && <p className="hint" role="status">Connecting to your room…</p>}
+        <MossCommandInput disabled={pending || (!guestOnly && session.loading)} onTranscript={voiceCommand} stopVoice={stopVoice}
+          example={guestOnly ? 'Try “play with Swamp Bot” or “leave game.” No sign-in needed.'
+            : 'Try “create a game,” “join room code zero one two three,” “sign out,” or “leave game.”'} />
+        {pending && <p className="hint" role="status">{exiting ? 'Moss is helping you leave…' : 'Connecting to your room…'}</p>}
         {(error || session.error || accountError) && <p className="error" role="alert">{error || session.error || accountError}</p>}
         <div className="choice-footer">
           {guestOnly && <button type="button" className="link-button small" disabled={pending} onClick={() => navigate(session.authenticated ? 'play' : 'login')}>
             {session.authenticated ? 'Play online' : 'Sign in for online games'}</button>}
-          {!guestOnly && <button type="button" className="link-button small" disabled={pending} onClick={() => navigate('lore')}>← Back to the tale</button>}
+          <button type="button" className="link-button small" disabled={pending} onClick={() => void exitMenu({ kind: 'leave' })}>← Close the book</button>
         </div>
       </div>,
     },

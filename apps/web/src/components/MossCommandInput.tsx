@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { browserCommandRecognition, createCommandListener } from '../story/commandRecognition';
 
-export function MossCommandInput({ disabled, onTranscript, stopVoice }: {
-  disabled: boolean; onTranscript(text: string): void; stopVoice(): void;
+export function MossCommandInput({ disabled, onTranscript, stopVoice, example }: {
+  disabled: boolean; onTranscript(text: string): void; stopVoice(): void; example?: string;
 }) {
   const [available, setAvailable] = useState(false);
   const [listening, setListening] = useState(false);
+  const [started, setStarted] = useState(false);
+  const [final, setFinal] = useState(false);
   const [heard, setHeard] = useState('');
   const [error, setError] = useState('');
   const handleTranscript = useRef(onTranscript); handleTranscript.current = onTranscript;
@@ -17,9 +19,11 @@ export function MossCommandInput({ disabled, onTranscript, stopVoice }: {
     let mounted = true;
     const input = createCommandListener(factory, {
       listening: value => { if (mounted) setListening(value); },
+      started: () => { if (mounted) setStarted(true); },
+      preview: text => { if (mounted) setHeard(text); },
       transcript: text => {
         if (!mounted) return;
-        setHeard(text); handleTranscript.current(text);
+        setHeard(text); setFinal(true); handleTranscript.current(text);
       },
       error: message => { if (mounted) setError(message); },
     });
@@ -31,7 +35,12 @@ export function MossCommandInput({ disabled, onTranscript, stopVoice }: {
     <button type="button" className="secondary-button" disabled={disabled || !available} aria-pressed={listening}
       onClick={() => {
         if (listening) { listener.current?.stop(); return; }
-        stopVoice(); setHeard(''); setError(''); listener.current?.start();
+        stopVoice(); setHeard(''); setError(''); setStarted(false); setFinal(false);
+        if (window.isSecureContext === false) {
+          setError('Microphone input needs localhost or HTTPS. Open the game at its HTTPS address, or use localhost on this computer.');
+          return;
+        }
+        listener.current?.start();
       }}>
       <svg width="17" height="20" viewBox="0 0 17 20" fill="none" aria-hidden="true">
         <rect x="5" y="1" width="7" height="11" rx="3.5" stroke="currentColor" strokeWidth="1.5" />
@@ -39,11 +48,10 @@ export function MossCommandInput({ disabled, onTranscript, stopVoice }: {
       </svg>
       {listening ? 'Stop listening' : 'Talk to Moss'}
     </button>
-    <p className="hint" role="status">{listening ? 'Moss is listening… say one command.'
+    <p className="heard-command" aria-live="polite">Heard: {heard ? <>“{heard}”{!final && ' (not final yet)'}</> : 'No words received yet.'}</p>
+    <p className={error ? 'error' : 'hint'} role={error ? 'alert' : 'status'}>{error || (listening ? started ? 'Moss is listening… say one command.' : 'Opening microphone… allow access if your browser asks.'
       : !available ? 'Voice commands aren’t available in this browser. You can use the buttons.'
-      : 'Try “Hey Moss, create a game” or “join room code zero one two three.”'}</p>
+      : example ?? 'Try “Hey Moss, create a game” or “join room code zero one two three.”')}</p>
     {available && <p className="voice-input-notice">Listens once per click. Your browser may send audio to its speech service.</p>}
-    {heard && <p className="heard-command">Heard: “{heard}”</p>}
-    {error && <p className="hint" role="alert">{error}</p>}
   </div>;
 }

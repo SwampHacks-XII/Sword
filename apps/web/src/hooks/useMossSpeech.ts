@@ -6,7 +6,9 @@ import { useSession } from '../auth/SessionProvider';
 
 const preference = 'sword.mossVoice';
 const preferenceChanged = 'sword:mossVoiceChanged';
-export function useMossSpeech(defaultEnabled = true) {
+export function useMossSpeech(defaultEnabled = true, onStateChanged?: (state: NarrationState) => void) {
+  const stateCallback = useRef(onStateChanged);
+  stateCallback.current = onStateChanged;
   const session = useSession();
   const identity = useRef(session);
   identity.current = session;
@@ -36,7 +38,9 @@ export function useMossSpeech(defaultEnabled = true) {
   useEffect(() => {
     const synth = typeof window.speechSynthesis !== 'undefined' && typeof window.SpeechSynthesisUtterance !== 'undefined'
       ? window.speechSynthesis : undefined;
-    const voice = createMossNarrator(synth, words => new SpeechSynthesisUtterance(words), setState, {
+    const voice = createMossNarrator(synth, words => new SpeechSynthesisUtterance(words), value => {
+      setState(value); stateCallback.current?.(value);
+    }, {
       load: (text, signal) => {
         return loadMossAudio(text, () => identity.current.authenticated ? identity.current.getToken()
           : Promise.reject(new Error('A generated quest requires player login')), signal);
