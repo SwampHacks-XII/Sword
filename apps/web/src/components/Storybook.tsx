@@ -7,12 +7,12 @@ import { authSpread, useAuthLedger } from './AuthPages';
 import { BookMenu, type BookPhase, type BookSpread } from './BookMenu';
 import { hubSpread, useHubMenu } from './HubPages';
 import { lobbySpread, useLobbyControls } from './LobbyPages';
-import { SwordConnectPanel } from './SwordConnectPanel';
+import { swordSetupSpread } from './SwordSetupPages';
 
 /** Swap in an image path (e.g. '/art/logo.png') once the logo art exists. */
 const LOGO_SRC: string | null = null;
 
-const SPREAD = { lore: 0, auth: 1, hub: 2, lobby: 3 } as const;
+const SPREAD = { lore: 0, auth: 1, hub: 2, sword: 3, lobby: 4 } as const;
 
 function CoverPage() {
   return <>
@@ -47,8 +47,9 @@ function loreSpread(): BookSpread {
  * Every menu before the quest lives in one storybook: the cover, the lore, sign-in, choosing a game and
  * the lobby are spreads, and app state turns the pages. When the quest begins the book folds shut.
  */
-export function Storybook({ onClosed, onVoiceReply, stopVoice }: {
+export function Storybook({ onClosed, onVoiceReply, stopVoice, swordReady, onSwordReady }: {
   onClosed(): void; onVoiceReply(text: string): Promise<boolean>; stopVoice(): void;
+  swordReady: boolean; onSwordReady(): void;
 }) {
   const screen = useScreen();
   const session = useSession();
@@ -62,13 +63,14 @@ export function Storybook({ onClosed, onVoiceReply, stopVoice }: {
   const [shownLobby, setShownLobby] = useState(lobby);
   if (lobby && lobby !== shownLobby) setShownLobby(lobby);
 
-  const target = lobby ? SPREAD.lobby : choosingGame ? SPREAD.hub : screen === 'login' || screen === 'play' ? SPREAD.auth : SPREAD.lore;
-  const phase: BookPhase = quest ? 'closing' : screen === 'home' && !lobby ? 'cover' : 'open';
-  const spreads = [loreSpread(), authSpread(auth), hubSpread(hub, stopVoice), lobbySpread(shownLobby, match, lobbyControls)];
+  const target = lobby ? swordReady ? SPREAD.lobby : SPREAD.sword : choosingGame ? SPREAD.hub : screen === 'login' || screen === 'play' ? SPREAD.auth : SPREAD.lore;
+  const phase: BookPhase = quest && swordReady ? 'closing' : screen === 'home' && !lobby ? 'cover' : 'open';
+  const spreads = [loreSpread(), authSpread(auth), hubSpread(hub, stopVoice),
+    swordSetupSpread(onSwordReady, () => void lobbyControls.submitCommand({ kind: 'leave' })),
+    lobbySpread(shownLobby, match, lobbyControls)];
 
   return <div className="storybook">
     <BookMenu className="story-book" label="Sword storybook" showNav={false} interactive={false}
       spreads={spreads} spread={target} phase={phase} cover={<CoverPage />} onClosed={onClosed} />
-    {lobby && !quest && <SwordConnectPanel />}
   </div>;
 }

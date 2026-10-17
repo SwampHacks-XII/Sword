@@ -31,12 +31,17 @@ export function App() {
   // Once the book folds shut it stays shut through quests and rematches, until the story returns to the menus.
   const [bookClosed, setBookClosed] = useState(false);
   if (bookClosed && !quest && !match) setBookClosed(false);
+  // Keep preparation across a rematch; leaving the room starts a fresh preparation step.
+  const roomKey = lobby ? `${lobby.mode ?? 'bot'}:${lobby.code}` : null;
+  const [preparedRoom, setPreparedRoom] = useState<string | null>(null);
+  if (!lobby && preparedRoom !== null) setPreparedRoom(null);
+  const swordReady = roomKey !== null && preparedRoom === roomKey;
   // Fetch the 3D arena while players gather, so the battle opens without a wait.
   const gathering = !!lobby;
   useEffect(() => { if (gathering) void loadArena(); }, [gathering]);
 
   const choosingGame = screen === 'practice' || (screen === 'play' && session.authenticated);
-  const handoff = !!quest && bookClosed;
+  const handoff = !!quest && bookClosed && swordReady;
   const battle = !!match && !quest;
 
   return (
@@ -54,6 +59,7 @@ export function App() {
           : match && !quest ? <BattleScreen match={match} you={you} now={now} />
           : <div className="entry-layout storybook-layout">
             <Storybook onClosed={() => setBookClosed(true)}
+              swordReady={swordReady} onSwordReady={() => setPreparedRoom(roomKey)}
               onVoiceReply={text => commandVoice.current?.speak(text) ?? Promise.resolve(false)} stopVoice={() => commandVoice.current?.stop()} />
           </div>}
       </main>

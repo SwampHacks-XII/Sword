@@ -137,12 +137,21 @@ button { touch-action: manipulation; }
 .storybook { display: grid; justify-items: center; gap: 2rem; width: 100%; }
 /* One size for every spread: as wide as fits, but never taller than the space under the header. */
 .story-book .book-wrap { width: min(980px, 92vw, max(560px, calc((100svh - 170px) * 1.56))); }
+.story-book .book-page-number { display: none; }
 .story-book h2 em { color: var(--leaf); font-style: normal; }
 .book-form { width: 100%; text-align: left; }
 .book-form h1 { font-size: clamp(1.2rem, min(2.2vw, 3.6vh), 1.9rem); font-weight: 500; margin: 0 0 .8rem; }
 .book-form > p { font-size: .95rem; line-height: 1.5; margin: 0 0 .5rem; }
 .book-form .auth-actions { grid-template-columns: 1fr; gap: .4rem; margin-block: .8rem .4rem; }
-.book-form .game-option { padding-block: .6rem; }
+.book-form .game-option { padding: .6rem 1rem .6rem 2.5rem; }
+.book-form .game-option .option-description { white-space: nowrap; font-size: clamp(.62rem, 1vw, .82rem); }
+.sword-setup > .hint { margin: .5rem 0; font-size: .8rem; }
+.sword-setup .checklist { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: .8rem; margin-block: .6rem; font-size: .82rem; }
+.sword-setup .secondary-button { min-height: 36px; padding: .45rem .6rem; font-size: .85rem; }
+.sword-setup-actions { display: grid; justify-items: center; gap: .5rem; margin-top: .6rem; }
+.sword-setup-actions .quest-button { font-size: .9rem; }
+.sword-setup-status { text-align: center; }
+.sword-setup-art { margin-top: .5rem; }
 .book-form .moss-command-input { margin-top: .8rem; padding-top: .7rem; }
 .book-form .choice-footer { margin-top: .8rem; }
 /* Art on the auth page: the hero and Moss, with Moss's caption tucked under him. */
@@ -215,7 +224,7 @@ button { touch-action: manipulation; }
   .book-page-content > h2 { font-size: 15px; }
   .book-lore p { font-size: .78rem; line-height: 1.45; }
   .book-form .game-option { padding-block: .4rem; }
-  .book-form .game-option > span:not(.option-icon):not(.option-arrow) { display: none; }
+  .book-form .game-option .option-description { font-size: .7rem; }
 }
 .moss-command-input { margin-top: 1.1rem; padding-top: 1rem; border-top: 4px dashed #b7a27370; }
 .moss-command-input .secondary-button { min-height: 44px; gap: .6rem; }

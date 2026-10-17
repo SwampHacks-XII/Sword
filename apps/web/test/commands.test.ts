@@ -5,7 +5,7 @@ import { parseMossCommand, planLobbyCommand, parseMossLobbyCommand, planLobbyCon
 import { createCommandListener, type CommandRecognition } from '../src/story/commandRecognition';
 import { createConnection } from '../src/net/connection';
 import type { Api } from '../src/net/api';
-import type { ServerMessage, LobbyState } from '@sword/protocol';
+import type { ServerMessage, LobbyState, DeviceChecks, CheckStatus } from '@sword/protocol';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MossCommandInput } from '../src/components/MossCommandInput';
@@ -14,6 +14,9 @@ import { executeMenuExit } from '../src/story/menuExit';
 import { ConnectionContext } from '../src/hooks/useConnection';
 import { MatchProvider, useMatch } from '../src/hooks/useMatch';
 import { lobbySpread, useLobbyControls } from '../src/components/LobbyPages';
+import { swordSetupSpread } from '../src/components/SwordSetupPages';
+import { SwordSetupForm } from '../src/components/SwordConnectPanel';
+import { SWORD_CHECKS, startPracticeCalibration, swordChecksPassed } from '../src/game/swordCalibration';
 
 /** Renders both pages of the storybook's lobby spread, the way Storybook builds them. */
 function LobbyPages({ lobby, onVoiceReply, stopVoice }: { lobby: LobbyState; onVoiceReply(text: string): Promise<boolean>; stopVoice(): void }) {
@@ -164,6 +167,67 @@ test('guest bot requests accept conversational phrasing without becoming online 
   for (const transcript of ['Can you play with Swamp Bot and create a game?', 'Play with Swampbot then join room 1234', 'I want to delete my account']) {
     assert.equal(parseMossCommand(transcript).ok, false, transcript);
   }
+});
+
+test('guest and online sword preparation both show the full checklist with no bypass', () => {
+  for (const kind of ['mock', 'ws'] as const) {
+    const spread = swordSetupSpread(() => assert.fail('Rendering must not enter the lobby'), () => assert.fail('Rendering must not leave'));
+    const html = renderToStaticMarkup(createElement(ConnectionContext, { value: {
+      connection: { kind, status: () => 'open', send: () => assert.fail('Rendering must not send device commands'),
+        subscribe: () => () => {}, close() {} },
+      poses: { p1: [1, 0, 0, 0], p2: [1, 0, 0, 0] },
+    } }, createElement(MatchProvider, { children: createElement('div', null,
+      createElement('h2', null, spread.left.title), spread.left.content, spread.right.content) })));
+    assert.match(html, /Wait! You need your sword!/);
+    assert.match(html, /<button[^>]*class="quest-button"[^>]*disabled=""[^>]*>Connect your sword/);
+    for (const { label } of SWORD_CHECKS) assert.ok(html.includes(label));
+    assert.match(html, /Calibrate practice sword/);
+    assert.match(html, /camera are simulated/);
+    assert.doesNotMatch(html, /Continue with keyboard/);
+    assert.doesNotMatch(html, /Start my quest|Your practice sword is ready!/);
+  }
+});
+
+test('Connect your sword unlocks only when all four checks have passed', () => {
+  const ready: DeviceChecks = { pairing: 'ok', lights: 'ok', motion: 'ok', camera: 'ok' };
+  assert.equal(swordChecksPassed({}), false);
+  assert.equal(swordChecksPassed({ pairing: 'ok', lights: 'ok', motion: 'ok' }), false);
+  const render = (checks: DeviceChecks) => renderToStaticMarkup(createElement(SwordSetupForm, {
+    checks, onCalibrate() {}, onContinue() {}, onLeave() {},
+  }));
+  for (const { id } of SWORD_CHECKS) {
+    for (const status of ['pending', 'checking', 'failed'] as CheckStatus[]) {
+      const checks = { ...ready, [id]: status };
+      assert.equal(swordChecksPassed(checks), false);
+      assert.match(render(checks), /class="quest-button"[^>]*disabled=""/);
+    }
+  }
+  assert.equal(swordChecksPassed(ready), true);
+  assert.match(render(ready), /All four practice checks passed!/);
+  assert.match(render(ready), /<button type="button" class="quest-button">Connect your sword/);
+});
+
+test('practice calibration stays locked until completion and cancels updates when leaving', t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const states: DeviceChecks[] = [];
+  const cancel = startPracticeCalibration(checks => states.push(checks));
+  assert.equal(states[0]!.pairing, 'checking');
+  for (let step = 0; step < 3; step++) {
+    t.mock.timers.tick(600);
+    assert.equal(swordChecksPassed(states.at(-1)!), false);
+    assert.ok(Object.values(states.at(-1)!).includes('checking'));
+  }
+  t.mock.timers.tick(600);
+  assert.equal(swordChecksPassed(states.at(-1)!), true);
+  assert.equal(states[0]!.pairing, 'checking', 'Earlier snapshots must not change');
+  cancel();
+  const stop = startPracticeCalibration(checks => states.push(checks));
+  assert.equal(swordChecksPassed(states.at(-1)!), false, 'Recalibration resets readiness');
+  t.mock.timers.tick(600);
+  stop();
+  const count = states.length;
+  t.mock.timers.tick(10_000);
+  assert.equal(states.length, count, 'Leaving prevents late calibration updates');
 });
 
 test('voice uses the same lobby messages and requires the same login, name and busy checks as buttons', () => {

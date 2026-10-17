@@ -22,6 +22,13 @@ The backend can start without account settings, but protected routes stay unavai
 
 **Play again together.** After a battle, either player can choose **rematch** to return both players to the same lobby and room code. The host starts the next battle. Each completed round's result is kept in the database.
 
+After choosing Create lobby, Join lobby or Swamp Bot, the book shows
+**Wait! You need your sword!** before entering the lobby. Choose **Calibrate practice
+sword** to run the Pairing, Test Lights, Motion, and Camera checklist. Once all four
+checks pass, **Connect your sword** unlocks and opens the lobby. These checks are
+simulated in both modes while physical pairing and camera connection are being built;
+battles still use the keyboard. Rematches in the same room keep this preparation.
+
 The pink **Leave game** button opens Moss's parchment popup asking
 **“Are you sure you want to leave the game?”** Choose **Leave game** to confirm,
 or **Keep playing**, **×** or Escape to stay. Moss's leave commands open the same popup.
