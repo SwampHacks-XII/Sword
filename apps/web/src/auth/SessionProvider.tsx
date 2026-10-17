@@ -51,7 +51,11 @@ function AuthSession({ children }: { children: ReactNode }) {
     error: issue?.message ?? null,
     errorDetails: issue,
     login: (mode = 'login') => loginInPopup(mode, {
-      open: () => window.open('', '_blank', `popup=yes,width=500,height=720,left=${Math.max(0, Math.round(window.screenX + (window.innerWidth - 500) / 2))},top=${Math.max(0, Math.round(window.screenY + (window.innerHeight - 720) / 2))},resizable=yes,scrollbars=yes`),
+      open: () => {
+        const left = Math.max(0, Math.round(window.screenX + (window.innerWidth - 500) / 2));
+        const top = Math.max(0, Math.round(window.screenY + (window.innerHeight - 720) / 2));
+        return window.open('', '_blank', `popup=yes,width=500,height=720,left=${left},top=${top},resizable=yes,scrollbars=yes`);
+      },
       track: popup => {
         popupRef.current = popup;
         if (popup) setPopupAttempt(true);

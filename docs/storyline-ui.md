@@ -12,8 +12,9 @@ at the lower-left edge of the scroll. The guide is currently named **Moss**.
    The last button leads to login/sign-up. **Show all dialogue** skips the typing
    effect; it never skips the page itself.
 3. **Login/sign-up:** an open book shows Moss and a story passage on the left,
-   with Log in / Sign up on the right. The hero ledger leads to the Auth0 credential
-   pages. Successful authentication still returns to game selection. Signing out
+   with Log in / Sign up on the right. Auth0 credentials open in a popup, keeping
+   the book open behind it. Closing the window or choosing **Back to the book**
+   leaves the player on the hero ledger. Successful authentication opens game selection. Signing out
    returns directly to the hero ledger. See [Auth0 appearance](auth0-appearance.md)
    for matching hosted-login colors and the optional back-button page template.
 4. **Choose a game:** name your hero, create/join an online room, or train with Swamp Bot.
