@@ -1,0 +1,143 @@
+/* Flat placeholder styling. Real art (pixel sky, parchment texture, rune stones, fonts) comes later. */
+:root {
+  --sky: #cdb8ef;
+  --parchment: #f1e2bd;
+  --parchment-edge: #c9a96b;
+  --ink: #4a3b28;
+  --ink-soft: #7a6649;
+  --rune-red: #e0607e;
+  --rune-blue: #6d9be0;
+  --rune-green: #6cc489;
+  --rune-yellow: #e8c75a;
+  --hp: #e0607e;
+  --ok: #4f9a5f;
+  font-family: Georgia, 'Times New Roman', serif;
+  color: var(--ink);
+}
+
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; height: 100%; }
+body { background: var(--sky); overflow: hidden; }
+button, input { font: inherit; color: inherit; }
+kbd {
+  font-family: ui-monospace, monospace; font-size: 0.8em;
+  padding: 0 0.35em; border: 1px solid var(--ink-soft); border-radius: 4px; background: #fff8;
+}
+
+.stage { position: relative; width: 100vw; height: 100vh; }
+.arena { position: absolute !important; inset: 0; }
+.overlay { position: absolute; inset: 0; pointer-events: none; }
+.overlay > * { pointer-events: none; }
+.parchment, .camera-frame, .modal, .health-bars, .event-log { pointer-events: auto; }
+
+.fatal { padding: 2rem; }
+
+/* ---- Parchment panels ---- */
+.parchment {
+  background: var(--parchment);
+  border: 3px solid var(--parchment-edge);
+  border-radius: 6px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 6px 0 #0001;
+}
+.parchment-title { margin: 0 0 0.75rem; font-size: 1.5rem; }
+.label { margin: 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); }
+.hint { margin: 0.75rem 0 0; font-size: 0.75rem; color: var(--ink-soft); }
+.error { margin: 0.75rem 0 0; color: #b0283f; }
+.row { display: flex; gap: 1.25rem; align-items: center; margin-top: 1rem; }
+
+.link-button {
+  background: none; border: none; padding: 0.15rem 0; cursor: pointer;
+  font-size: 1.35rem; text-align: left;
+}
+.link-button:hover:not(:disabled) { text-decoration: underline; }
+.link-button:disabled { opacity: 0.4; cursor: default; }
+.link-button.small { font-size: 0.9rem; }
+
+/* ---- Menu & lobby ---- */
+.menu-layout {
+  position: absolute; top: 6vh; right: 5vw;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 1.5rem;
+}
+.main-menu { width: min(380px, 90vw); transform: rotate(-2deg); }
+.game-title { margin: 0 0 1rem; font-size: 3.5rem; text-align: center; }
+.field { display: grid; gap: 0.25rem; margin-bottom: 1rem; font-size: 0.85rem; color: var(--ink-soft); }
+.field input, .join-form input {
+  border: 2px solid var(--parchment-edge); border-radius: 4px; background: #fffaf0; padding: 0.35rem 0.5rem;
+}
+.menu-links { display: grid; justify-items: center; gap: 0.25rem; }
+.join-form { display: flex; gap: 0.5rem; align-items: center; }
+.join-form input { width: 9rem; text-transform: uppercase; }
+
+.lobby { width: min(380px, 90vw); }
+.room-code { margin: 0.25rem 0; font-size: 2.25rem; font-weight: bold; letter-spacing: 0.08em; }
+.slots { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; gap: 0.5rem; }
+.slot { display: flex; justify-content: space-between; padding: 0.5rem 0.75rem; background: #fffaf0aa; border-radius: 4px; }
+.slot-p1 { border-left: 6px solid var(--rune-blue); }
+.slot-p2 { border-left: 6px solid var(--rune-red); }
+.status-ok { color: var(--ok); }
+.status-wait { color: var(--ink-soft); }
+
+.connect-panel { width: min(300px, 90vw); transform: rotate(3deg); }
+.checklist { list-style: none; padding: 0; margin: 0 0 0.75rem; display: grid; gap: 0.35rem; font-size: 1.2rem; }
+.check { display: flex; justify-content: space-between; }
+.check-mark { width: 1.5rem; text-align: center; font-weight: bold; }
+.check-ok .check-mark { color: var(--ok); }
+.check-checking { opacity: 0.7; }
+.check-failed .check-mark { color: #b0283f; }
+
+/* ---- Battle ---- */
+.battle { position: absolute; inset: 0; }
+.health-bars {
+  position: absolute; top: 1rem; left: 1rem; width: min(340px, 45vw);
+  display: grid; gap: 0.75rem; padding: 0.75rem 1rem; background: #fffaf0cc; border-radius: 6px;
+}
+.health-label { display: flex; justify-content: space-between; font-size: 0.9rem; }
+.health-track { height: 12px; background: #0002; border-radius: 6px; overflow: hidden; }
+.health-fill { height: 100%; background: var(--hp); transition: width 200ms ease-out; }
+.chips { display: flex; gap: 0.35rem; min-height: 0; }
+.chip { font-size: 0.7rem; padding: 0.05rem 0.4rem; border-radius: 999px; background: #fff; }
+.chip-shield { background: #9fd8ff; }
+.chip-slow { background: #c6e4ff; }
+
+.spell-panel {
+  position: absolute; top: 4vh; right: 4vw; width: min(260px, 40vw);
+  transform: rotate(-1.5deg); text-align: center;
+}
+.spell-name { margin: 0.1rem 0 0.75rem; }
+.runes { list-style: none; padding: 0; margin: 0 auto 0.75rem; display: grid; justify-items: center; gap: 0.6rem; }
+.rune {
+  width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center;
+  opacity: 0.45; border: 4px solid transparent; transition: opacity 120ms, transform 120ms;
+}
+.rune.lit { opacity: 1; border-color: #fff; transform: scale(1.08); }
+.rune-red { background: var(--rune-red); }
+.rune-blue { background: var(--rune-blue); }
+.rune-green { background: var(--rune-green); }
+.rune-yellow { background: var(--rune-yellow); }
+.rune-key { font-family: ui-monospace, monospace; font-weight: bold; color: #fff; }
+.step { padding: 0.4rem; border-radius: 4px; opacity: 0.6; }
+.step.active { opacity: 1; background: #fffaf0; outline: 2px dashed var(--parchment-edge); }
+.armed { margin-top: 0.75rem; font-weight: bold; }
+.armed p { margin: 0 0 0.35rem; }
+.armed-bar { height: 10px; background: #0002; border-radius: 5px; overflow: hidden; }
+.armed-bar > div { height: 100%; background: #5aa7d6; }
+
+.event-log {
+  position: absolute; left: 1rem; bottom: 1rem; margin: 0; padding: 0.5rem 0.75rem;
+  list-style: none; display: grid; gap: 0.15rem; font-size: 0.85rem;
+  background: #fffaf0aa; border-radius: 6px; max-width: min(420px, 50vw);
+}
+.event-log:empty { display: none; }
+
+.camera-frame {
+  position: absolute; right: 1rem; bottom: 1rem;
+  width: min(280px, 35vw); aspect-ratio: 16 / 10;
+  display: grid; place-items: center;
+  background: #8c8c96; color: #f4f4f8; border: 6px solid var(--parchment); border-radius: 4px;
+  outline: 2px solid var(--parchment-edge); letter-spacing: 0.1em; text-transform: uppercase;
+}
+
+.modal { position: absolute; inset: 0; display: grid; place-items: center; background: #0002; }
+.modal .parchment { min-width: 280px; text-align: center; }
+.modal .row { justify-content: center; }

@@ -14,7 +14,17 @@ The backend now supports **player profiles, two-player sessions, and sword/camer
 4. **Start the backend.** Run `npm run dev`, then open http://localhost:3001/health.
 5. **Try a two-player session.** Follow [the game data guide](docs/game-data-api.md) and import `tools/sword-api.postman_collection.json` into Postman. It includes profiles, match creation/joining, sword assignment, and sample uploads for both players.
 
-The backend can start without account settings, but protected routes stay unavailable. The website, hardware integration, game rules, and Gemini dialogue still need to be built. See [the backend README](apps/server/README.md) for endpoints and verified commands.
+The backend can start without account settings, but protected routes stay unavailable. See [the backend README](apps/server/README.md) for endpoints and verified commands.
+
+**Try the website (no server or swords needed).** From `apps/web`, run `npm install`, then `npm run dev`, and open http://localhost:5173. Everything runs against a simulated connection: a fake opponent ("Swamp Bot") joins your lobby and both swords sway. During a battle, the keyboard stands in for your sword:
+
+- `1`–`4`: the red, blue, green and yellow buttons
+- `Q`, `E`, `R`, `W`: swing left, swing right, rotate wrist, hold upright
+- `Space`: the trigger
+
+All visuals are flat placeholders for now. To use a real 3D model, put a `.glb` in `apps/web/public/models` and set its path in `apps/web/src/scene/models.ts`.
+
+The real WebSocket connection, hardware integration, website login, and Gemini dialogue still need to be built. The message format the swords and server will share is in `apps/web/src/net/messages.ts`; it moves to `packages/protocol` once the server uses it.
 
 ## The game we're building
 
@@ -116,11 +126,12 @@ Agree together on wiring, sensor mounting, message formats, and how an IR shot i
 
 ## Proposed tools
 
+The backend API is initialized with Auth0 verification and Tiger Data profile storage. The website skeleton exists with a simulated connection. The hardware tools remain planned.
 The backend API includes Auth0 verification and Tiger Data storage for profiles, matches, sword readings, and camera tracking. The frontend and hardware tools remain planned.
 
 | Part | Tools |
 | --- | --- |
-| Website | React + TypeScript + Vite |
+| Website | React + TypeScript + Vite 7 (Vite 8 hits an npm 10.8 install bug) |
 | 3D viewer | Three.js + React Three Fiber |
 | Server | Node.js + TypeScript + Express; WebSockets later |
 | Player login | Auth0 |
