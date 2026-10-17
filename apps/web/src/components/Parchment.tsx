@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-/** Flat placeholder for the scroll/parchment panels in the mockup. */
+/** Shared parchment surface for the storybook interface. */
 export function Parchment({ title, className = '', children }: { title?: string; className?: string; children: ReactNode }) {
   return (
     <section className={`parchment ${className}`}>

@@ -23,6 +23,7 @@ export function createMockConnection(): GameConnection {
   let botSlot: PlayerSlot | null = null;
   let botNextActionAt = 0;
   let shotCounter = 0;
+  let questPending = false;
 
   function deliver(message: ServerMessage) {
     later(() => listeners.forEach((listener) => listener(message)), LATENCY_MS);
@@ -103,6 +104,8 @@ export function createMockConnection(): GameConnection {
       if (!open) return;
       switch (message.type) {
         case 'lobby.create':
+          questPending = false;
+          deliver({ type: 'quest.state', quest: null });
           you = 'p1';
           botSlot = 'p2';
           rules.openLobby(randomRoomCode(), you, message.name);
@@ -116,6 +119,8 @@ export function createMockConnection(): GameConnection {
           later(() => rules.addPlayer('p1', BOT_NAME), 300);
           break;
         case 'lobby.leave':
+          questPending = false;
+          deliver({ type: 'quest.state', quest: null });
           botSlot = null;
           rules.leave();
           break;
@@ -123,9 +128,23 @@ export function createMockConnection(): GameConnection {
           runDeviceChecks();
           break;
         case 'match.start':
+          if (questPending) break;
+          if (rules.startMatch()) botNextActionAt = Date.now() + 2500;
+          break;
+        case 'quest.begin':
+          if (!rules.lobby() || rules.lobby()!.players.length < 2 || rules.snapshot() || questPending) break;
+          questPending = true;
+          deliver({ type: 'quest.state', quest: { accepted: botSlot ? [botSlot] : [] } });
+          break;
+        case 'quest.accept':
+          if (!questPending) break;
+          questPending = false;
+          deliver({ type: 'quest.state', quest: null });
           if (rules.startMatch()) botNextActionAt = Date.now() + 2500;
           break;
         case 'match.rematch':
+          questPending = false;
+          deliver({ type: 'quest.state', quest: null });
           rules.returnToLobby();
           break;
         case 'dev.sword': {

@@ -12,6 +12,8 @@ const commandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('room.subscribe'), matchId: z.uuid() }).strict(),
   z.object({ type: z.literal('match.start') }).strict(),
   z.object({ type: z.literal('match.rematch') }).strict(),
+  z.object({ type: z.literal('quest.begin') }).strict(),
+  z.object({ type: z.literal('quest.accept') }).strict(),
   z.object({ type: z.literal('lobby.leave') }).strict(),
   z.object({ type: z.literal('device.check') }).strict(),
   z.object({ type: z.literal('dev.sword'), input: z.discriminatedUnion('kind', [
@@ -29,6 +31,7 @@ interface Room {
   id: string; snapshot: Snapshot; peers: Set<Peer>; rules: GameRules;
   poses: ReturnType<typeof createPoseSimulator>; hostSubject?: string;
   disconnectDeadline: number | null; shot: number; closing: boolean; closeSubject: string;
+  quest: { accepted: PlayerSlot[] } | null;
 }
 
 /** A single backend process owns online practice matches; PostgreSQL keeps session history. */
@@ -91,7 +94,7 @@ export function createRealtimeHub(game: GameStore, players: PlayerStore, origin:
       const host = snapshot.players.find(p => p.slot === 1)!;
       const fresh: Room = {
         id: matchId, snapshot, peers: new Set(), rules: null!, poses: createPoseSimulator(),
-        disconnectDeadline: null, shot: 0, closing: false, closeSubject: peer.subject!,
+        disconnectDeadline: null, shot: 0, closing: false, closeSubject: peer.subject!, quest: null,
       };
       fresh.rules = new GameRules(message => broadcast(fresh, message));
       fresh.rules.openLobby(snapshot.joinCode, 'p1', host.displayName);
@@ -115,6 +118,7 @@ export function createRealtimeHub(game: GameStore, players: PlayerStore, origin:
     }
     if (room.peers.size === 2) room.disconnectDeadline = null;
     send(peer, { type: 'match.state', match: room.rules.snapshot() });
+    send(peer, { type: 'quest.state', quest: room.quest });
     send(peer, { type: 'room.ready' });
   }
   async function handle(peer: Peer, data: unknown) {
@@ -144,10 +148,38 @@ export function createRealtimeHub(game: GameStore, players: PlayerStore, origin:
       send(peer, { type: 'error', message: 'Keyboard practice is ready. Physical sword and camera checks become available when hardware is connected.' });
       return;
     }
+    if (command.type === 'quest.begin') {
+      if (peer.slot !== 'p1') throw new ApiError(403, 'host_required', 'Only the host can begin the quest.');
+      if (room.peers.size !== 2) throw new ApiError(409, 'players_disconnected', 'Both players must be connected to begin.');
+      if (room.rules.snapshot() || room.quest) return;
+      room.quest = { accepted: [] };
+      broadcast(room, { type: 'quest.state', quest: room.quest });
+      return;
+    }
+    if (command.type === 'quest.accept') {
+      if (!room.quest) return;
+      if (room.peers.size !== 2) throw new ApiError(409, 'players_disconnected', 'Waiting for your fellow adventurer to reconnect.');
+      if (!room.quest.accepted.includes(peer.slot)) room.quest.accepted.push(peer.slot);
+      broadcast(room, { type: 'quest.state', quest: room.quest });
+      if (room.quest.accepted.length === 2) {
+        // Neither player enters combat until both have accepted the story briefing.
+        try { room.snapshot = await game.startMatch(room.hostSubject!, room.id); }
+        catch (error) {
+          room.quest.accepted = room.quest.accepted.filter(slot => slot !== peer.slot);
+          broadcast(room, { type: 'quest.state', quest: room.quest });
+          throw error;
+        }
+        room.quest = null;
+        broadcast(room, { type: 'quest.state', quest: null });
+        room.rules.startMatch();
+      }
+      return;
+    }
     if (command.type === 'match.start') {
       if (peer.slot !== 'p1') throw new ApiError(403, 'host_required', 'Only the host can start the battle.');
       if (room.peers.size !== 2) throw new ApiError(409, 'players_disconnected', 'Both players must be connected to start.');
       if (room.rules.snapshot()) return;
+      if (room.quest) throw new ApiError(409, 'quest_pending', 'Both players must accept the quest first.');
       room.snapshot = await game.startMatch(peer.subject, room.id);
       room.rules.startMatch();
       return;
@@ -157,6 +189,8 @@ export function createRealtimeHub(game: GameStore, players: PlayerStore, origin:
       if (!room.rules.snapshot() && room.snapshot.roundNumber > 1) return;
       if (room.rules.snapshot()?.phase !== 'over') throw new ApiError(409, 'round_not_finished', 'Finish this battle before requesting a rematch.');
       room.snapshot = await game.rematch(peer.subject, room.id);
+      room.quest = null;
+      broadcast(room, { type: 'quest.state', quest: null });
       room.poses = createPoseSimulator();
       room.rules.returnToLobby();
       for (const slot of ['p1', 'p2'] as const) broadcast(room, { type: 'sword.pose', slot, q: [1, 0, 0, 0] });

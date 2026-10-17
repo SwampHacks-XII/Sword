@@ -5,7 +5,10 @@ import { MainMenu } from './components/MainMenu';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { LoginScreen } from './components/LoginScreen';
 import { useSession } from './auth/SessionProvider';
-import { useScreen } from './hooks/useScreen';
+import { navigate, useScreen } from './hooks/useScreen';
+import { WorldBackdrop } from './components/WorldBackdrop';
+import { PrologueScreen } from './components/PrologueScreen';
+import { QuestScreen } from './components/QuestScreen';
 import { PLAYER_SLOTS, type PlayerSlot } from './game/types';
 import { useMatch } from './hooks/useMatch';
 import { useNow } from './hooks/useNow';
@@ -16,7 +19,7 @@ const Arena = lazy(() => import('./scene/Arena').then(module => ({ default: modu
 export function App() {
   const screen = useScreen();
   const session = useSession();
-  const { lobby, match, lastHitAt } = useMatch();
+  const { lobby, match, quest, lastHitAt } = useMatch();
   const poses = useSwordPoses();
   const you = lobby?.you ?? 'p1';
   // Re-render a few times a second during a match so shield/slow timers expire on screen.
@@ -25,29 +28,32 @@ export function App() {
     PLAYER_SLOTS.map((slot) => [slot, (match?.fighters[slot].shieldUntil ?? 0) > now]),
   ) as Record<PlayerSlot, boolean>;
   const choosingGame = screen === 'practice' || (screen === 'play' && session.authenticated);
-  const step = match ? 4 : lobby ? 3 : choosingGame ? 2 : screen === 'home' ? 0 : 1;
-  const steps = ['Welcome', 'Log in / Sign up', 'Choose game', 'Lobby', 'Battle'];
+  const chapter = match ? 'The duel · Write your own ending' : quest ? 'Chapter I · The stolen dawn'
+    : lobby ? 'The gathering · Two swords, one story' : choosingGame ? 'The crossroads · Choose your duel'
+    : screen === 'home' ? 'A tale of two selves' : screen === 'prologue' ? 'Prologue · A crack in the mirror' : 'The beginning · Name your hero';
 
   return (
-    <div className="stage">
-      {!lobby && !match && <div className="welcome-backdrop" aria-hidden="true" />}
-      {(lobby || match) && <Suspense fallback={<div className="welcome-backdrop" aria-hidden="true" />}>
+    <div className={`stage ${match ? 'stage-battle' : 'stage-story'} ${quest || screen === 'prologue' ? 'stage-dialogue' : ''}`}>
+      <WorldBackdrop showKnights={(!lobby && !match) || !!quest} />
+      {(lobby || match) && !quest && <Suspense fallback={null}>
         <Arena you={you} poses={poses} lastHitAt={lastHitAt} shielded={shielded} />
       </Suspense>}
+      <header className="world-header">
+        <button type="button" className="wordmark" disabled={!!lobby || !!match} onClick={() => navigate('home')} aria-label="Sword home"><span aria-hidden="true">⚔</span> SWORD<span className="wordmark-star" aria-hidden="true">✦</span></button>
+        <p>{chapter}</p><span className="world-edition">SwampHacks XII</span>
+      </header>
       <main className="overlay">
-        {!match && <ol className="flow-progress" aria-label="Game setup progress">
-          {steps.map((label, index) => <li key={label} aria-current={index === step ? 'step' : undefined} className={index < step ? 'complete' : ''}>
-            <span aria-hidden="true">{index + 1}</span>{label}
-          </li>)}
-        </ol>}
-        {match ? <BattleScreen match={match} you={you} now={now} />
+        {quest ? <div className="entry-layout"><QuestScreen /></div>
+          : match ? <BattleScreen match={match} you={you} now={now} />
           : lobby ? <LobbyScreen lobby={lobby} />
           : <div className="entry-layout">
             {screen === 'home' ? <WelcomeScreen />
+              : screen === 'prologue' ? <PrologueScreen />
               : choosingGame ? <MainMenu guestOnly={screen === 'practice'} />
               : <LoginScreen />}
           </div>}
       </main>
+      {!match && <footer className="world-footer"><span>Remember your runes. Rewrite your fate.</span><span>✦ A little magic goes a long way.</span></footer>}
     </div>
   );
 }

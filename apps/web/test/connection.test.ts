@@ -94,6 +94,24 @@ test('online create saves the name, authenticates the socket, and leaving calls 
   } finally { f.connection.close(); }
 });
 
+test('Swamp Bot waits at the story briefing until the player accepts the quest', async () => {
+  const f = fixture();
+  try {
+    f.connection.send({ type: 'lobby.create', name: 'Story hero', mode: 'bot' });
+    await until(() => f.messages.some(m => m.type === 'lobby.state' && m.lobby?.players.length === 2));
+    f.connection.send({ type: 'quest.begin' });
+    await until(() => f.messages.some(m => m.type === 'quest.state' && m.quest?.accepted.includes('p2') === true));
+    assert.equal(f.messages.some(m => m.type === 'match.state' && m.match), false);
+    f.connection.send({ type: 'match.start' });
+    await pause(40);
+    assert.equal(f.messages.some(m => m.type === 'match.state' && m.match), false);
+    f.connection.send({ type: 'quest.accept' });
+    await until(() => f.messages.some(m => m.type === 'match.state' && m.match?.phase === 'fighting'));
+    assert.equal(f.messages.filter(m => m.type === 'quest.state').at(-1)?.quest, null);
+    assert.equal(f.calls.length, 0);
+  } finally { f.connection.close(); }
+});
+
 test('online join uses the supplied room code and reconnects after a temporary API outage', async () => {
   const f = fixture();
   try {

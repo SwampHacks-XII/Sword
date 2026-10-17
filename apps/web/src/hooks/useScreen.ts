@@ -1,9 +1,9 @@
 import { useSyncExternalStore } from 'react';
 
-export type MenuScreen = 'home' | 'login' | 'play' | 'practice';
+export type MenuScreen = 'home' | 'prologue' | 'login' | 'play' | 'practice';
 function currentScreen(): MenuScreen {
   const value = window.location.hash.slice(1);
-  return value === 'login' || value === 'play' || value === 'practice' ? value : 'home';
+  return value === 'prologue' || value === 'login' || value === 'play' || value === 'practice' ? value : 'home';
 }
 function subscribe(listener: () => void) {
   window.addEventListener('hashchange', listener);

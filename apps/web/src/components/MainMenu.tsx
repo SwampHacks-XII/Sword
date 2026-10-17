@@ -4,6 +4,7 @@ import { Parchment } from './Parchment';
 import { useSession } from '../auth/SessionProvider';
 import { createApi, type Profile } from '../net/api';
 import { navigate } from '../hooks/useScreen';
+import { NpcGuide } from './NpcGuide';
 
 export function MainMenu({ guestOnly = false }: { guestOnly?: boolean }) {
   const { send, error, pending } = useMatch();
@@ -31,21 +32,21 @@ export function MainMenu({ guestOnly = false }: { guestOnly?: boolean }) {
   }
 
   return (
-    <Parchment className="flow-card game-choice">
-        <p className="eyebrow">Choose your next duel</p>
-        <h1>{guestOnly ? 'Practice with Swamp Bot' : 'Find your opponent'}</h1>
-        <p>{guestOnly ? 'A local practice game. Set your name and get ready to cast.' : 'Create a room for a friend, join their room, or train against Swamp Bot.'}</p>
+    <Parchment className="story-scroll flow-card game-choice">
+        <div className="scroll-kicker"><span>The crossroads</span><span>Choose your path</span></div>
+        <h1>{guestOnly ? 'A little sword practice.' : 'Every tale needs a rival.'}</h1>
+        <p>{guestOnly ? 'Sharpen your spells with our friend from the swamp.' : 'Invite a friend to play your reflection, follow their room code, or prepare with Swamp Bot.'}</p>
         <label className="field">
-          <span>Your name</span>
+          <span>Your hero’s name</span>
           <input value={name} maxLength={40} disabled={pending} onChange={(e) => { editedName.current = true; setName(e.target.value); }} />
         </label>
         <div className="game-options" aria-label="Game options">
           {!guestOnly && <>
             <button type="button" className="game-option" disabled={!canPlayOnline} onClick={() => send({ type: 'lobby.create', name, mode: 'online' })}>
-              <strong>Create game</strong><span>Host an online room and share your code.</span>
+              <span className="option-icon" aria-hidden="true">⚔</span><strong>Create game</strong><span>Open a new chapter. Invite your rival.</span><span className="option-arrow" aria-hidden="true">↗</span>
             </button>
             <button type="button" className="game-option" disabled={!canPlayOnline} onClick={() => setJoining(v => !v)} aria-expanded={joining}>
-              <strong>Join game</strong><span>Enter a friend’s 4-digit room code.</span>
+              <span className="option-icon" aria-hidden="true">⌘</span><strong>Join game</strong><span>Follow a friend’s four-digit room code.</span><span className="option-arrow" aria-hidden="true">↗</span>
             </button>
             {joining && <form className="join-form game-join" onSubmit={join}>
               <label className="field"><span>Room code</span>
@@ -56,7 +57,7 @@ export function MainMenu({ guestOnly = false }: { guestOnly?: boolean }) {
             </form>}
           </>}
           <button type="button" className="game-option" disabled={!validName || pending} onClick={() => send({ type: 'lobby.create', name, mode: 'bot' })}>
-            <strong>Play with Swamp Bot</strong><span>Practice your spells against a bot.</span>
+            <span className="option-icon" aria-hidden="true">✿</span><strong>Play with Swamp Bot</strong><span>A friendly duel before destiny calls.</span><span className="option-arrow" aria-hidden="true">↗</span>
           </button>
         </div>
         {!validName && <p className="hint">Enter a player name to continue.</p>}
@@ -67,6 +68,7 @@ export function MainMenu({ guestOnly = false }: { guestOnly?: boolean }) {
             : <span>Signed in as {session.name || 'a player'} · <button type="button" className="link-button small" disabled={pending} onClick={() => void session.logout().catch(() => setAccountError('Could not sign out. Please try again.'))}>Sign out</button></span>}
           <button type="button" className="link-button small" disabled={pending} onClick={() => navigate('home')}>← Back to welcome</button>
         </div>
+        <NpcGuide message="Two swords. One very complicated family reunion." />
     </Parchment>
   );
 }

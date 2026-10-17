@@ -2,7 +2,7 @@
 export function CameraPlaceholder() {
   return (
     <div className="camera-frame" aria-label="Camera placeholder">
-      <span>Camera</span>
+      <div><span className="camera-sigil" aria-hidden="true">◇</span><span>Your looking glass</span><small>Camera view · coming soon</small></div>
     </div>
   );
 }

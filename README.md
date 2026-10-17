@@ -16,7 +16,7 @@ The backend now supports **player profiles, two-player sessions, and sword/camer
 
 The backend can start without account settings, but protected routes stay unavailable. See [the backend README](apps/server/README.md) for endpoints and verified commands.
 
-**Play online or with Swamp Bot.** From `apps/web`, run `npm ci`, then `npm run dev`, and open http://localhost:5173. The flow is **Welcome → Log in / Sign up → Choose game → Lobby → Battle**. Choose **Get started**, sign in through Auth0, then select **Create game**, **Join game**, or **Play with Swamp Bot**. Friends join the same **four-digit room code**. Guests can choose Swamp Bot practice from the login page. Online mode also needs `apps/server` running. Follow [the online play guide](docs/play-online.md) for environment settings and a two-account test.
+**Play online or with Swamp Bot.** From `apps/web`, run `npm ci`, then `npm run dev`, and open http://localhost:5173. Choose **I’ll draw my destiny** to meet Moss and discover your evil twin. Then sign in through Auth0 and select **Create game**, **Join game**, or **Play with Swamp Bot**. Friends join the same **four-digit room code**. In the lobby, the host chooses **Start my quest**; both players read the story briefing and choose **Accept my quest** before battle begins. Guests can choose Swamp Bot practice from the login page. Online mode also needs `apps/server` running. Follow [the online play guide](docs/play-online.md) for environment settings and a two-account test.
 
 **Play from different networks.** [Optional Render hosting](docs/hosting-render.md) serves the website and backend at one public HTTPS address. Your existing local setup stays available. Both players open the hosted address; neither needs to run a server on their laptop. Internet access is required, but the players do not need the same Wi-Fi.
 
@@ -28,7 +28,7 @@ During either mode, the keyboard stands in for your sword:
 - `Q`, `E`, `R`, `W`: swing left, swing right, rotate wrist, hold upright
 - `Space`: the trigger
 
-All visuals are flat placeholders for now. To use a real 3D model, put a `.glb` in `apps/web/public/models` and set its path in `apps/web/src/scene/models.ts`.
+The interface uses a pastel pixel meadow, parchment scrolls, and Moss, the green NPC story guide. Story dialogue is placeholder copy; Gemini is not connected. See [the storyline guide](docs/storyline-ui.md) to edit the scenes. The 3D fighters and swords are still placeholders. To use a real 3D model, put a `.glb` in `apps/web/public/models` and set its path in `apps/web/src/scene/models.ts`.
 
 Online battles use an authenticated WebSocket connection and server-owned spell/health state. The browser bot and online backend share messages and rules in `packages/protocol`. Physical sword connections, real IR reception, camera capture, and Gemini dialogue still need to be built. Online keyboard practice simulates successful attack hits.
 

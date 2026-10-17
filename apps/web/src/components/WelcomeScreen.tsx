@@ -1,18 +1,21 @@
 import { navigate } from '../hooks/useScreen';
+import { Parchment } from './Parchment';
+import { NpcGuide } from './NpcGuide';
 
 export function WelcomeScreen() {
   return (
-    <section className="welcome-screen" aria-labelledby="welcome-title">
-      <p className="eyebrow">SwampHacks XII · A magic sword duel</p>
-      <h1 id="welcome-title" className="welcome-title">Sword<span>Remember the spell.<br />Make your move.</span></h1>
-      <p className="welcome-copy">Challenge a friend or train with Swamp Bot. Learn your spell, enter the runes, and swing to cast.</p>
-      <button type="button" className="primary-button" onClick={() => navigate('login')}>Get started <span aria-hidden="true">→</span></button>
-      <ol className="welcome-steps" aria-label="How to play">
-        <li><span>01</span> Choose your opponent</li>
-        <li><span>02</span> Prepare your spell</li>
-        <li><span>03</span> Enter the arena</li>
-      </ol>
-      <p className="welcome-note">Keyboard controls are ready. Physical swords are coming next.</p>
-    </section>
+    <Parchment className="story-scroll welcome-screen">
+      <div className="scroll-kicker"><span>A tale of two selves</span><span>Prologue</span></div>
+      <div className="scroll-flourish" aria-hidden="true">✦</div>
+      <p className="eyebrow">Once upon a time, there was… you.</p>
+      <h1 className="welcome-title">One face.<br /><em>Two fates.</em></h1>
+      <p className="welcome-copy">A quiet glade. A magic sword.<br />And an enemy who looks a little too familiar.</p>
+      <p className="welcome-copy welcome-copy-last">Your evil twin is rewriting the story.<br />Shall we give it a better ending?</p>
+      <div className="story-actions">
+        <button type="button" className="quest-button" onClick={() => navigate('prologue')}>I’ll draw my destiny <span aria-hidden="true">→</span></button>
+        <p className="handwritten-note">Your next chapter starts with a little courage.</p>
+      </div>
+      <NpcGuide message="Psst. Our world could use a hero like you." />
+    </Parchment>
   );
 }

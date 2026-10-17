@@ -6,6 +6,7 @@ import { CameraPlaceholder } from './CameraPlaceholder';
 import { HealthBars } from './HealthBars';
 import { Parchment } from './Parchment';
 import { SpellPanel } from './SpellPanel';
+import { NpcGuide } from './NpcGuide';
 
 export function BattleScreen({ match, you, now }: { match: MatchState; you: PlayerSlot; now: number }) {
   const { send, log, lobby, onlineStatus, error } = useMatch();
@@ -24,6 +25,7 @@ export function BattleScreen({ match, you, now }: { match: MatchState; you: Play
         {log.map(({ id, event }) => <li key={id}>{describe(event, match.fighters, you)}</li>)}
       </ul>
       <CameraPlaceholder />
+      {fighting && <NpcGuide compact message="Remember the runes. Let your courage do the rest." />}
       <div className="battle-controls">
         <p>{online ? 'Online · keyboard practice' : 'Swamp Bot · keyboard practice'}</p>
         {!connected && <p role="status">Waiting for both players to reconnect…</p>}
@@ -32,10 +34,11 @@ export function BattleScreen({ match, you, now }: { match: MatchState; you: Play
       </div>
       {!fighting && (
         <div className="modal">
-          <Parchment title={match.winner === you ? 'Victory!' : `${theirs.name} wins`}>
+          <Parchment className="ending-scroll" title={match.winner === you ? 'The light returns.' : 'Even heroes stumble.'}>
+            <p>{match.winner === you ? 'Your reflection falls. A new dawn begins.' : `${theirs.name} takes this chapter. Your story isn’t over.`}</p>
             <div className="row">
-              <button type="button" className="link-button" disabled={!connected} onClick={() => send({ type: 'match.rematch' })}>rematch</button>
-              <button type="button" className="link-button" onClick={() => send({ type: 'lobby.leave' })}>leave</button>
+              <button type="button" className="quest-button" disabled={!connected} onClick={() => send({ type: 'match.rematch' })}>Rematch <span aria-hidden="true">↻</span></button>
+              <button type="button" className="link-button small" onClick={() => send({ type: 'lobby.leave' })}>Close this chapter</button>
             </div>
           </Parchment>
         </div>

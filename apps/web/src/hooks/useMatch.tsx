@@ -8,6 +8,7 @@ export interface LogEntry { id: number; event: MatchEvent }
 /** Everything the screens render. Built only from server messages. */
 export interface GameView {
   lobby: LobbyState | null;
+  quest: Extract<ServerMessage, { type: 'quest.state' }>['quest'];
   checks: DeviceChecks;
   match: MatchState | null;
   log: LogEntry[];
@@ -25,6 +26,7 @@ interface MatchContextValue extends GameView {
 
 const initialView: GameView = {
   lobby: null,
+  quest: null,
   checks: { pairing: 'pending', lights: 'pending', motion: 'pending', camera: 'pending' },
   match: null,
   log: [],
@@ -42,7 +44,8 @@ function reduce(view: GameView, { message, receivedAt }: { message: ServerMessag
     case 'connection.state': return { ...view, onlineStatus: message.status };
     case 'room.closed': return { ...initialView, error: message.message };
     case 'lobby.state':
-      return { ...view, lobby: message.lobby, error: null };
+      return { ...view, lobby: message.lobby, error: null, ...(!message.lobby ? { quest: null } : {}) };
+    case 'quest.state': return { ...view, quest: message.quest, error: null };
     case 'device.state':
       return { ...view, checks: message.checks };
     case 'match.state': {

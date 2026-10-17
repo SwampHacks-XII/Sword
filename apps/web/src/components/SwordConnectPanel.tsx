@@ -15,7 +15,7 @@ export function SwordConnectPanel() {
   const { checks, send, connectionKind } = useMatch();
   const running = Object.values(checks).some((s) => s === 'checking');
   return (
-    <Parchment title="Sword Connect" className="connect-panel">
+    <Parchment title="Ready your magic" className="connect-panel">
       <ul className="checklist">
         {CHECKS.map(({ id, label }) => (
           <li key={id} className={`check check-${checks[id]}`}>

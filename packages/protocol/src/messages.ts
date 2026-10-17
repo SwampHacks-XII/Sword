@@ -20,6 +20,8 @@ export type ClientMessage =
   | { type: 'lobby.join'; code: string; name: string }
   | { type: 'lobby.leave' }
   | { type: 'device.check' }
+  | { type: 'quest.begin' }
+  | { type: 'quest.accept' }
   | { type: 'match.start' }
   | { type: 'match.rematch' }
   /** Keyboard stand-in for this player's sword while testing without hardware. */
@@ -36,6 +38,7 @@ export type ServerMessage =
   | { type: 'action.pending'; pending: boolean }
   | { type: 'room.closed'; message: string }
   | { type: 'lobby.state'; lobby: LobbyState | null }
+  | { type: 'quest.state'; quest: { accepted: PlayerSlot[] } | null }
   | { type: 'device.state'; checks: DeviceChecks }
   | { type: 'match.state'; match: MatchState | null }
   | { type: 'match.event'; event: MatchEvent; at: number }

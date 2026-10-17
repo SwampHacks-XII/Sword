@@ -2,9 +2,9 @@
 
 The website follows this flow:
 
-**Welcome → Log in / Sign up → Choose game → Lobby → Battle**
+**Welcome → Evil-twin prologue → Log in / Sign up → Choose game → Lobby → Quest briefing → Battle**
 
-Start on the welcome page and choose **Get started**. Log in or sign up to reach
+Start on the welcome page and choose **I’ll draw my destiny**. Meet Moss, then log in or sign up to reach
 the game-selection page. There, set your player name and choose **Create game**,
 **Join game**, or **Play with Swamp Bot**. Signing in returns you directly to game
 selection. Existing signed-in players can choose **Choose a game** to continue.
@@ -122,17 +122,19 @@ frontend `.env`, and restart the backend after changing its `.env`.
 
 ## Test with two players on one laptop
 
-1. Open the website in a normal browser window and choose **Get started**.
+1. Open the website in a normal browser window, choose **I’ll draw my destiny**, and follow Moss’s prologue.
 2. Choose **Log in** or **Sign up**. Complete Auth0 login to reach game selection.
 3. Enter your player name and choose **Create game**. The name is saved to Tiger Data.
 4. Copy the **four-digit room code**, including any leading zeroes. Online rooms wait for a real player; no bot joins.
 5. Open the website in a private/incognito window or a different browser.
-6. Choose **Get started** and sign in with a **different Auth0 account**. Choose **Join game**, enter the code, then choose **Join room**.
+6. Follow the prologue and sign in with a **different Auth0 account**. Choose **Join game**, enter the code, then choose **Join room**.
 7. Check that both windows show both players as connected. Player 1 is the host
-   and chooses **start battle**; player 2 waits for the host.
-8. Use the controls below. Both windows should show the same health and match result.
-9. The winner and completed session are stored in Tiger Data. Use **leave** to
-   return to the menu, then create a new room for another online match.
+   and chooses **Start my quest**; both players see Moss’s quest briefing.
+8. Choose **Accept my quest** in both windows. Combat starts only after both accept.
+   Use the controls below. Both windows should show the same health and match result.
+9. The completed round and winner are stored in Tiger Data. Choose **Rematch** to
+   return both players to the same lobby, then start another quest. Choose **leave**
+   to close the room and return to game selection.
 
 | Key | Action |
 | --- | --- |

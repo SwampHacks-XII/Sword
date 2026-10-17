@@ -261,12 +261,42 @@ test('online combat saves its winner; rematch returns both players to the same l
     const rounds = await pool.query('SELECT * FROM match_rounds WHERE match_id = $1', [matchId]);
     assert.equal(rounds.rows.length, 1); assert.equal(rounds.rows[0].winner_player_id, ids.alice);
     const restartFrom = b.messages.length;
-    a.send({ type: 'match.start' });
+    a.send({ type: 'quest.begin' });
+    await b.wait(m => m.type === 'quest.state' && m.quest?.accepted.length === 0, restartFrom);
+    a.send({ type: 'quest.accept' }); b.send({ type: 'quest.accept' });
     const restarted = await b.wait(m => m.type === 'match.state' && m.match?.phase === 'fighting', restartFrom);
     assert.equal(restarted.type === 'match.state' && restarted.match?.fighters.p1.hp, 100);
     assert.equal(restarted.type === 'match.state' && restarted.match?.fighters.p2.hp, 100);
     await call('alice', 'POST', `/matches/${matchId}/leave`, {});
   } finally { a.ws.close(); b.ws.close(); }
+});
+
+test('quest briefings wait for both players, survive reconnects, and cannot be skipped by starting combat early', async () => {
+  const matchId = await matchPair();
+  const a = await socketClient('alice', matchId);
+  const b = await socketClient('bob', matchId);
+  let rejoined: Awaited<ReturnType<typeof socketClient>> | undefined;
+  try {
+    b.send({ type: 'quest.begin' });
+    await b.wait(m => m.type === 'error' && m.message.includes('host'));
+    a.send({ type: 'quest.begin' });
+    for (const client of [a, b]) await client.wait(m => m.type === 'quest.state' && m.quest?.accepted.length === 0);
+    a.send({ type: 'quest.accept' });
+    await b.wait(m => m.type === 'quest.state' && m.quest?.accepted.includes('p1') === true);
+    a.send({ type: 'match.start' });
+    await a.wait(m => m.type === 'error' && m.message.includes('accept the quest'));
+    assert.equal((await call('alice', 'GET', `/matches/${matchId}`)).data.match.status, 'waiting');
+    assert.equal(a.latestMatch(), undefined);
+    b.ws.close();
+    await a.wait(m => m.type === 'lobby.state' && m.lobby?.players.some(p => !p.connected) === true);
+    rejoined = await socketClient('bob', matchId);
+    await rejoined.wait(m => m.type === 'quest.state' && m.quest?.accepted.includes('p1') === true);
+    rejoined.send({ type: 'quest.accept' });
+    for (const client of [a, rejoined]) await client.wait(m => m.type === 'match.state' && m.match?.phase === 'fighting');
+    assert.deepEqual(a.latestMatch(), rejoined.latestMatch());
+    assert.equal((await call('bob', 'GET', `/matches/${matchId}`)).data.match.status, 'active');
+    await call('alice', 'POST', `/matches/${matchId}/leave`, {});
+  } finally { a.ws.close(); b.ws.close(); rejoined?.ws.close(); }
 });
 
 test('online disconnects are visible, reconnects restore the room, and leaving closes it for both', async () => {
@@ -416,6 +446,11 @@ test('hosted build serves HTML and assets with Auth0/WSS policy while API authen
   const bundle = await testFetch(`${base}${asset}`);
   assert.equal(bundle.status, 200);
   assert.equal((await bundle.text()).includes('same-origin'), true);
+  for (const art of ['moss.svg', 'knight.svg', 'pixel-world.svg']) {
+    const image = await testFetch(`${base}/art/${art}`);
+    assert.equal(image.status, 200); assert.match(image.headers.get('content-type')!, /image\/svg\+xml/);
+    assert.match(await image.text(), /<svg\s/);
+  }
   const policy = response.headers.get('content-security-policy')!;
   assert.ok(policy.includes(origin.replace('https:', 'wss:')));
   assert.ok(policy.includes('frame-src'));
