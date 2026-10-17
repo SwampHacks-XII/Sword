@@ -11,6 +11,7 @@ const commandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('session.auth'), ticket: z.string().regex(/^[a-f0-9]{64}$/) }).strict(),
   z.object({ type: z.literal('room.subscribe'), matchId: z.uuid() }).strict(),
   z.object({ type: z.literal('match.start') }).strict(),
+  z.object({ type: z.literal('match.rematch') }).strict(),
   z.object({ type: z.literal('lobby.leave') }).strict(),
   z.object({ type: z.literal('device.check') }).strict(),
   z.object({ type: z.literal('dev.sword'), input: z.discriminatedUnion('kind', [
@@ -83,7 +84,7 @@ export function createRealtimeHub(game: GameStore, players: PlayerStore, origin:
     const snapshot = await game.getMatch(peer.subject!, matchId);
     let room = rooms.get(matchId);
     if (!room) {
-      if (snapshot.status !== 'waiting') {
+      if (snapshot.status !== 'waiting' || !snapshot.roomOpen) {
         throw new ApiError(409, 'session_unavailable', 'That battle is no longer available. Create a new room.');
       }
       if (rooms.size >= 100) throw new ApiError(503, 'rooms_full', 'The server is busy. Try again shortly.');
@@ -149,6 +150,16 @@ export function createRealtimeHub(game: GameStore, players: PlayerStore, origin:
       if (room.rules.snapshot()) return;
       room.snapshot = await game.startMatch(peer.subject, room.id);
       room.rules.startMatch();
+      return;
+    }
+    if (command.type === 'match.rematch') {
+      if (room.peers.size !== 2) throw new ApiError(409, 'players_disconnected', 'Both players must be connected for a rematch.');
+      if (!room.rules.snapshot() && room.snapshot.roundNumber > 1) return;
+      if (room.rules.snapshot()?.phase !== 'over') throw new ApiError(409, 'round_not_finished', 'Finish this battle before requesting a rematch.');
+      room.snapshot = await game.rematch(peer.subject, room.id);
+      room.poses = createPoseSimulator();
+      room.rules.returnToLobby();
+      for (const slot of ['p1', 'p2'] as const) broadcast(room, { type: 'sword.pose', slot, q: [1, 0, 0, 0] });
       return;
     }
     if (room.peers.size !== 2) throw new ApiError(409, 'opponent_disconnected', 'Waiting for your opponent to reconnect.');

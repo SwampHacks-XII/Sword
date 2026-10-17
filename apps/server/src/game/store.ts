@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID } from 'node:crypto';
+import { randomInt, randomUUID } from 'node:crypto';
 import type { Pool, PoolClient, QueryResultRow } from 'pg';
 import { ApiError } from './errors.js';
 import type { CameraBatch, InputEvent, Page, SwordBatch } from './schemas.js';
@@ -7,10 +7,11 @@ type Database = Pick<PoolClient, 'query'>;
 interface MatchRow extends QueryResultRow {
   id: string; join_code: string; host_player_id: string; status: 'waiting' | 'active' | 'completed';
   winner_player_id: string | null; created_at: Date; started_at: Date | null; finished_at: Date | null;
+  room_open: boolean; round_number: number;
 }
 function matchView(row: MatchRow) {
   return { id: row.id, joinCode: row.join_code, hostPlayerId: row.host_player_id, status: row.status,
-    winnerPlayerId: row.winner_player_id, createdAt: row.created_at.toISOString(),
+    winnerPlayerId: row.winner_player_id, roomOpen: row.room_open, roundNumber: row.round_number, createdAt: row.created_at.toISOString(),
     startedAt: row.started_at?.toISOString() ?? null, finishedAt: row.finished_at?.toISOString() ?? null };
 }
 async function actor(db: Database, subject: string): Promise<string> {
@@ -28,6 +29,7 @@ async function membership(db: Database, matchId: string, playerId: string, lock 
   return locked.rows[0]!;
 }
 function requireOpen(match: MatchRow) {
+  if (!match.room_open) throw new ApiError(409, 'room_closed', 'This room is closed. Create a new room.');
   if (match.status === 'completed') throw new ApiError(409, 'match_completed', 'Completed matches are read-only.');
 }
 async function details(db: Database, match: MatchRow) {
@@ -55,14 +57,20 @@ async function transaction<T>(pool: Pool, run: (db: PoolClient) => Promise<T>): 
   } finally { db.release(); }
 }
 
-export function createGameStore(pool: Pool) {
+export function createGameStore(pool: Pool, options: { generateRoomCode?: () => string } = {}) {
   return {
     async createMatch(subject: string) {
       return transaction(pool, async db => {
         const playerId = await actor(db, subject);
-        const result = await db.query<MatchRow>('INSERT INTO matches (id, join_code, host_player_id) VALUES ($1, $2, $3) RETURNING *',
-          [randomUUID(), randomBytes(6).toString('hex').toUpperCase(), playerId]);
-        const match = result.rows[0]!;
+        let match: MatchRow | undefined;
+        for (let attempt = 0; attempt < 64; attempt++) {
+          const code = options.generateRoomCode?.() ?? randomInt(0, 10_000).toString().padStart(4, '0');
+          const id = randomUUID();
+          const result = await db.query<MatchRow>(`INSERT INTO matches (id, join_code, host_player_id)
+            VALUES ($1, $2, $3) ON CONFLICT DO NOTHING RETURNING *`, [id, code, playerId]);
+          if (result.rows[0]?.id === id) { match = result.rows[0]; break; }
+        }
+        if (!match) throw new ApiError(503, 'room_codes_busy', 'Could not allocate a room code. Please try again.');
         await db.query('INSERT INTO match_players (match_id, player_id, slot) VALUES ($1, $2, 1)', [match.id, playerId]);
         await event(db, match.id, playerId, 'match-created');
         return details(db, match);
@@ -80,7 +88,7 @@ export function createGameStore(pool: Pool) {
     async joinMatch(subject: string, joinCode: string) {
       return transaction(pool, async db => {
         const playerId = await actor(db, subject);
-        const result = await db.query<MatchRow>('SELECT * FROM matches WHERE join_code = $1 FOR UPDATE', [joinCode]);
+        const result = await db.query<MatchRow>('SELECT * FROM matches WHERE join_code = $1 AND room_open = TRUE FOR UPDATE', [joinCode]);
         const match = result.rows[0];
         if (!match) throw new ApiError(404, 'match_not_found', 'No match has that join code.');
         const members = await db.query<{ player_id: string; slot: number }>('SELECT player_id, slot FROM match_players WHERE match_id = $1', [match.id]);
@@ -119,7 +127,11 @@ export function createGameStore(pool: Pool) {
           if (!winner.rows[0]) throw new ApiError(400, 'invalid_winner', 'The winner must belong to this match.');
         }
         const result = await db.query<MatchRow>("UPDATE matches SET status = 'completed', finished_at = NOW(), winner_player_id = $2 WHERE id = $1 RETURNING *", [matchId, winnerPlayerId ?? null]);
-        await event(db, matchId, playerId, 'match-finished', { winnerPlayerId: winnerPlayerId ?? null });
+        const finished = result.rows[0]!;
+        await db.query(`INSERT INTO match_rounds (match_id, round_number, winner_player_id, started_at, finished_at)
+          VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING`,
+          [matchId, match.round_number, winnerPlayerId ?? null, match.started_at, finished.finished_at]);
+        await event(db, matchId, playerId, 'match-finished', { winnerPlayerId: winnerPlayerId ?? null, roundNumber: match.round_number });
         return details(db, result.rows[0]!);
       });
     },
@@ -127,9 +139,21 @@ export function createGameStore(pool: Pool) {
       return transaction(pool, async db => {
         const playerId = await actor(db, subject);
         const match = await membership(db, matchId, playerId, true);
-        if (match.status === 'completed') return details(db, match);
-        const result = await db.query<MatchRow>("UPDATE matches SET status = 'completed', finished_at = NOW() WHERE id = $1 RETURNING *", [matchId]);
-        await event(db, matchId, playerId, 'match-finished', { reason: 'player-left', winnerPlayerId: null });
+        if (!match.room_open) return details(db, match);
+        const result = await db.query<MatchRow>("UPDATE matches SET status = 'completed', room_open = FALSE, finished_at = COALESCE(finished_at, NOW()) WHERE id = $1 RETURNING *", [matchId]);
+        if (match.status !== 'completed') await event(db, matchId, playerId, 'match-finished', { reason: 'player-left', winnerPlayerId: null, roundNumber: match.round_number });
+        return details(db, result.rows[0]!);
+      });
+    },
+    async rematch(subject: string, matchId: string) {
+      return transaction(pool, async db => {
+        const playerId = await actor(db, subject);
+        const match = await membership(db, matchId, playerId, true);
+        if (!match.room_open) throw new ApiError(409, 'room_closed', 'This room is closed. Create a new room.');
+        if (match.status === 'waiting' && match.round_number > 1) return details(db, match);
+        if (match.status !== 'completed') throw new ApiError(409, 'round_not_finished', 'Finish this battle before requesting a rematch.');
+        const result = await db.query<MatchRow>(`UPDATE matches SET status = 'waiting', round_number = round_number + 1,
+          winner_player_id = NULL, started_at = NULL, finished_at = NULL WHERE id = $1 RETURNING *`, [matchId]);
         return details(db, result.rows[0]!);
       });
     },

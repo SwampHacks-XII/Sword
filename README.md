@@ -16,7 +16,11 @@ The backend now supports **player profiles, two-player sessions, and sword/camer
 
 The backend can start without account settings, but protected routes stay unavailable. See [the backend README](apps/server/README.md) for endpoints and verified commands.
 
-**Play online or with Swamp Bot.** From `apps/web`, run `npm ci`, then `npm run dev`, and open http://localhost:5173. The flow is **Welcome → Log in / Sign up → Choose game → Lobby → Battle**. Choose **Get started**, sign in through Auth0, then select **Create game**, **Join game**, or **Play with Swamp Bot**. Friends join the same 12-character room code. Guests can choose Swamp Bot practice from the login page. Online mode also needs `apps/server` running. Follow [the online play guide](docs/play-online.md) for environment settings and a two-account test.
+**Play online or with Swamp Bot.** From `apps/web`, run `npm ci`, then `npm run dev`, and open http://localhost:5173. The flow is **Welcome → Log in / Sign up → Choose game → Lobby → Battle**. Choose **Get started**, sign in through Auth0, then select **Create game**, **Join game**, or **Play with Swamp Bot**. Friends join the same **four-digit room code**. Guests can choose Swamp Bot practice from the login page. Online mode also needs `apps/server` running. Follow [the online play guide](docs/play-online.md) for environment settings and a two-account test.
+
+**Play from different networks.** [Optional Render hosting](docs/hosting-render.md) serves the website and backend at one public HTTPS address. Your existing local setup stays available. Both players open the hosted address; neither needs to run a server on their laptop. Internet access is required, but the players do not need the same Wi-Fi.
+
+**Play again together.** After a battle, either player can choose **rematch** to return both players to the same lobby and room code. The host starts the next battle. Each completed round's result is kept in the database.
 
 During either mode, the keyboard stands in for your sword:
 

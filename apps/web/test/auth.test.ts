@@ -26,3 +26,15 @@ test('expired callbacks are recoverable and unknown messages cannot expose secre
   assert.equal(JSON.stringify(result).includes(secret), false);
   assert.equal(result.code, 'login_failed');
 });
+
+test('an unspecified access denial does not report that the player canceled', () => {
+  const issue = describeAuthError({ error: 'access_denied', error_description: 'An organization policy denied this request.' });
+  assert.equal(issue.code, 'access_denied');
+  assert.doesNotMatch(issue.message, /cancel/i);
+  assert.match(issue.details, /Monitoring → Logs/);
+});
+
+test('known signup and verification denials explain the required account step', () => {
+  assert.equal(describeAuthError({ error: 'access_denied', error_description: 'Signups are disabled' }).code, 'signup_disabled');
+  assert.equal(describeAuthError({ error: 'access_denied', error_description: 'Please verify your email before logging in.' }).code, 'email_verification_required');
+});

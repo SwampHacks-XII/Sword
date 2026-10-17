@@ -154,6 +154,10 @@ test('configuration rejects partial Auth0 setup and incomplete production setup'
   assert.throws(() => readConfig({ AUTH0_AUDIENCE: audience }));
   assert.throws(() => readConfig({ AUTH0_ISSUER_BASE_URL: 'http://not-https/', AUTH0_AUDIENCE: audience }));
   assert.throws(() => readConfig({ NODE_ENV: 'production' }));
+  assert.throws(() => readConfig({ SERVE_WEB: 'true' }));
+  assert.throws(() => readConfig({ SERVE_WEB: 'true', PUBLIC_APP_URL: 'http://unsecured.example' }));
+  assert.equal(readConfig({ SERVE_WEB: 'true', RENDER_EXTERNAL_URL: 'https://sword.example', WEB_ORIGIN: 'http://localhost:5173' }).webOrigin, 'https://sword.example');
+  assert.equal(readConfig({}).webOrigin, 'http://localhost:5173');
 });
 
 test('Tiger Cloud connections retain certificate verification when the URL omits its CA setting', async () => {

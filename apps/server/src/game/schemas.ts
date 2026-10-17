@@ -15,7 +15,7 @@ export const swordSchema = z.object({
   deviceId: z.string().trim().min(1).max(64).regex(/^[A-Za-z0-9._:-]+$/),
   label: z.string().trim().min(1).max(40),
 }).strict();
-export const joinSchema = z.object({ joinCode: z.string().trim().toUpperCase().regex(/^[A-F0-9]{12}$/) }).strict();
+export const joinSchema = z.object({ joinCode: z.string().trim().regex(/^\d{4}$/) }).strict();
 export const assignmentSchema = z.object({ swordId: z.uuid() }).strict();
 export const finishSchema = z.object({ winnerPlayerId: z.uuid().optional() }).strict();
 export const pageSchema = z.object({

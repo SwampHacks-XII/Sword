@@ -2,7 +2,15 @@ export interface ApiMatch {
   id: string; joinCode: string; status: 'waiting' | 'active' | 'completed';
 }
 export interface Profile { id: string; displayName: string }
-export const apiBaseUrl = (import.meta.env?.VITE_API_BASE_URL || 'http://localhost:3001').replace(/\/$/, '');
+export function resolveApiBaseUrl(value?: string, origin?: string) {
+  if (value === 'same-origin') {
+    if (!origin) throw new Error('The hosted API needs the website origin.');
+    return origin;
+  }
+  return (value || 'http://localhost:3001').replace(/\/$/, '');
+}
+export const apiBaseUrl = resolveApiBaseUrl(import.meta.env?.VITE_API_BASE_URL,
+  typeof window === 'undefined' ? undefined : window.location.origin);
 
 export function createApi(getToken: () => Promise<string>) {
   return {

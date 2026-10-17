@@ -1,4 +1,10 @@
 {
+  "scripts": {
+    "build:hosted": "node tools/build-hosted.mjs",
+    "start:hosted": "node tools/start-hosted.mjs",
+    "test:hosted": "node tools/test-hosted.mjs",
+    "test:hosted:db": "node tools/test-hosted.mjs --database"
+  },
   "dependencies": {
     "@auth0/auth0-react": "^2.28.2"
   }

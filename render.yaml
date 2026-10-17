@@ -1,0 +1,28 @@
+# Optional hosted mode. Local development commands and .env files still work.
+services:
+  - type: web
+    name: sword-game
+    runtime: node
+    plan: free
+    numInstances: 1
+    autoDeployTrigger: 'off'
+    buildCommand: npm ci --include=dev --prefix apps/server && npm ci --include=dev --prefix apps/web && npm run build:hosted
+    startCommand: npm run start:hosted
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 22.15.0
+      - key: HOST
+        value: 0.0.0.0
+      - key: DATABASE_URL
+        sync: false
+      - key: AUTH0_ISSUER_BASE_URL
+        value: https://dev-3daqegbds3uctd8l.us.auth0.com
+      - key: AUTH0_AUDIENCE
+        value: https://sword-api
+      - key: VITE_AUTH0_DOMAIN
+        value: dev-3daqegbds3uctd8l.us.auth0.com
+      - key: VITE_AUTH0_CLIENT_ID
+        value: M5zNcKJOswrwafsCXpkJwAtwesX0mSq5
+      - key: VITE_AUTH0_AUDIENCE
+        value: https://sword-api

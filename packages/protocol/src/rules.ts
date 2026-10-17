@@ -9,7 +9,6 @@ import type { ServerMessage, SwordEvent } from './messages.js';
 
 /** How long after a trigger press an IR hit report still counts. */
 const SHOT_TTL_MS = 1000;
-const CODE_WORDS = ['MAGIC', 'SPELL', 'RUNE', 'SWAMP', 'GATOR', 'EMBER', 'FROST'];
 
 interface PendingShot { attacker: PlayerSlot; spellId: string; firedAt: number }
 export type TriggerResult = 'fired' | 'self-cast' | 'ignored';
@@ -18,7 +17,7 @@ const cleanName = (name: string, fallback: string) => name.trim().slice(0, 40) |
 const pick = <T,>(items: readonly T[]): T => items[Math.floor(Math.random() * items.length)]!;
 
 export function randomRoomCode() {
-  return `${pick(CODE_WORDS)}${Math.floor(10 + Math.random() * 90)}`;
+  return Math.floor(Math.random() * 10_000).toString().padStart(4, '0');
 }
 
 export class GameRules {
@@ -60,6 +59,14 @@ export class GameRules {
 
   snapshot(): MatchState | null {
     return this.match ? structuredClone(this.match) : null;
+  }
+
+  returnToLobby(): boolean {
+    if (this.match?.phase !== 'over') return false;
+    this.match = null;
+    this.pendingShots.clear(); this.usedShots.clear();
+    this.emitLobby(); this.emitMatch();
+    return true;
   }
 
   leave() {

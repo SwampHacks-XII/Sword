@@ -6,6 +6,14 @@ export function describeAuthError(error: unknown): AuthIssue {
   const providerCode = typeof object.error === 'string' && /^[a-z_]{1,64}$/.test(object.error) ? object.error : 'login_failed';
   const message = typeof object.message === 'string' ? object.message : '';
   const description = typeof object.error_description === 'string' ? object.error_description : message;
+  if (/sign.?ups? (?:are |is )?(?:disabled|not allowed)|public signup.*disabled|signup_disabled/i.test(description)) {
+    return { code: 'signup_disabled', message: 'New account registration is disabled for this game.',
+      details: 'The game host should check the Auth0 database connection’s sign-up settings and any Pre User Registration Actions. Existing accounts may still be able to log in.' };
+  }
+  if (/please verify.*email|email.*(?:must be verified|not verified)|email verification.*required/i.test(description)) {
+    return { code: 'email_verification_required', message: 'Verify your email address before logging in.',
+      details: 'Check your inbox and spam folder for the verification email, follow its link, then choose Log in. If the email is missing, ask the game host to resend verification from Auth0.' };
+  }
   if (/not authorized to access (?:resource server|.*api)|client.grant/i.test(description)) {
     return { code: 'api_access_denied', message: 'Online sign-in needs one more setup step.',
       details: 'In Auth0, open Applications → APIs → Sword API → Application Access. Edit Sword Web, grant User-Delegated Access, and save. In API Settings, its user access policy must allow per-app authorization.' };
@@ -26,7 +34,11 @@ export function describeAuthError(error: unknown): AuthIssue {
     return { code: 'application_configuration', message: 'The game’s login application settings need to be checked.',
       details: 'Sword Web must be a Single Page Application with Authorization Code enabled. Its Client ID and tenant domain must match apps/web/.env. Do not add a client secret to the website.' };
   }
-  return { code: providerCode, message: providerCode === 'access_denied' ? 'Sign-in was canceled or denied. Please try again.' : 'Sign-in could not finish. Please try again.',
+  if (providerCode === 'access_denied') {
+    return { code: providerCode, message: 'Auth0 did not approve this sign-in attempt.',
+      details: 'The game host should open Auth0 → Monitoring → Logs, find this failed login or signup, and check its Description and Action Details. This code alone does not tell us whether access was canceled, blocked by a login rule, or refused for another reason.' };
+  }
+  return { code: providerCode, message: 'Sign-in could not finish. Please try again.',
     details: 'Start a new login. If it still fails, check the Auth0 tenant logs for this error code. Provider callback URLs and credentials are not displayed here.' };
 }
 

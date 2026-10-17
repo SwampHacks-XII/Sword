@@ -27,7 +27,7 @@ export function MainMenu({ guestOnly = false }: { guestOnly?: boolean }) {
 
   function join(event: FormEvent) {
     event.preventDefault();
-    if (/^[A-F0-9]{12}$/.test(code.trim()) && canPlayOnline) send({ type: 'lobby.join', code, name });
+    if (/^\d{4}$/.test(code.trim()) && canPlayOnline) send({ type: 'lobby.join', code, name });
   }
 
   return (
@@ -45,14 +45,14 @@ export function MainMenu({ guestOnly = false }: { guestOnly?: boolean }) {
               <strong>Create game</strong><span>Host an online room and share your code.</span>
             </button>
             <button type="button" className="game-option" disabled={!canPlayOnline} onClick={() => setJoining(v => !v)} aria-expanded={joining}>
-              <strong>Join game</strong><span>Enter a friend’s 12-character room code.</span>
+              <strong>Join game</strong><span>Enter a friend’s 4-digit room code.</span>
             </button>
             {joining && <form className="join-form game-join" onSubmit={join}>
               <label className="field"><span>Room code</span>
-                <input placeholder="ROOM CODE" value={code} autoFocus maxLength={12} disabled={pending}
-                  onChange={e => setCode(e.target.value.toUpperCase().replace(/[^A-F0-9]/g, ''))} />
+                <input placeholder="0000" inputMode="numeric" pattern="[0-9]{4}" value={code} autoFocus maxLength={4} disabled={pending}
+                  onChange={e => setCode(e.target.value.replace(/\D/g, ''))} />
               </label>
-              <button type="submit" className="primary-button" disabled={!canPlayOnline || code.length !== 12}>Join room</button>
+              <button type="submit" className="primary-button" disabled={!canPlayOnline || code.length !== 4}>Join room</button>
             </form>}
           </>}
           <button type="button" className="game-option" disabled={!validName || pending} onClick={() => send({ type: 'lobby.create', name, mode: 'bot' })}>

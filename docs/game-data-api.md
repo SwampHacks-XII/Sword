@@ -41,6 +41,7 @@ You can inspect these tables in Tiger Data's SQL editor:
 | --- | --- |
 | `players` | Existing Auth0-linked profiles |
 | `matches` | Join code, host, status, timestamps, optional winner |
+| `match_rounds` | Completed round number, winner, and timestamps retained across rematches |
 | `match_players` | Two player slots and their assigned swords |
 | `swords` | Device IDs and their registered owners |
 | `match_events` | Session history and unverified device input reports |
@@ -135,7 +136,7 @@ queries with offset pagination, not the future live movement channel.
 ```
 
 ```json
-{"joinCode":"REPLACE_WITH_THE_12_CHARACTER_CODE"}
+{"joinCode":"0017"}
 ```
 
 ```json
@@ -146,8 +147,13 @@ queries with offset pagination, not the future live movement channel.
 {"winnerPlayerId":"REPLACE_WITH_A_PARTICIPANT_UUID"}
 ```
 
-The finish body can be `{}` for no recorded winner. Join codes contain 12
-hexadecimal characters and are case-insensitive. A device ID can be registered
+The finish body can be `{}` for no recorded winner. New join codes contain exactly
+four digits and are strings, so keep leading zeroes. Codes are unique among open
+rooms and may be reused after a room closes. Existing stored sessions are preserved.
+Completed rounds are kept in `match_rounds`; the match's `roundNumber` advances
+when a player sends `match.rematch` over the authenticated game socket. Both
+players must be connected, and the host starts the next battle from the lobby.
+A device ID can be registered
 only once; `GET /swords` lets you reuse an existing sword instead of registering it again.
 
 ### Sword measurements

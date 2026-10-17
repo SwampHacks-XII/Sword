@@ -34,7 +34,7 @@ export function BattleScreen({ match, you, now }: { match: MatchState; you: Play
         <div className="modal">
           <Parchment title={match.winner === you ? 'Victory!' : `${theirs.name} wins`}>
             <div className="row">
-              {!online && <button type="button" className="link-button" onClick={() => send({ type: 'match.start' })}>rematch</button>}
+              <button type="button" className="link-button" disabled={!connected} onClick={() => send({ type: 'match.rematch' })}>rematch</button>
               <button type="button" className="link-button" onClick={() => send({ type: 'lobby.leave' })}>leave</button>
             </div>
           </Parchment>

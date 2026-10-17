@@ -125,6 +125,9 @@ export function createMockConnection(): GameConnection {
         case 'match.start':
           if (rules.startMatch()) botNextActionAt = Date.now() + 2500;
           break;
+        case 'match.rematch':
+          rules.returnToLobby();
+          break;
         case 'dev.sword': {
           const { input } = message;
           if (input.kind === 'button') rules.handleSword({ type: 'sword.button', swordId: swordIdFor(you), color: input.color });

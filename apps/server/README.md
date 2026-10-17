@@ -4,6 +4,11 @@ The backend verifies player identity, runs online keyboard battles over authenti
 
 Start with the [account and connection guide](../../docs/backend-setup.md). It explains how to create Auth0 and Tiger Data accounts and fill in your local configuration.
 
+For the optional public website, use [the Render guide](../../docs/hosting-render.md).
+The hosted build serves the frontend, API, and WebSocket connection together;
+the local commands below still work independently. Run `db:setup` after pulling
+to add migration 004 for four-digit rooms and saved rematch rounds.
+
 ## Run locally
 
 From this folder (`apps/server`), with Node.js 22.12+ and npm:

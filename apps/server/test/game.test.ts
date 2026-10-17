@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { before, after, test } from 'node:test';
 import { createServer, type Server } from 'node:http';
+import { createServer as createSecureServer, request as httpsRequest } from 'node:https';
 import { once } from 'node:events';
 import type { AddressInfo } from 'node:net';
 import { randomUUID, randomBytes } from 'node:crypto';
@@ -18,6 +19,9 @@ import { WebSocket } from 'ws';
 import { getSpell, type MatchState, type ServerMessage } from '@sword/protocol';
 
 const live = process.env.GAME_TEST_DATABASE === '1';
+const hosted = Boolean(process.env.GAME_TEST_CERT);
+let testCa: Buffer;
+let origin = 'http://localhost:5173';
 let pool: Pool;
 let admin: Pool | undefined;
 let schema: string;
@@ -31,13 +35,26 @@ const ids: Record<string, string> = {};
 
 async function listen(server: Server) {
   server.listen(0, '127.0.0.1'); await once(server, 'listening');
-  return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  return `${hosted && server === apiServer ? 'https' : 'http'}://127.0.0.1:${(server.address() as AddressInfo).port}`;
+}
+async function testFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  if (!url.startsWith('https:')) return fetch(url, init);
+  return new Promise((resolve, reject) => {
+    const request = httpsRequest(url, { ca: testCa, method: init.method, headers: init.headers as Record<string, string> }, response => {
+      const chunks: Buffer[] = [];
+      response.on('data', chunk => chunks.push(chunk));
+      response.on('end', () => resolve(new Response(Buffer.concat(chunks), { status: response.statusCode,
+        headers: response.headers as Record<string, string> })));
+    });
+    request.on('error', reject);
+    request.end(init.body as string | undefined);
+  });
 }
 async function close(server?: Server) {
   if (server) await new Promise<void>(resolve => { server.close(() => resolve()); server.closeAllConnections(); });
 }
 async function call(user: string, method: string, path: string, body?: unknown) {
-  const response = await fetch(`${base}/api${path}`, {
+  const response = await testFetch(`${base}/api${path}`, {
     method, headers: { Authorization: `Bearer ${tokens[user]}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
@@ -46,6 +63,7 @@ async function call(user: string, method: string, path: string, body?: unknown) 
 async function matchPair() {
   const created = await call('alice', 'POST', '/matches', {});
   assert.equal(created.status, 201, JSON.stringify(created.data));
+  assert.match(created.data.match.joinCode, /^\d{4}$/);
   const joined = await call('bob', 'POST', '/matches/join', { joinCode: created.data.match.joinCode });
   assert.equal(joined.status, 200, JSON.stringify(joined.data));
   return created.data.match.id as string;
@@ -76,7 +94,7 @@ before(async () => {
     await migrate(pool);
   } else {
     const database = newDb();
-    for (const file of ['001_players.sql', '002_game_storage.sql']) {
+    for (const file of ['001_players.sql', '002_game_storage.sql', '004_rematches_and_room_codes.sql']) {
       database.public.none(await readFile(new URL(`../migrations/${file}`, import.meta.url), 'utf8'));
     }
     pool = new (database.adapters.createPg().Pool)() as unknown as Pool;
@@ -93,11 +111,22 @@ before(async () => {
   issuer = `${await listen(issuerServer)}/`;
   const players = createPlayerStore(pool);
   const game = createGameStore(pool);
-  realtime = createRealtimeHub(game, players, 'http://localhost:5173', { disconnectGraceMs: 2000 });
-  apiServer = createServer(createApp({ host: '127.0.0.1', port: 3001, webOrigin: 'http://localhost:5173',
-    auth0: { issuerBaseURL: issuer, audience: 'https://sword-api' }, databaseUrl: null }, players, game, realtime));
+  // Reserve an ephemeral port before configuring the same-origin hosted application.
+  const reservation = createServer();
+  const reservedUrl = await listen(reservation);
+  const port = (reservation.address() as AddressInfo).port;
+  await close(reservation);
+  origin = hosted ? reservedUrl.replace('http:', 'https:') : 'http://localhost:5173';
+  realtime = createRealtimeHub(game, players, origin, { disconnectGraceMs: 2000 });
+  const app = createApp({ host: '127.0.0.1', port, webOrigin: origin, serveWeb: hosted,
+    auth0: { issuerBaseURL: issuer, audience: 'https://sword-api' }, databaseUrl: null }, players, game, realtime);
+  if (hosted) {
+    testCa = await readFile(process.env.GAME_TEST_CERT!);
+    apiServer = createSecureServer({ cert: testCa, key: await readFile(process.env.GAME_TEST_KEY!) }, app);
+  } else apiServer = createServer(app);
   realtime.attach(apiServer);
-  base = await listen(apiServer);
+  apiServer.listen(port, '127.0.0.1'); await once(apiServer, 'listening');
+  base = hosted ? origin : reservedUrl;
   for (const user of ['alice', 'bob', 'carol', 'no-profile']) {
     tokens[user] = await new SignJWT({}).setProtectedHeader({ alg: 'RS256', kid: 'game-test' })
       .setIssuer(issuer).setAudience('https://sword-api').setSubject(`test|${user}`).setIssuedAt().setExpirationTime('10m').sign(keys.privateKey);
@@ -124,7 +153,7 @@ after(async () => {
 type WireMessage = ServerMessage | { type: 'session.ready' } | { type: 'room.ready' };
 async function socketClient(user: string, matchId?: string, suppliedTicket?: string) {
   const ticket = suppliedTicket ?? (await call(user, 'POST', '/realtime-ticket')).data.ticket;
-  const ws = new WebSocket(`${base.replace('http:', 'ws:')}/realtime`, { origin: 'http://localhost:5173' });
+  const ws = new WebSocket(`${base.replace(/^http/, 'ws')}/realtime`, { origin, ...(hosted ? { ca: testCa } : {}) });
   sockets.add(ws);
   ws.on('error', () => {});
   ws.on('close', () => sockets.delete(ws));
@@ -156,7 +185,7 @@ async function socketClient(user: string, matchId?: string, suppliedTicket?: str
 }
 
 test('live tickets require authentication, are single-use, and cannot reveal another room', async () => {
-  assert.equal((await fetch(`${base}/api/realtime-ticket`, { method: 'POST' })).status, 401);
+  assert.equal((await testFetch(`${base}/api/realtime-ticket`, { method: 'POST' })).status, 401);
   assert.equal((await call('no-profile', 'POST', '/realtime-ticket')).status, 409);
   const ticket = (await call('alice', 'POST', '/realtime-ticket')).data.ticket;
   const first = await socketClient('alice', undefined, ticket);
@@ -174,8 +203,10 @@ test('live tickets require authentication, are single-use, and cannot reveal ano
   outsider.ws.close();
 });
 
-test('online players share server-owned combat state and the winner is saved', async () => {
+test('online combat saves its winner; rematch returns both players to the same lobby with history intact', async () => {
   const matchId = await matchPair();
+  const original = (await call('alice', 'GET', `/matches/${matchId}`)).data.match;
+  const assignedSword = await sword('alice', matchId);
   const a = await socketClient('alice', matchId);
   const b = await socketClient('bob', matchId);
   try {
@@ -215,6 +246,26 @@ test('online players share server-owned combat state and the winner is saved', a
     }
     assert.equal(stored.status, 'completed');
     assert.equal(stored.winnerPlayerId, ids.alice);
+    const fromA = a.messages.length; const fromB = b.messages.length;
+    a.send({ type: 'match.rematch' }); b.send({ type: 'match.rematch' });
+    for (const [client, from] of [[a, fromA], [b, fromB]] as const) {
+      await client.wait(m => m.type === 'match.state' && m.match === null, from);
+      const lobby = await client.wait(m => m.type === 'lobby.state' && m.lobby?.players.length === 2, from);
+      assert.equal(lobby.type === 'lobby.state' && lobby.lobby?.code, original.joinCode);
+    }
+    const rematch = (await call('bob', 'GET', `/matches/${matchId}`)).data.match;
+    assert.equal(rematch.roundNumber, 2); assert.equal(rematch.status, 'waiting');
+    assert.equal(rematch.id, matchId); assert.equal(rematch.joinCode, original.joinCode);
+    assert.deepEqual(rematch.players.map((p: { playerId: string }) => p.playerId), original.players.map((p: { playerId: string }) => p.playerId));
+    assert.equal(rematch.players[0].swordId, assignedSword);
+    const rounds = await pool.query('SELECT * FROM match_rounds WHERE match_id = $1', [matchId]);
+    assert.equal(rounds.rows.length, 1); assert.equal(rounds.rows[0].winner_player_id, ids.alice);
+    const restartFrom = b.messages.length;
+    a.send({ type: 'match.start' });
+    const restarted = await b.wait(m => m.type === 'match.state' && m.match?.phase === 'fighting', restartFrom);
+    assert.equal(restarted.type === 'match.state' && restarted.match?.fighters.p1.hp, 100);
+    assert.equal(restarted.type === 'match.state' && restarted.match?.fighters.p2.hp, 100);
+    await call('alice', 'POST', `/matches/${matchId}/leave`, {});
   } finally { a.ws.close(); b.ws.close(); }
 });
 
@@ -235,7 +286,7 @@ test('online disconnects are visible, reconnects restore the room, and leaving c
 });
 
 test('live sockets reject a different website origin', async () => {
-  const ws = new WebSocket(`${base.replace('http:', 'ws:')}/realtime`, { origin: 'https://other.example' });
+  const ws = new WebSocket(`${base.replace(/^http/, 'ws')}/realtime`, { origin: 'https://other.example', ...(hosted ? { ca: testCa } : {}) });
   ws.on('error', () => {});
   const status = await new Promise<number>(resolve => {
     ws.on('unexpected-response', (_request, response) => { resolve(response.statusCode!); response.resume(); ws.terminate(); });
@@ -336,4 +387,39 @@ test('live migrations are repeatable and sensor tables are Timescale hypertables
   assert.deepEqual(await migrate(pool), []);
   const tables = await pool.query('SELECT hypertable_name FROM timescaledb_information.hypertables WHERE hypertable_schema = $1', [schema]);
   assert.deepEqual(tables.rows.map(r => r.hypertable_name).sort(), ['camera_samples', 'sword_samples']);
+});
+
+test('four-digit codes preserve leading zeroes, retry collisions, and become reusable only after a room closes', async () => {
+  const occupied = new Set((await pool.query('SELECT join_code FROM matches WHERE room_open = TRUE')).rows.map(r => r.join_code));
+  const available = Array.from({ length: 1000 }, (_, i) => i.toString().padStart(4, '0')).filter(code => !occupied.has(code));
+  const [codeA, codeB] = available; assert.ok(codeA && codeB);
+  let attempts = 0;
+  const game = createGameStore(pool, { generateRoomCode: () => { attempts++; return attempts < 3 ? codeA : codeB; } });
+  const first = await game.createMatch('test|alice');
+  assert.equal(first.joinCode, codeA); assert.ok(first.joinCode.startsWith('0'));
+  const second = await game.createMatch('test|bob');
+  assert.equal(second.joinCode, codeB); assert.equal(attempts, 3);
+  assert.equal((await call('carol', 'POST', '/matches/join', { joinCode: '17' })).status, 400);
+  assert.equal((await call('carol', 'POST', '/matches/join', { joinCode: 'ABCD' })).status, 400);
+  await game.closeMatch('test|alice', first.id);
+  const reused = await createGameStore(pool, { generateRoomCode: () => codeA }).createMatch('test|carol');
+  assert.notEqual(reused.id, first.id); assert.equal(reused.joinCode, codeA);
+  assert.equal((await game.getMatch('test|alice', first.id)).roomOpen, false);
+  await assert.rejects(createGameStore(pool, { generateRoomCode: () => codeB }).createMatch('test|alice'), /allocate a room code/);
+});
+
+test('hosted build serves HTML and assets with Auth0/WSS policy while API authentication stays enforced', { skip: !hosted }, async () => {
+  const response = await testFetch(base);
+  assert.equal(response.status, 200); assert.match(response.headers.get('content-type')!, /text\/html/);
+  const html = await response.text();
+  const asset = html.match(/src="([^"]+\.js)"/)?.[1]; assert.ok(asset);
+  const bundle = await testFetch(`${base}${asset}`);
+  assert.equal(bundle.status, 200);
+  assert.equal((await bundle.text()).includes('same-origin'), true);
+  const policy = response.headers.get('content-security-policy')!;
+  assert.ok(policy.includes(origin.replace('https:', 'wss:')));
+  assert.ok(policy.includes('frame-src'));
+  assert.equal((await testFetch(`${base}/health`)).status, 200);
+  const unknown = await call('alice', 'GET', '/does-not-exist');
+  assert.equal(unknown.status, 404); assert.equal(unknown.data.error, 'not_found');
 });

@@ -24,6 +24,10 @@ the target's hit when an attack is successfully cast. Physical sword pairing,
 real IR reception, and webcam tracking still need to be connected. Practice
 animations are not saved as real sensor measurements.
 
+For friends on different networks, follow [the optional Render hosting guide](hosting-render.md).
+After a battle, either player can choose **rematch** to return both players to
+the same lobby. The host starts the next round; both health bars reset.
+
 ## Start both apps
 
 Open two PowerShell terminals. Use `npm ci` once in each folder after pulling
@@ -121,7 +125,7 @@ frontend `.env`, and restart the backend after changing its `.env`.
 1. Open the website in a normal browser window and choose **Get started**.
 2. Choose **Log in** or **Sign up**. Complete Auth0 login to reach game selection.
 3. Enter your player name and choose **Create game**. The name is saved to Tiger Data.
-4. Copy the **12-character room code**. Online rooms wait for a real player; no bot joins.
+4. Copy the **four-digit room code**, including any leading zeroes. Online rooms wait for a real player; no bot joins.
 5. Open the website in a private/incognito window or a different browser.
 6. Choose **Get started** and sign in with a **different Auth0 account**. Choose **Join game**, enter the code, then choose **Join room**.
 7. Check that both windows show both players as connected. Player 1 is the host
@@ -183,8 +187,8 @@ leaving, and retrying a temporary connection outage without a browser or real ac
 | Cannot reach the game server | Keep `apps/server` running; check `VITE_API_BASE_URL` |
 | Cannot open the live connection | Backend `WEB_ORIGIN` must exactly match the website's origin |
 | Account already connected | Player 2 needs a different Auth0 account/browser session |
-| Code rejected/not found | Use a 12-character online code, not a Swamp Bot practice code |
-| Room no longer available | Create a new room after a completed, abandoned, or restarted session |
+| Code rejected/not found | Use all four digits from an online room on the same server |
+| Room no longer available | Create a new room after an abandoned or restarted session; use rematch after a completed battle |
 
 For two physical laptops, `localhost` refers to each laptop itself. Configure a
 reachable shared backend URL, an appropriate backend `HOST`, the frontend origin

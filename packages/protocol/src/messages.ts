@@ -21,6 +21,7 @@ export type ClientMessage =
   | { type: 'lobby.leave' }
   | { type: 'device.check' }
   | { type: 'match.start' }
+  | { type: 'match.rematch' }
   /** Keyboard stand-in for this player's sword while testing without hardware. */
   | { type: 'dev.sword'; input: DevSwordInput };
 

@@ -9,13 +9,22 @@ import type { GameStore } from './game/store.js';
 import { gameRoutes } from './game/routes.js';
 import { ApiError } from './game/errors.js';
 import type { RealtimeHub } from './game/realtime.js';
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 const profileSchema = z.object({ displayName: z.string().trim().min(1).max(40) }).strict();
 
 export function createApp(config: Config, players: PlayerStore | null, game: GameStore | null = null, realtime: RealtimeHub | null = null) {
   const app = express();
   app.disable('x-powered-by');
-  app.use(helmet());
+  const authOrigin = config.auth0 ? new URL(config.auth0.issuerBaseURL).origin : null;
+  const socketOrigin = config.webOrigin.replace(/^http/, 'ws');
+  app.use(helmet(config.serveWeb ? { contentSecurityPolicy: { directives: {
+    connectSrc: ["'self'", socketOrigin, ...(authOrigin ? [authOrigin] : [])],
+    frameSrc: ["'self'", ...(authOrigin ? [authOrigin] : [])],
+    imgSrc: ["'self'", 'data:', 'blob:'],
+    upgradeInsecureRequests: config.webOrigin.startsWith('https:') ? [] : null,
+  } } } : undefined));
   app.use(cors({ origin: [config.webOrigin] }));
   app.get('/health', (_request, response) => {
     response.json({
@@ -84,6 +93,15 @@ export function createApp(config: Config, players: PlayerStore | null, game: Gam
   });
   api.use(gameRoutes(game));
   app.use('/api', api);
+  // Never return the website shell for an unknown API route.
+  app.use('/api', (_request, response) => { response.status(404).json({ error: 'not_found' }); });
+  if (config.serveWeb) {
+    const webPath = fileURLToPath(new URL('../../web/dist-hosted/', import.meta.url));
+    if (!existsSync(`${webPath}/index.html`)) throw new Error('Hosted website is missing. Run npm run build:hosted from the repository root first.');
+    app.use(express.static(webPath, { setHeaders(response, path) {
+      response.setHeader('Cache-Control', path.endsWith('index.html') ? 'no-cache' : 'public, max-age=3600');
+    } }));
+  }
   app.use((_request, response) => { response.status(404).json({ error: 'not_found' }); });
   const errorHandler: ErrorRequestHandler = (error: unknown, _request, response, _next) => {
     if (error instanceof ApiError) {
