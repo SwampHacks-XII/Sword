@@ -14,7 +14,7 @@ import { createPool } from '../src/db/pool.js';
 import { isAbsolute } from 'node:path';
 import { existsSync } from 'node:fs';
 import { createSpeechService } from '../src/story/speech.js';
-import { MOSS_COMMAND_REPLIES, MOSS_ENDINGS } from '@sword/protocol';
+import { MOSS_COMMAND_REPLIES, MOSS_ENDINGS, MOSS_PROLOGUE_NARRATION, MOSS_NAME_PROMPT } from '@sword/protocol';
 
 let issuerServer: Server;
 let apiServer: Server;
@@ -105,6 +105,12 @@ test('voice audio requires player authentication and accepts only bounded text, 
 });
 
 test('built-in Moss speech works before login, but the public route rejects arbitrary speech', async () => {
+  const prologue = await request('/voice/speak', undefined, { text: MOSS_PROLOGUE_NARRATION }, 'POST');
+  assert.equal(prologue.status, 200);
+  assert.equal(prologue.headers.get('content-type'), 'audio/mpeg');
+  const namePrompt = await request('/voice/speak', undefined, { text: MOSS_NAME_PROMPT }, 'POST');
+  assert.equal(namePrompt.status, 200);
+  assert.equal(namePrompt.headers.get('content-type'), 'audio/mpeg');
   const known = await request('/voice/speak', undefined, { text: 'Good hit!' }, 'POST');
   assert.equal(known.status, 200); assert.match(known.headers.get('Content-Type')!, /^audio\/mpeg/);
   const command = await request('/voice/speak', undefined, { text: MOSS_COMMAND_REPLIES.bot }, 'POST');

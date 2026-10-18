@@ -2,7 +2,20 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { createLeaveConfirmation } from '../src/story/confirmLeaveGame';
+import { createLeaveConfirmation, leaveConfirmation } from '../src/story/confirmLeaveGame';
+import { leaveBattle } from '../src/story/leaveBattle';
+
+test('leaving a battle returns to game choices only after confirmation and the room-leave command', async () => {
+  for (const confirmed of [false, true]) {
+    const calls: string[] = [];
+    const result = leaveBattle(message => calls.push(message.type), () => { calls.push('game choices'); });
+    await Promise.resolve();
+    assert.deepEqual(calls, []);
+    leaveConfirmation.resolve(confirmed);
+    await result;
+    assert.deepEqual(calls, confirmed ? ['lobby.leave', 'game choices'] : []);
+  }
+});
 import { LeaveGameDialog } from '../src/components/LeaveGameDialog';
 
 test('no leave action runs before confirmation, and Keep playing cancels it', async () => {

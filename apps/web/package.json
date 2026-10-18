@@ -12,7 +12,7 @@
     "precheck": "npm run protocol:build",
     "prebuild": "npm run protocol:build",
     "pretest": "npm run protocol:build",
-    "test": "tsx --test test/connection.test.ts test/auth.test.ts test/narration.test.ts test/commands.test.ts test/profile.test.ts test/music.test.ts test/leaveGame.test.ts",
+    "test": "tsx --test test/connection.test.ts test/auth.test.ts test/narration.test.ts test/commands.test.ts test/profile.test.ts test/music.test.ts test/leaveGame.test.ts test/book.test.ts",
     "dev": "vite",
     "check": "tsc --noEmit -p tsconfig.json",
     "build": "tsc --noEmit -p tsconfig.json && vite build",
@@ -32,6 +32,7 @@
     "@types/react-dom": "^19.3.0",
     "@types/three": "^0.186.0",
     "@vitejs/plugin-react": "^5.2.0",
+    "happy-dom": "^21.0.3",
     "tsx": "^4.23.15",
     "typescript": "~5.9.3",
     "vite": "^7.3.7"

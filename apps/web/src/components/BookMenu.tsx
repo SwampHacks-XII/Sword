@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
+import { BOOK_TIMING, playBookOpening } from '../story/bookNavigation';
 import './BookMenu.css';
 
 /** One side of a spread. `content` holds menu controls and renders below the title. */
@@ -17,13 +18,10 @@ export type BookSpread = { left: BookPage; right: BookPage };
 export type BookPhase = 'cover' | 'open' | 'closing';
 
 type Direction = 'next' | 'prev';
-type ShownPhase = 'cover' | 'opening' | 'open' | 'closing';
+type ShownPhase = 'cover' | 'opening' | 'first-page' | 'revealing' | 'open' | 'shutting' | 'closing';
 
 /** Match the keyframes in BookMenu.css. */
-const TURN_MS = 1500;
-const OPEN_MS = 1400;
-const FOLD_MS = 1300;
-const SHRINK_MS = 600;
+const { turn: TURN_MS, open: OPEN_MS, fold: FOLD_MS, shrink: SHRINK_MS } = BOOK_TIMING;
 
 /** Clicks on controls inside a page should use the control, not turn the page. */
 function isInteractive(target: EventTarget | null) {
@@ -57,7 +55,7 @@ function PageContent({ page, number }: { page: BookPage; number: number }) {
  */
 export function BookMenu({
   spreads, spread: target, initialSpread = 0, onSpreadChange, label = 'Storybook menu', showNav = true,
-  interactive = true, phase = 'open', cover, onClosed, className = '',
+  interactive = true, phase = 'open', cover, openingPage, onClosed, className = '',
 }: {
   spreads: BookSpread[];
   spread?: number;
@@ -69,12 +67,16 @@ export function BookMenu({
   interactive?: boolean;
   phase?: BookPhase;
   cover?: ReactNode;
+  /** A title leaf shown after the cover opens, then turned automatically to reveal the spread. */
+  openingPage?: BookPage;
   onClosed?: () => void;
   className?: string;
 }) {
   const clamp = useCallback((index: number) => Math.min(Math.max(index, 0), spreads.length - 1), [spreads.length]);
   const [spread, setSpread] = useState(() => clamp(target ?? initialSpread));
   const [turning, setTurning] = useState<{ direction: Direction; to: number } | null>(null);
+  // Opening lands one sheet. Reveal the layers under the next turn, then keep them in place.
+  const [stackReady, setStackReady] = useState(phase !== 'cover');
   const [shown, setShown] = useState<ShownPhase>(phase === 'cover' ? 'cover' : 'open');
   const shownRef = useRef(shown);
   const onClosedRef = useRef(onClosed);
@@ -87,31 +89,43 @@ export function BookMenu({
   const turnTo = useCallback((to: number) => {
     if (turning || to === spread || to < 0 || to >= spreads.length) return;
     const finish = () => {
+      if (to > spread) setStackReady(true);
       setSpread(to);
       setTurning(null);
-      onSpreadChange?.(to);
     };
     setTurning({ direction: to > spread ? 'next' : 'prev', to });
     timer.current = window.setTimeout(finish, TURN_MS);
-  }, [turning, spread, spreads.length, onSpreadChange]);
+  }, [turning, spread, spreads.length]);
   const turn = useCallback((direction: Direction) => turnTo(spread + (direction === 'next' ? 1 : -1)), [turnTo, spread]);
 
   // Controlled: follow `spread`, one turn at a time, so a jump that lands mid-turn still arrives.
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (target === undefined) return;
-    if (shown === 'open') turnTo(clamp(target));
+    if (shown === 'open' && phase === 'open') turnTo(clamp(target));
     else if (shown === 'cover' && !turning) setSpread(clamp(target));
-  }, [target, shown, turning, turnTo, clamp]);
+  }, [target, shown, phase, turning, turnTo, clamp]);
 
   useEffect(() => {
+    if (shown === 'open' && phase === 'open' && !turning && (target === undefined || spread === clamp(target))) {
+      onSpreadChange?.(spread);
+    }
+  }, [shown, phase, turning, spread, target, clamp, onSpreadChange]);
+
+  useLayoutEffect(() => {
     const from = shownRef.current;
     let timeout: number | undefined;
+    let cancelOpening: (() => void) | undefined;
     if (phase === 'cover') {
-      setShown('cover');
+      setStackReady(false);
+      if (from === 'cover') return;
+      window.clearTimeout(timer.current);
+      setTurning(null);
+      setShown('shutting');
+      timeout = window.setTimeout(() => setShown('cover'), FOLD_MS);
     } else if (phase === 'open') {
       if (from === 'cover') {
-        setShown('opening');
-        timeout = window.setTimeout(() => setShown('open'), OPEN_MS);
+        setStackReady(false);
+        cancelOpening = playBookOpening(setShown);
       } else {
         setShown('open');
       }
@@ -121,7 +135,7 @@ export function BookMenu({
       setShown('closing');
       timeout = window.setTimeout(() => onClosedRef.current?.(), FOLD_MS + SHRINK_MS);
     }
-    return () => window.clearTimeout(timeout);
+    return () => { window.clearTimeout(timeout); cancelOpening?.(); };
   }, [phase]);
 
   useEffect(() => {
@@ -137,7 +151,7 @@ export function BookMenu({
   }, [turn, interactive, shown]);
 
   const onPageClick = (direction: Direction) => (event: MouseEvent) => {
-    if (interactive && !isInteractive(event.target)) turn(direction);
+    if (interactive && shown === 'open' && !isInteractive(event.target)) turn(direction);
   };
 
   const current = spreads[spread];
@@ -151,6 +165,14 @@ export function BookMenu({
   const visibleRightNumber = turningNext ? rightNumber(turning.to) : rightNumber(spread);
   const busy = !!turning || shown !== 'open';
   const staticBook = spreads.length === 1 || !interactive;
+  const firstLeaf = openingPage ?? { title: '✦' };
+  const showingTitle = shown === 'opening' || shown === 'first-page';
+  const openingBook = showingTitle || shown === 'revealing';
+  const insideCover = shown === 'cover' || openingBook;
+  const revealLeftStack = !stackReady && !!turningNext;
+  const showLeftStack = (stackReady || revealLeftStack) && !insideCover;
+  const endpaper = <div className="book-endpaper" aria-hidden="true" />;
+  const coverLining = <div className="book-cover-lining" aria-hidden="true">{endpaper}</div>;
 
   return (
     <div
@@ -158,17 +180,20 @@ export function BookMenu({
       style={{
         '--book-turn-ms': `${TURN_MS}ms`, '--book-open-ms': `${OPEN_MS}ms`,
         '--book-fold-ms': `${FOLD_MS}ms`, '--book-shrink-ms': `${SHRINK_MS}ms`,
+        '--book-first-turn-ms': `${BOOK_TIMING.firstPageTurn}ms`,
       } as CSSProperties}
     >
       <section className="book-wrap" aria-label={label}>
         <div className="book">
-          <div className="book-stack book-stack-left" aria-hidden="true" />
+          <div className="book-binding book-binding-left" aria-hidden="true">{coverLining}</div>
+          <div className="book-binding book-binding-right" aria-hidden="true">{coverLining}</div>
+          {showLeftStack && <div className={`book-stack book-stack-left${revealLeftStack ? ' book-stack-arriving' : ''}`} aria-hidden="true" />}
           <div className="book-stack book-stack-right" aria-hidden="true" />
-          <div className="book-paper book-left" onClick={onPageClick('prev')} inert={busy}>
-            <PageContent page={visibleLeft} number={visibleLeftNumber} />
+          <div className={`book-paper book-left${insideCover ? ' book-inside-cover' : ''}`} onClick={onPageClick('prev')} inert={busy}>
+            {!insideCover && <PageContent page={visibleLeft} number={visibleLeftNumber} />}
           </div>
           <div className="book-paper book-right" onClick={onPageClick('next')} inert={busy}>
-            <PageContent page={visibleRight} number={visibleRightNumber} />
+            <PageContent page={showingTitle || shown === 'cover' ? firstLeaf : visibleRight} number={visibleRightNumber} />
           </div>
 
           {turning && destination && (
@@ -188,17 +213,29 @@ export function BookMenu({
             </div>
           )}
 
-          {shown !== 'open' && (
+          {shown === 'revealing' && <div className="book-leaf next book-first-leaf" aria-hidden="true" inert
+            onAnimationEnd={event => {
+              if (event.target !== event.currentTarget || !['book-turn-first', 'book-turn-first-mobile'].includes(event.animationName)) return;
+              setShown(current => current === 'revealing' && phase === 'open' ? 'open' : current);
+            }}>
+            <div className="book-face front"><PageContent page={firstLeaf} number={0} /></div>
+            <div className="book-face back"><PageContent page={current.left} number={leftNumber(spread)} /></div>
+          </div>}
+
+          {(shown === 'cover' || shown === 'opening' || shown === 'shutting' || shown === 'closing') && (
             <div className={`book-cover book-cover-${shown}`} inert={shown !== 'cover'}>
-              <div className="book-cover-front">{cover}</div>
-              {/* The inside of the cover: the first page of whatever spread the book opens to or shuts on. */}
+              <div className="book-cover-front">{shown === 'cover' ? null : cover}</div>
+              {/* This lining also remains on the stationary binding beneath the paper. */}
               <div className="book-cover-back" aria-hidden="true" inert>
-                <div className="book-paper book-left"><PageContent page={current.left} number={leftNumber(spread)} /></div>
+                {coverLining}
+                {!insideCover && <div className="book-paper book-left"><PageContent page={current.left} number={leftNumber(spread)} /></div>}
               </div>
             </div>
           )}
           <div className="book-spine" aria-hidden="true" />
         </div>
+        {/* Keep controls outside the 3D faces: a back face can otherwise intercept pointer hit testing. */}
+        {shown === 'cover' && <div className="book-cover-front book-cover-entry">{cover}</div>}
       </section>
 
       {showNav && (

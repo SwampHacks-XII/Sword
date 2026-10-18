@@ -42,8 +42,8 @@ button { touch-action: manipulation; }
 .wandering-clouds { position: absolute; width: 135%; height: 25%; left: -15%; top: 15%; opacity: .15; background: #f2dce9; clip-path: polygon(0 35%, 10% 35%, 10% 15%, 17% 15%, 17% 40%, 30% 40%, 30% 60%, 41% 60%, 41% 48%, 52% 48%, 52% 25%, 62% 25%, 62% 50%, 77% 50%, 77% 30%, 84% 30%, 84% 55%, 100% 55%, 100% 85%, 0 85%); animation: cloud-wander 38s steps(40) infinite alternate; }
 .fireflies i { position: absolute; width: 6px; height: 6px; background: #fff4bb; box-shadow: 0 0 0 3px #fff4bb55; animation: firefly 8s steps(10) infinite; }
 .duel-illustration { width: 49%; }
-.near-knight, .distant-knight { position: absolute; filter: url(#pixelate) drop-shadow(8px 8px 0 #4d6a4e33); }
-.near-knight .knight-sprite, .distant-knight .knight-sprite { width: 100%; }
+.near-knight, .distant-knight { position: absolute; filter: drop-shadow(8px 8px 0 #4d6a4e33); }
+.near-knight .knight-sprite, .distant-knight .knight-sprite { width: 100%; image-rendering: auto; }
 .near-knight { left: 3%; bottom: 2%; width: 45%; max-height: 66%; transform: scaleX(-1); }
 .distant-knight { right: 4%; bottom: 26%; width: 26%; }
 .duel-caption { position: absolute; left: 12%; bottom: 7%; color: #3f553f; font-size: .9rem; }
@@ -72,7 +72,7 @@ button { touch-action: manipulation; }
   background-size: 8px 8px;
 }
 .parchment::after { content: ''; position: absolute; inset: 12px; border: 2px dashed #a9925d55; pointer-events: none; z-index: -1; }
-.story-scroll { width: min(590px, 51vw); padding: 30px 44px 126px; animation: scroll-arrive .4s steps(4) both; }
+.story-scroll { width: min(590px, 51vw); padding: 30px 44px 126px; animation: scroll-arrive .55s cubic-bezier(.22, .61, .36, 1) both; }
 .story-scroll h1 { font-size: clamp(1.9rem, 3.1vw, 2.65rem); line-height: 1.1; font-weight: 500; margin: .4rem 0 1rem; }
 .story-scroll > p { line-height: 1.6; }
 .story-actions { margin-top: 1.75rem; text-align: right; padding-left: 34px; }
@@ -126,7 +126,7 @@ button { touch-action: manipulation; }
 /* knight-idle.png holds six 64×112 frames side by side; size it by width or height and the other follows. */
 .knight-sprite { flex: none; aspect-ratio: 64 / 112; background: url(/art/knight-idle.png) 0 0 / 600% 100% no-repeat; image-rendering: pixelated; animation: knight-idle 1.6s step-end infinite; }
 /* moss-fly.png holds the original 192px frames; pixelated rendering keeps hard edges when scaled. */
-.npc-moss { width: 256px; aspect-ratio: 1; flex: 0 0 auto; background: url(/art/moss-fly.png) 0 0 / 2400% 100% no-repeat; image-rendering: pixelated; filter: none); animation: moss-fly 2s steps(24) infinite; }
+.npc-moss { width: 256px; aspect-ratio: 1; flex: 0 0 auto; background: url(/art/moss-fly.png) 0 0 / 2400% 100% no-repeat; image-rendering: pixelated; filter: none; animation: moss-fly 2s steps(24) infinite; }
 .npc-caption { align-self: center; width: min(240px, 65%); padding-top: 47px; }
 .npc-caption p { margin: 0; font-size: .8rem; line-height: 1.4; color: #5f5640; }
 
@@ -143,6 +143,8 @@ button { touch-action: manipulation; }
 .book-form h1 { font-size: clamp(1.2rem, min(2.2vw, 3.6vh), 1.9rem); font-weight: 500; margin: 0 0 .8rem; }
 .book-form > p { font-size: .95rem; line-height: 1.5; margin: 0 0 .5rem; }
 .book-form .auth-actions { grid-template-columns: 1fr; gap: .4rem; margin-block: .8rem .4rem; }
+.book-auth-footer { display: flex; flex-direction: column; align-items: flex-start; gap: .25rem; margin-top: 1.5rem; }
+.book-auth-footer > .link-button { display: block; margin: 0; }
 .book-form .game-option { padding: .6rem 1rem .6rem 2.5rem; }
 .book-form .game-option .option-description { white-space: nowrap; font-size: clamp(.62rem, 1vw, .82rem); }
 .sword-setup > .hint { margin: .5rem 0; font-size: .8rem; }
@@ -182,6 +184,16 @@ button { touch-action: manipulation; }
 .book-lore { text-align: left; }
 .book-lore p { margin: 0 0 .6rem; font-size: clamp(.8rem, min(1.25vw, 2vh), 1.02rem); line-height: 1.55; color: var(--ink-soft); }
 .book-lore-actions { display: grid; justify-items: center; gap: .4rem; margin-top: .6rem; }
+.book-lore-moss { display: grid; justify-items: center; gap: .15rem; margin: -.4rem 0 .65rem; }
+.book-lore-moss .npc-moss { width: clamp(72px, 14vh, 125px); }
+.book-lore-moss .speaker-line { margin: 0; }
+/* Reserve narration controls during the flip, so starting speech cannot recenter the prose. */
+.book-lore-voice, .book-auth-voice, .story-voice { position: relative; width: 100%; height: 4.5rem; margin-top: .5rem; }
+.book-lore-voice > .moss-voice, .book-auth-voice > .moss-voice, .story-voice > .moss-voice {
+  position: absolute; inset: 0; justify-content: center; align-content: start;
+  margin: 0; gap: .35rem .5rem; font-size: .8rem;
+}
+.book-lore-voice .moss-voice > .hint, .book-auth-voice .moss-voice > .hint, .story-voice .moss-voice > .hint { flex-basis: 100%; margin: 0; line-height: 1.35; }
 
 /* After the book closes: Moss pops up in a little chat window, then the quest scroll. */
 .quest-layout { align-items: flex-end; }
@@ -280,6 +292,9 @@ button { touch-action: manipulation; }
 
 .speaker-line { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: 1.4rem 0 1rem; font-size: 1rem; font-weight: 600; color: #566736; }
 .speaker-dot { width: 8px; height: 8px; background: #8fa854; box-shadow: 0 0 0 2px #566736; }
+.dialogue-scroll > .speaker-line { margin-bottom: .15rem; }
+.dialogue-scroll > .story-voice { margin-top: 0; }
+.dialogue-scroll > .story-voice > .moss-voice { justify-content: flex-start; }
 .story-dialogue { font-size: clamp(1.02rem, 1.5vw, 1.2rem); line-height: 1.65; }
 .story-dialogue p { position: relative; margin: 0 0 1.15rem; }
 .dialogue-reserve { visibility: hidden; }
@@ -288,8 +303,10 @@ button { touch-action: manipulation; }
 .dialogue-toolbar { min-height: 1.5rem; display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
 .dialogue-toolbar > :last-child { margin-left: auto; }
 .dialogue-page { font-size: 1rem; color: var(--ink); }
-.dialogue-finished { font-size: .8rem; color: var(--ink-soft); }
 .quest-status { max-width: 330px; margin-left: auto; }
+.dialogue-scroll .story-actions { margin-top: 1rem; }
+.story-actions > .quest-status { margin: 0 0 .5rem auto; }
+.story-actions > .leave-game-button { display: flex; width: fit-content; margin: 1rem 4px 4px auto; }
 .story-actions > .text-button { display: block; margin: .8rem 0 0 auto; }
 
 .battle { position: absolute; inset: 0; }

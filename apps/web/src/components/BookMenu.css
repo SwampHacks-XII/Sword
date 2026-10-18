@@ -1,44 +1,55 @@
 /* Page-turning storybook. Everything is scoped under .book-menu so it can sit beside styles.css. */
 .book-menu {
-  --book-cover: #a98a6a; --book-edge: var(--frame); --book-paper: var(--parchment-hi); --book-stack: var(--parchment);
-  --book-stack-alt: var(--parchment-lo); --book-gutter: #c9b58a; --book-accent: var(--ink-soft); --book-grid: rgba(91, 74, 58, .04);
+  --book-border: clamp(4px, .55vw, 7px);
+  --book-cover-radius: 20px;
+  --book-cover: #a98a6a; --book-backing: #c5a582; --book-edge: var(--frame); --book-paper: var(--parchment-hi); --book-stack: var(--parchment);
+  --book-gutter: #c9b58a; --book-accent: var(--ink-soft); --book-grid: rgba(91, 74, 58, .04);
   --book-turn-ms: 1500ms; --book-ease: cubic-bezier(.55, .05, .24, .98);
   display: grid; justify-items: center; gap: clamp(16px, 3vh, 32px); width: 100%;
 }
 
-.book-wrap { width: min(88vw, 1000px); perspective: 1800px; filter: drop-shadow(12px 16px 0 var(--drop)); }
+.book-wrap { position: relative; width: min(88vw, 1000px); perspective: 1800px; filter: drop-shadow(12px 16px 0 var(--drop)); }
 
 .book {
   /* A fixed shape: min-height 0 and minmax rows stop tall pages from stretching the book; they scroll instead. */
   position: relative; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr); aspect-ratio: 1.56; min-height: 0; padding: 3.6%;
-  border: clamp(4px, .55vw, 7px) solid var(--book-edge); background: var(--book-cover);
-  /* Stepped pixel corners. */
-  clip-path: polygon(
-    0 24px, 8px 24px, 8px 16px, 16px 16px, 16px 8px, 24px 8px, 24px 0,
-    calc(100% - 24px) 0, calc(100% - 24px) 8px, calc(100% - 16px) 8px,
-    calc(100% - 16px) 16px, calc(100% - 8px) 16px, calc(100% - 8px) 24px,
-    100% 24px, 100% calc(100% - 24px), calc(100% - 8px) calc(100% - 24px),
-    calc(100% - 8px) calc(100% - 16px), calc(100% - 16px) calc(100% - 16px),
-    calc(100% - 16px) calc(100% - 8px), calc(100% - 24px) calc(100% - 8px),
-    calc(100% - 24px) 100%, 24px 100%, 24px calc(100% - 8px),
-    16px calc(100% - 8px), 16px calc(100% - 16px), 8px calc(100% - 16px),
-    8px calc(100% - 24px), 0 calc(100% - 24px)
-  );
-  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .1), inset 0 -10px 0 rgba(59, 44, 32, .2);
+  border: var(--book-border) solid transparent;
   transform: rotateX(2deg); transform-style: preserve-3d;
 }
+
+/* Two fixed halves share the moving cover's exact bounds, including the book border. */
+.book-binding, .book-cover {
+  position: absolute; top: calc(-1 * var(--book-border)); bottom: calc(-1 * var(--book-border));
+  width: calc(50% + var(--book-border)); pointer-events: none;
+}
+.book-binding { z-index: 0; visibility: visible; background: var(--book-cover); box-shadow: inset 0 0 0 var(--book-border) var(--book-edge); }
+.book-binding-left { left: calc(-1 * var(--book-border)); border-radius: var(--book-cover-radius) 0 0 var(--book-cover-radius); overflow: hidden; }
+.book-binding-right { right: calc(-1 * var(--book-border)); border-radius: 0 var(--book-cover-radius) var(--book-cover-radius) 0; overflow: hidden; }
 
 /* Stepped page edges peeking out behind each side. */
 .book-stack { grid-row: 1; position: relative; z-index: 0; background: var(--book-stack); border: 2px solid var(--book-edge); }
 .book-stack-left {
   grid-column: 1;
-  box-shadow: -5px 5px 0 -1px var(--book-stack), -5px 5px 0 1px var(--book-edge), -10px 10px 0 -1px var(--book-stack-alt),
-    -10px 10px 0 1px var(--book-edge), -15px 15px 0 -1px var(--book-stack), -15px 15px 0 1px var(--book-edge);
+  /* Outside to inside: brown binding, cream sheet, cream sheet. */
+  box-shadow: -5px 5px 0 -1px var(--book-stack), -5px 5px 0 1px var(--book-edge), -10px 10px 0 -1px var(--book-stack),
+    -10px 10px 0 1px var(--book-edge), -15px 15px 0 -1px var(--book-cover), -15px 15px 0 1px var(--book-edge);
+}
+/* Uncover the layers from the spine outward beneath the arriving page, before it lands.
+   The full shadow stays in its final position; only its revealed area changes. */
+.book-stack-arriving {
+  animation-name: book-stack-arrive; animation-duration: var(--book-turn-ms);
+  animation-timing-function: linear; animation-fill-mode: both;
+}
+@keyframes book-stack-arrive {
+  0%, 40% { clip-path: inset(-2px -2px -18px 100%); }
+  90%, 100% { clip-path: inset(-2px -2px -18px -18px); }
 }
 .book-stack-right {
   grid-column: 2;
-  box-shadow: 5px 5px 0 -1px var(--book-stack), 5px 5px 0 1px var(--book-edge), 10px 10px 0 -1px var(--book-stack-alt),
-    10px 10px 0 1px var(--book-edge), 15px 15px 0 -1px var(--book-stack), 15px 15px 0 1px var(--book-edge);
+  /* Top to bottom: two cream sheets, light-brown lining, then the back cover. */
+  box-shadow: 5px 5px 0 -1px var(--book-stack), 5px 5px 0 1px var(--book-edge), 10px 10px 0 -1px var(--book-stack),
+    10px 10px 0 1px var(--book-edge), 15px 15px 0 -1px var(--book-backing), 15px 15px 0 1px var(--book-edge),
+    20px 20px 0 -1px var(--book-cover), 20px 20px 0 1px var(--book-edge);
 }
 
 .book-paper { position: relative; z-index: 1; min-width: 0; min-height: 0; overflow: hidden; border: 4px solid var(--book-edge); background: var(--book-paper); cursor: pointer; }
@@ -74,13 +85,30 @@
 
 /* The leaf that flips: hinged at the spine, two faces back to back. */
 .book-leaf {
-  position: absolute; z-index: 6; top: calc(3.6% + 5px); bottom: calc(3.6% + 5px); width: 46.4%;
+  /* Share the page/stack grid tracks, so the animated and resting rectangles have identical bounds. */
+  grid-area: 1 / 2; position: relative; z-index: 6; min-width: 0; min-height: 0;
   transform-style: preserve-3d; pointer-events: none;
+  will-change: transform;
+  animation-duration: var(--book-turn-ms); animation-timing-function: var(--book-ease); animation-fill-mode: forwards;
 }
-.book-leaf.next { left: 50%; transform-origin: left center; animation: book-turn-next var(--book-turn-ms) var(--book-ease) forwards; }
-.book-leaf.prev { left: 3.6%; transform-origin: right center; animation: book-turn-prev var(--book-turn-ms) var(--book-ease) forwards; }
+.book-leaf.next { transform-origin: left center; animation-name: book-turn-next; }
+.book-leaf.prev { grid-area: 1 / 1; transform-origin: right center; animation-name: book-turn-prev; }
+.book-first-leaf {
+  --book-turn-ms: var(--book-first-turn-ms);
+  /* Most of the turn happens early, then the sheet eases gently onto the cover. */
+  --book-ease: cubic-bezier(.22, .65, .3, 1);
+}
+.book-first-leaf.next { animation-name: book-turn-first; }
 .book-face { position: absolute; inset: 0; overflow: hidden; border: 4px solid var(--book-edge); background: var(--book-paper); backface-visibility: hidden; }
-.book-face.back { transform: rotateY(180deg); }
+/* Match each resting page's inner border, including the moment the leaf lands at the spine. */
+.book-leaf.next .back, .book-leaf.prev .front {
+  border-right-width: 2px; box-shadow: inset -14px 0 0 -10px var(--book-gutter);
+}
+.book-leaf.next .front, .book-leaf.prev .back {
+  border-left-width: 2px; box-shadow: inset 14px 0 0 -10px var(--book-gutter);
+}
+.book-face.front { transform: translateZ(.2px); }
+.book-face.back { transform: rotateY(180deg) translateZ(.2px); }
 /* Darkens mid-turn as the leaf tilts away from the light. */
 .book-face::after {
   content: ""; position: absolute; inset: 0; background: #2a1f14; opacity: 0; pointer-events: none;
@@ -89,43 +117,84 @@
 @keyframes book-page-shade { 0%, 100% { opacity: 0; } 45% { opacity: .22; } }
 @keyframes book-turn-next { from { transform: rotateY(0deg); } to { transform: rotateY(-180deg); } }
 @keyframes book-turn-prev { from { transform: rotateY(0deg); } to { transform: rotateY(180deg); } }
+@keyframes book-turn-first {
+  from { transform: rotateY(0deg); }
+  to { transform: rotateY(-180deg); }
+}
 
 /* Front cover, hinged at the spine. Closed it lies over the right half and the book slides left so
    the cover sits centred; opening swings it over to become the left page. Closing plays it backwards. */
 .book-cover {
-  position: absolute; z-index: 9; top: 0; bottom: 0; left: 50%; width: 50%;
-  transform-style: preserve-3d; transform-origin: left center;
+  z-index: 9; left: 50%;
+  transform-style: preserve-3d; transform-origin: left center; pointer-events: none;
 }
-.book-cover-front, .book-cover-back { position: absolute; inset: 0; backface-visibility: hidden; }
+.book-cover-front, .book-cover-back {
+  position: absolute; inset: 0; backface-visibility: hidden;
+  overflow: hidden;
+}
 .book-cover-front {
+  /* Closed: square spine on the left, curved outer edge on the right. */
+  border-radius: 0 var(--book-cover-radius) var(--book-cover-radius) 0;
+  transform: translateZ(.2px);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(10px, 2vw, 22px);
   padding: 10%; text-align: center; color: var(--parchment-hi); background-color: var(--book-cover);
   background-image: repeating-conic-gradient(#5b4a3a14 0 25%, transparent 0 50%); background-size: 8px 8px;
   box-shadow: inset 0 0 0 clamp(4px, .55vw, 7px) var(--book-edge), inset 0 0 0 calc(clamp(4px, .55vw, 7px) + 10px) var(--book-cover),
     inset 0 0 0 calc(clamp(4px, .55vw, 7px) + 13px) #e9cf8f99;
 }
-/* Percent padding is relative to width, so 7.2% of a half matches the book's 3.6% padding. */
-.book-cover-back { transform: rotateY(180deg); padding: 7.2% 0 7.2% 7.2%; background: var(--book-cover); }
+/* This is the only interactive cover. It sits above, outside the rotating book's 3D context. */
+.book-cover-entry {
+  inset: 0 auto 0 25%; width: 50%;
+  padding: 5%; z-index: 10; transform: rotateX(2deg); backface-visibility: visible; pointer-events: auto;
+}
+/* Match the stationary page's 3.6% inset plus its book border on all exposed sides. */
+.book-cover-back {
+  /* Open: curved outer edge on the left, square corners against the spine. */
+  border-radius: var(--book-cover-radius) 0 0 var(--book-cover-radius);
+  transform: rotateY(180deg) translateZ(.2px);
+  padding: calc(7.2% + var(--book-border)) 0 calc(7.2% + var(--book-border)) calc(7.2% + var(--book-border));
+  background: var(--book-cover);
+  box-shadow: inset 0 0 0 var(--book-border) var(--book-edge);
+}
 .book-cover-back .book-paper { height: 100%; cursor: auto; }
+/* Scale from the hinge, keeping each separate cardboard piece attached to the spine. */
+.book-cover-lining {
+  position: absolute; inset: calc(var(--book-border) + 4px); right: 0; pointer-events: none;
+  transform: scale(.92); transform-origin: right center;
+}
+.book-binding-right > .book-cover-lining { left: 0; right: calc(var(--book-border) + 4px); transform-origin: left center; }
+.book-endpaper {
+  height: 100%; background: var(--book-backing);
+  /* The same brown lining is painted on the moving cover and its resting surface. */
+  box-shadow: inset 0 0 0 2px var(--book-edge), inset 0 0 0 5px var(--book-backing), inset 0 0 0 7px var(--book-edge);
+}
+/* The cardboard is the cover itself: no paper frame, page stack, or page content underneath. */
+.book-paper.book-inside-cover { background: transparent; border: 0; box-shadow: none; clip-path: none; }
 .book-cover-opening { animation: book-cover-open var(--book-open-ms) var(--book-ease) forwards; }
-.book-cover-closing { animation: book-cover-close var(--book-fold-ms) var(--book-ease) forwards; }
+.book-cover-closing, .book-cover-shutting { animation: book-cover-close var(--book-fold-ms) var(--book-ease) forwards; }
+.book-cover-opening, .book-cover-closing, .book-cover-shutting { will-change: transform; }
 @keyframes book-cover-open { from { transform: rotateY(0deg); } to { transform: rotateY(-180deg); } }
 @keyframes book-cover-close { from { transform: rotateY(-180deg); } to { transform: rotateY(0deg); } }
 
 /* While closed, only the cover and the page edges behind it show. */
-.book-is-cover .book { transform: translateX(-25%) rotateX(2deg); background-color: transparent; border-color: transparent; box-shadow: none; }
-.book-is-cover .book-paper, .book-is-cover .book-stack-left, .book-is-cover .book-spine,
-.book-is-opening .book-left, .book-is-opening .book-stack-left, .book-is-opening .book-spine,
-.book-is-closing .book-left, .book-is-closing .book-stack-left, .book-is-closing .book-spine { visibility: hidden; }
+.book-is-cover .book { transform: translateX(-25%) rotateX(2deg); }
+/* The moving cover occupies the left half until it lands on the identical fixed half. */
+.book-is-cover .book-binding-left, .book-is-opening .book-binding-left,
+.book-is-closing .book-binding-left, .book-is-shutting .book-binding-left { visibility: hidden; }
+/* Hide only the stationary page. The left page inside the turning cover stays visible. */
+.book-is-cover .book > .book-paper, .book-is-cover .book-stack-left, .book-is-cover .book-spine,
+.book-is-opening .book > .book-left, .book-is-opening .book-stack-left, .book-is-opening .book-spine,
+.book-is-closing .book > .book-left, .book-is-closing .book-stack-left, .book-is-closing .book-spine,
+.book-is-shutting .book > .book-left, .book-is-shutting .book-stack-left, .book-is-shutting .book-spine { visibility: hidden; }
 .book-is-opening .book { animation: book-slide-open var(--book-open-ms) var(--book-ease) both; }
-.book-is-closing .book { animation: book-slide-close var(--book-fold-ms) var(--book-ease) forwards; }
+.book-is-closing .book, .book-is-shutting .book { animation: book-slide-close var(--book-fold-ms) var(--book-ease) forwards; }
 .book-is-closing .book-wrap { animation: book-shrink var(--book-shrink-ms) steps(6) var(--book-fold-ms) forwards; }
 @keyframes book-slide-open {
-  from { transform: translateX(-25%) rotateX(2deg); background-color: transparent; border-color: transparent; box-shadow: none; }
+  from { transform: translateX(-25%) rotateX(2deg); }
   to { transform: rotateX(2deg); }
 }
 @keyframes book-slide-close {
-  to { transform: translateX(-25%) rotateX(2deg); background-color: transparent; border-color: transparent; box-shadow: none; }
+  to { transform: translateX(-25%) rotateX(2deg); }
 }
 @keyframes book-shrink { to { opacity: 0; transform: scale(.72) translateY(6%); } }
 
@@ -145,7 +214,7 @@
 .book-progress span { width: 5px; height: 5px; background: var(--parchment-lo); transition: width .25s; }
 .book-progress span.active { width: 20px; background: var(--frame); }
 
-/* Narrow screens: pages stack top to bottom and change without the 3D turn. */
+/* Narrow screens stack the pages; the first leaf hinges upward onto the top page. */
 @media (max-width: 720px) {
   .book-wrap { width: 96vw; }
   .book { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); aspect-ratio: auto; height: max(460px, calc(100svh - 240px)); padding: 12px; }
@@ -153,12 +222,28 @@
   .book-right { grid-area: 2 / 1; border-left-width: 4px; border-top-width: 2px; }
   .book-stack, .book-spine, .book-leaf { display: none; }
   .book-page-content { padding: 16px 18px 28px; }
-  /* The cover becomes a plain card that fades away instead of swinging open. */
-  .book-is-cover .book, .book-is-opening .book, .book-is-closing .book { transform: none; animation: none; }
+  /* The cover still swings open; it never fades into the scene. */
+  .book-is-cover .book, .book-is-opening .book, .book-is-closing .book, .book-is-shutting .book { transform: none; animation: none; }
   .book-is-cover .book-paper { display: none; }
-  .book-cover { position: relative; inset: auto; width: auto; grid-area: 1 / 1 / 3 / 2; }
+  .book-binding-left { display: none; }
+  .book-binding-right { left: calc(-1 * var(--book-border)); width: auto; border-radius: var(--book-cover-radius); }
+  .book-is-cover .book-binding { visibility: hidden; }
+  .book-cover { inset: calc(-1 * var(--book-border)); width: auto; }
+  .book-cover-entry { left: 0; width: 100%; padding: 10%; transform: none; }
   .book-cover-back { display: none; }
-  .book-cover-opening { animation: book-cover-fade var(--book-open-ms) steps(6) forwards; }
+  .book-is-opening .book > .book-left, .book-is-shutting .book > .book-left { visibility: visible; }
+  .book-cover-opening { animation: book-cover-open var(--book-open-ms) var(--book-ease) forwards; }
+  .book-cover-shutting { animation: book-cover-close var(--book-fold-ms) var(--book-ease) forwards; }
   .book-cover-closing { display: none; }
-  @keyframes book-cover-fade { to { opacity: 0; } }
+  .book-first-leaf.next {
+    display: block; grid-area: 2 / 1;
+    transform-origin: center top; animation-name: book-turn-first-mobile;
+  }
+  .book-first-leaf .book-face.back { transform: rotateX(180deg) translateZ(.2px); }
+  .book-leaf.next .back, .book-leaf.prev .front { border-right-width: 4px; border-bottom-width: 2px; }
+  .book-leaf.next .front, .book-leaf.prev .back { border-left-width: 4px; border-top-width: 2px; }
+  @keyframes book-turn-first-mobile {
+    from { transform: rotateX(0deg); }
+    to { transform: rotateX(180deg); }
+  }
 }

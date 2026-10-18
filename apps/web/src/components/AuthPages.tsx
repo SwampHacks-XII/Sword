@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { MOSS_NAME_PROMPT } from '@sword/protocol';
 import { useSession } from '../auth/SessionProvider';
 import { navigate } from '../hooks/useScreen';
 import { describeAuthError, type AuthIssue } from '../auth/errors';
 import type { BookSpread } from './BookMenu';
 import { NpcGuide } from './NpcGuide';
 import { Knight } from './Knight';
+import { MossVoice } from './MossVoice';
 
 /** Sign-in state lives above the pages, so a page turn that remounts them keeps it. */
 export function useAuthLedger() {
@@ -24,8 +26,8 @@ export function useAuthLedger() {
 }
 
 /** Art on the left page; log in, sign up or practice on the right. */
-export function authSpread({ session, pending, issue, signIn, setError }: ReturnType<typeof useAuthLedger>): BookSpread {
-  const ledger = <div className="book-form">
+export function authSpread({ session, pending, issue, signIn, setError }: ReturnType<typeof useAuthLedger>, narrate = false): BookSpread {
+  const ledger = <div className="book-form book-auth">
     <h1>{session.authenticated ? 'Your story awaits.' : 'Who holds the sword?'}</h1>
     {session.loading ? <p role="status">{pending ? 'Your sign-in window is open.' : 'Checking your login…'}</p>
       : session.authenticated ? <>
@@ -33,7 +35,6 @@ export function authSpread({ session, pending, issue, signIn, setError }: Return
         <div className="auth-actions">
           <button type="button" className="primary-button" onClick={() => navigate('play')}>Choose a game <span aria-hidden="true">→</span></button>
         </div>
-        <button type="button" className="link-button small" onClick={() => void session.logout().catch(cause => setError(describeAuthError(cause)))}>Sign out</button>
       </> : <>
         <p>Claim your place in the story, or sharpen your sword first.</p>
         <div className="auth-actions">
@@ -58,7 +59,10 @@ export function authSpread({ session, pending, issue, signIn, setError }: Return
       <p className="error">{issue.message}</p>
       <details className="auth-error-details"><summary>Setup details</summary><p>{issue.details}</p><p className="hint">Error: {issue.code}</p></details>
     </div>}
-    <button type="button" className="link-button small back-button" disabled={pending !== null} onClick={() => navigate('lore')}>← Back to the tale</button>
+    <div className="book-auth-footer">
+      {session.authenticated && !session.loading && <button type="button" className="link-button small" onClick={() => void session.logout().catch(cause => setError(describeAuthError(cause)))}>Sign out</button>}
+      <button type="button" className="link-button small back-button" disabled={pending !== null} onClick={() => navigate('lore')}>← Back to the tale</button>
+    </div>
   </div>;
 
   return {
@@ -67,7 +71,8 @@ export function authSpread({ session, pending, issue, signIn, setError }: Return
       title: <>Every legend<br />begins with <em>you.</em></>,
       content: <div className="book-art">
         <Knight className="book-art-knight" label="A small pixel knight holding a sword" />
-        <NpcGuide message="Let’s put your name in the story before your twin takes all the credit." />
+        <NpcGuide message={MOSS_NAME_PROMPT} />
+        <div className="book-auth-voice"><MossVoice text={MOSS_NAME_PROMPT} autoSpeak={narrate} /></div>
       </div>,
     },
     right: { content: ledger, className: 'book-page-dense' },

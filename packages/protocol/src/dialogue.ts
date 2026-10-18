@@ -2,14 +2,15 @@ import { FALLBACK_BRIEFINGS } from './quests.js';
 
 export const MOSS_PROLOGUE = [
   { title: 'A familiar face. A terrible omen.', text: [
-    'Psst. Yes, you, the one with the sword. I’m Moss, keeper of this very ordinary, definitely-not-cursed glade.',
-    'Something has slipped through the mirror between worlds. It has your face, your magic… and absolutely none of your good intentions.',
+    'Psst. You with the sword! I’m Moss, keeper of this definitely-not-cursed glade.',
   ] },
   { title: 'Your evil twin has arrived.', text: [
-    'They’re stealing the light from our little world, one spell at a time. And the only magic that can stop them? Yours.',
-    'Remember your runes. Trust your sword. Before we begin, tell the story who its hero is.',
+    'Your evil twin has slipped through the mirror. Your face, your magic… absolutely none of your good intentions. They’re stealing our light!',
+    'Remember your runes. Trust your sword. Now, tell the story who its hero is.',
   ] },
 ] as const;
+export const MOSS_PROLOGUE_NARRATION = MOSS_PROLOGUE.flatMap(chapter => chapter.text).join(' ');
+export const MOSS_NAME_PROMPT = 'Let’s put your name in the story before your twin takes all the credit.';
 export const MOSS_CHEER = 'I’m cheering you on, adventurer!';
 export const MOSS_ENDINGS = {
   win: 'You did it, adventurer! The glade is safe again. I knew you had a little magic in you!',
@@ -47,7 +48,7 @@ export const MOSS_REACTIONS = {
 
 const normalize = (text: string) => text.trim().replace(/\s+/g, ' ');
 const publicLines = new Set<string>([
-  ...MOSS_PROLOGUE.map(chapter => chapter.text.join(' ')), ...FALLBACK_BRIEFINGS,
+  MOSS_PROLOGUE_NARRATION, MOSS_NAME_PROMPT, ...MOSS_PROLOGUE.map(chapter => chapter.text.join(' ')), ...FALLBACK_BRIEFINGS,
   ...Object.values(MOSS_REACTIONS).flat(), ...Object.values(MOSS_COMMAND_REPLIES), ...Object.values(MOSS_ENDINGS), MOSS_CHEER,
 ].map(normalize));
 /** Guests may request built-in lines. Generated quest text requires a player login. */
