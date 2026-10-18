@@ -2,11 +2,14 @@ import { randomUUID } from 'node:crypto';
 import { GoogleAuth } from 'google-auth-library';
 import { isQuestStory, type QuestGenerator } from '@sword/protocol';
 
-export interface GeminiConfig { project: string; location: string; model: string; dailyLimit: number }
+export interface GeminiConfig {
+  project: string; location: string; model: string; dailyLimit: number;
+  relay?: { url: string; token: string };
+}
 export class GeminiError extends Error {
   constructor(public readonly reason: 'credentials' | 'permission' | 'model' | 'quota' | 'timeout' | 'response' | 'unavailable' | 'limit') {
     const messages = {
-      credentials: 'Google credentials are unavailable. Run gcloud auth application-default login on the backend computer.',
+      credentials: 'Google credentials are unavailable. Check local ADC or the Cloud Run service account attached to the quest helper.',
       permission: 'Google denied access. Check the project, enabled Agent Platform API, and the ADC account’s Agent Platform User role (roles/aiplatform.user).',
       model: 'The configured Gemini model is unavailable in this project/location.',
       quota: 'Google’s Gemini quota is currently exhausted. The game will use a local story.',
@@ -22,6 +25,7 @@ interface Dependencies { headers?: () => Promise<Headers>; fetch?: typeof fetch;
 
 /** ADC is server-only. Never include raw provider errors: they can contain credential headers. */
 export function createGeminiGenerator(config: GeminiConfig, deps: Dependencies = {}): QuestGenerator {
+  if (config.relay) return createRelayGenerator(config, deps);
   const auth = new GoogleAuth({ projectId: config.project, scopes: ['https://www.googleapis.com/auth/cloud-platform'] });
   const host = config.location === 'global' ? 'aiplatform.googleapis.com' : `${config.location}-aiplatform.googleapis.com`;
   const endpoint = `https://${host}/v1/projects/${encodeURIComponent(config.project)}/locations/${encodeURIComponent(config.location)}/publishers/google/models/${encodeURIComponent(config.model)}:generateContent`;
@@ -72,6 +76,52 @@ export function createGeminiGenerator(config: GeminiConfig, deps: Dependencies =
           briefing: typeof value?.briefing === 'string' ? value.briefing.trim().replace(/\s+/g, ' ') : '', source: 'gemini' as const };
         if (!isQuestStory(story) || story.title.split(/\s+/).length > 6) throw new GeminiError('response');
         return story;
+      })();
+      return await Promise.race([operation, new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(() => { controller.abort(); reject(new GeminiError('timeout')); }, deps.timeoutMs ?? 4000);
+        controller.signal.addEventListener('abort', () => reject(new GeminiError('timeout')), { once: true });
+      })]);
+    } catch (error) {
+      throw error instanceof GeminiError ? error : new GeminiError(controller.signal.aborted ? 'timeout' : 'unavailable');
+    } finally {
+      if (timer) clearTimeout(timer);
+      signal.removeEventListener('abort', abort);
+      active--;
+    }
+  };
+}
+
+/** Render calls our narrow quest endpoint; Google credentials never leave Cloud Run. */
+function createRelayGenerator(config: GeminiConfig, deps: Dependencies): QuestGenerator {
+  const relay = config.relay!;
+  const request = deps.fetch ?? fetch;
+  const now = deps.now ?? Date.now;
+  let day = ''; let attempts = 0; let active = 0;
+  return async (context, signal) => {
+    if (signal.aborted) throw new GeminiError('timeout');
+    const today = new Date(now()).toISOString().slice(0, 10);
+    if (day !== today) { day = today; attempts = 0; }
+    if (attempts >= config.dailyLimit || active >= 3) throw new GeminiError('limit');
+    attempts++; active++;
+    const controller = new AbortController();
+    const abort = () => controller.abort();
+    signal.addEventListener('abort', abort, { once: true });
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const operation = (async () => {
+        const response = await request(`${relay.url}/generate`, {
+          method: 'POST', redirect: 'error', signal: controller.signal,
+          headers: { 'Content-Type': 'application/json', 'X-Sword-Quest-Token': relay.token },
+          body: JSON.stringify({ roundNumber: context.roundNumber, previousBriefings: context.previousBriefings.slice(-8) }),
+        });
+        if (!response.ok) {
+          await response.body?.cancel();
+          throw new GeminiError(response.status === 401 || response.status === 403 ? 'permission'
+            : response.status === 429 ? 'limit' : 'unavailable');
+        }
+        const value: unknown = await response.json();
+        if (!isQuestStory(value) || value.source !== 'gemini' || value.title.split(/\s+/).length > 6) throw new GeminiError('response');
+        return { title: value.title, briefing: value.briefing, source: 'gemini' as const };
       })();
       return await Promise.race([operation, new Promise<never>((_resolve, reject) => {
         timer = setTimeout(() => { controller.abort(); reject(new GeminiError('timeout')); }, deps.timeoutMs ?? 4000);

@@ -13,6 +13,28 @@ export interface Config {
   elevenlabs?: ElevenLabsConfig | null;
 }
 
+/** Shared by the game server and the standalone Cloud Run quest helper. */
+export function readGeminiConfig(env: NodeJS.ProcessEnv = process.env): GeminiConfig | null {
+  if (env.GEMINI_ENABLED !== 'true') return null;
+  const settings = z.object({ project: z.string().regex(/^[a-z][a-z0-9-]{4,61}[a-z0-9]$/),
+    location: z.string().regex(/^(global|[a-z]+-[a-z]+[0-9])$/), model: z.string().regex(/^gemini-[a-z0-9.-]+$/),
+    dailyLimit: z.coerce.number().int().min(1).max(10000) }).safeParse({
+    project: env.GOOGLE_CLOUD_PROJECT?.trim(), location: env.GOOGLE_CLOUD_LOCATION?.trim() || 'global',
+    model: env.GEMINI_MODEL?.trim() || 'gemini-3.5-flash-lite', dailyLimit: env.GEMINI_DAILY_REQUEST_LIMIT || 500,
+  });
+  if (!settings.success) throw new Error('Check GOOGLE_CLOUD_PROJECT, GOOGLE_CLOUD_LOCATION, GEMINI_MODEL, and GEMINI_DAILY_REQUEST_LIMIT.');
+  const url = env.GEMINI_RELAY_URL?.trim();
+  const token = env.GEMINI_RELAY_TOKEN?.trim();
+  if (!url && !token) return settings.data;
+  let parsed: URL;
+  try { parsed = new URL(url || ''); } catch { throw new Error('GEMINI_RELAY_URL must be the HTTPS Cloud Run origin.'); }
+  if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.pathname !== '/' || parsed.search || parsed.hash
+    || !token || !/^[A-Za-z0-9_-]{32,256}$/.test(token)) {
+    throw new Error('Set GEMINI_RELAY_URL to an HTTPS origin and GEMINI_RELAY_TOKEN to a private 32–256 character token.');
+  }
+  return { ...settings.data, relay: { url: parsed.origin, token } };
+}
+
 export function readConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const serveWeb = env.SERVE_WEB === 'true';
   const publicUrl = env.PUBLIC_APP_URL?.trim() || env.RENDER_EXTERNAL_URL?.trim();
@@ -55,17 +77,7 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (env.NODE_ENV === 'production' && (!issuer || !databaseUrl)) {
     throw new Error('Production requires Auth0 and DATABASE_URL configuration.');
   }
-  let gemini: GeminiConfig | null = null;
-  if (env.GEMINI_ENABLED === 'true') {
-    const settings = z.object({ project: z.string().regex(/^[a-z][a-z0-9-]{4,61}[a-z0-9]$/),
-      location: z.string().regex(/^(global|[a-z]+-[a-z]+[0-9])$/), model: z.string().regex(/^gemini-[a-z0-9.-]+$/),
-      dailyLimit: z.coerce.number().int().min(1).max(10000) }).safeParse({
-      project: env.GOOGLE_CLOUD_PROJECT?.trim(), location: env.GOOGLE_CLOUD_LOCATION?.trim() || 'global',
-      model: env.GEMINI_MODEL?.trim() || 'gemini-3.5-flash-lite', dailyLimit: env.GEMINI_DAILY_REQUEST_LIMIT || 500,
-    });
-    if (!settings.success) throw new Error('Check GOOGLE_CLOUD_PROJECT, GOOGLE_CLOUD_LOCATION, GEMINI_MODEL, and GEMINI_DAILY_REQUEST_LIMIT.');
-    gemini = settings.data;
-  }
+  const gemini = readGeminiConfig(env);
   let elevenlabs: ElevenLabsConfig | null = null;
   if (env.ELEVENLABS_ENABLED === 'true') {
     const voice = z.object({ apiKey: z.string().min(10).max(512).regex(/^[^\s]+$/),
