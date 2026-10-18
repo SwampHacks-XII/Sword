@@ -29,12 +29,20 @@ export function BattleMoss({ you, active, children }: {
       voice.narrator.current?.speak(line);
     }
   }, [log, you, active, voice.state, voice.narrator]);
+  // A small speaker badge on Moss’s portrait turns the voice on or off.
+  const toggle = <button type="button" className="battle-voice-icon" role="switch" aria-checked={voice.enabled}
+    aria-label="Moss’s voice" title={voice.enabled ? 'Mute Moss' : 'Unmute Moss'} onClick={() => voice.setEnabled(!voice.enabled)}>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 9h4l5-4v14l-5-4H4V9Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      {voice.enabled ? <path d="M17 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        : <path d="m17 9 5 6m0-6-5 6" stroke="currentColor" strokeWidth="2" />}
+    </svg>
+  </button>;
+  const needsHelp = voice.state === 'blocked' || voice.state === 'unavailable';
   return children({
-    guide: active ? <NpcGuide compact message={caption} /> : null,
-    voiceControl: <div className="battle-voice-control">
-      <button type="button" className="battle-voice-toggle" role="switch" aria-checked={voice.enabled} onClick={() => {
-        voice.setEnabled(!voice.enabled);
-      }}><span>Moss’s voice</span><span className="battle-voice-state">{voice.enabled ? 'On' : 'Off'}</span></button>
+    guide: active ? <NpcGuide compact message={caption} badge={toggle} /> : null,
+    // Only shown when the voice can't play; the on/off switch lives on Moss's portrait.
+    voiceControl: needsHelp && <div className="battle-voice-control">
       {voice.state === 'blocked' && <button type="button" className="text-button" onClick={() => voice.narrator.current?.speak(MOSS_CHEER)}>Play Moss’s voice</button>}
       {voice.state === 'unavailable' && <p className="hint" role="status">Voice couldn’t play. Moss’s captions are still available.</p>}
     </div>,

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
+import { FitText } from './FitText';
 import { BOOK_TIMING, playBookOpening } from '../story/bookNavigation';
+import { playPageTurn } from '../audio/sfx';
 import './BookMenu.css';
 
 /** One side of a spread. `content` holds menu controls and renders below the title. */
@@ -36,7 +38,7 @@ function PageContent({ page, number }: { page: BookPage; number: number }) {
     <div className={`book-page-content ${page.className ?? ''}`}>
       {page.kicker && <span className="book-kicker">{page.kicker}</span>}
       {page.kicker && page.title && <div className="book-ornament" aria-hidden="true">◆</div>}
-      {page.title && <h2>{page.title}</h2>}
+      {page.title && <h2><FitText>{page.title}</FitText></h2>}
       {page.text && <p>{page.text}</p>}
       {page.content && <div className="book-page-slot">{page.content}</div>}
       <span className="book-page-number">{number}</span>
@@ -82,7 +84,11 @@ export function BookMenu({
   const onClosedRef = useRef(onClosed);
   const timer = useRef<number | undefined>(undefined);
 
-  useEffect(() => { shownRef.current = shown; }, [shown]);
+  useEffect(() => {
+    shownRef.current = shown;
+    // The title leaf turns on its own after the cover opens.
+    if (shown === 'revealing') playPageTurn();
+  }, [shown]);
   useEffect(() => { onClosedRef.current = onClosed; }, [onClosed]);
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
@@ -94,6 +100,7 @@ export function BookMenu({
       setTurning(null);
     };
     setTurning({ direction: to > spread ? 'next' : 'prev', to });
+    playPageTurn();
     timer.current = window.setTimeout(finish, TURN_MS);
   }, [turning, spread, spreads.length]);
   const turn = useCallback((direction: Direction) => turnTo(spread + (direction === 'next' ? 1 : -1)), [turnTo, spread]);

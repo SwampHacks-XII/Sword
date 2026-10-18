@@ -34,6 +34,7 @@ export function MossCommandInput({ disabled, onTranscript, stopVoice, example }:
   }, []);
   useEffect(() => { if (disabled) listener.current?.stop(); }, [disabled]);
   return <div className={`moss-command-input ${listening ? 'is-listening' : ''}`}>
+    <div className="moss-command-row">
     <button type="button" className="secondary-button" disabled={disabled || !available} aria-pressed={listening}
       onClick={() => {
         if (listening) { listener.current?.stop(); return; }
@@ -51,6 +52,7 @@ export function MossCommandInput({ disabled, onTranscript, stopVoice, example }:
       {listening ? 'Stop listening' : 'Talk to Moss'}
     </button>
     <p className="heard-command" aria-live="polite">Heard: {heard ? <>“{heard}”{!final && ' (not final yet)'}</> : 'No words received yet.'}</p>
+    </div>
     <p className={error ? 'error' : 'hint'} role={error ? 'alert' : 'status'}>{error || (listening ? started ? 'Moss is listening… say one command.' : 'Opening microphone… allow access if your browser asks.'
       : !available ? 'Voice commands aren’t available in this browser. You can use the buttons.'
       : example ?? 'Try “Hey Moss, create a game” or “join room code zero one two three.”')}</p>
