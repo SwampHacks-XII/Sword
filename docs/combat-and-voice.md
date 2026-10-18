@@ -41,7 +41,7 @@ motion sensor once its gesture detection is defined.
 All ranges include both endpoints. The server rolls an integer damage value
 when the shot is fired. A confirmed hit applies it once; repeated IR reports
 for the same shot cannot deal more damage. An unanswered shot expires as a miss.
-The spell stays armed for five seconds after the correct motion, then fizzles.
+The spell stays armed for ten seconds after the correct motion, then fizzles.
 
 Online keyboard practice still simulates a successful receiver hit. Swamp Bot
 practice simulates hits and misses. Real aim and IR reception need the hardware.

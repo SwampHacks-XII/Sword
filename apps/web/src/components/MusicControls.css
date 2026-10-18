@@ -12,7 +12,7 @@
 .music-hide:hover { color: var(--ink); }
 .music-volume { display: flex; align-items: center; }
 .music-volume input { width: 90px; height: 32px; margin: 0; cursor: pointer; accent-color: var(--leaf); }
-.music-percent { min-width: 3ch; font-size: .8rem; text-align: right; }
+.music-percent { flex: 0 0 4ch; width: 4ch; font-variant-numeric: tabular-nums; font-size: .8rem; text-align: right; }
 .music-retry {
   position: absolute; top: calc(100% + 10px); right: 0; white-space: nowrap;
   padding: .3rem .6rem; color: var(--ok); background: var(--parchment-hi);
