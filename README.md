@@ -1,219 +1,122 @@
-# Sword ⚔️
+# HexDuel ⚔️
 
-**A two-player magic-sword game for SwampHacks XII.**
+**A two-player magic-sword dueling game, built at SwampHacks XII.**
 
-Two physical swords, two laptops, and one shared game. Each sword contains an ESP32, buttons, a motion sensor, and infrared (IR) hardware. The website shows the game and a moving 3D version of each sword.
+Each player holds a 3D-printed sword with an ESP32 inside. You cast spells by pressing a button sequence on the sword and then moving it, and you fire the spell at your opponent with infrared. The web app turns this into a storybook adventure: a 3D digital twin of your sword follows the real one, a forest spirit named Moss narrates, and both players share the same live match.
 
-## Start here
+If you don't have a sword, the keyboard stands in for one, and you can practice against **Swamp Bot** without an account or a server.
 
-The backend now supports **player profiles, two-player sessions, and sword/camera data storage**. You can test these before building the website or connecting the hardware.
+All art in the project are hand-drawn!
 
-1. **Create Auth0 and Tiger Data accounts.** Follow [the setup guide](docs/backend-setup.md) for the exact dashboard settings and connection steps.
-2. **Configure the backend.** From `apps/server`, install dependencies and copy `.env.example` to a private `.env`. Fill in the Auth0 tenant URL, API audience, and Tiger Data connection string.
-3. **Set up the database tables.** Run `npm run db:check`, then `npm run db:setup` from `apps/server`. Existing profiles are preserved.
-4. **Start the backend.** Run `npm run dev`, then open http://localhost:3001/health.
-5. **Try a two-player session.** Follow [the game data guide](docs/game-data-api.md) and import `tools/sword-api.postman_collection.json` into Postman. It includes profiles, match creation/joining, sword assignment, and sample uploads for both players.
+## How a game works
 
-The backend can start without account settings, but protected routes stay unavailable. See [the backend README](apps/server/README.md) for endpoints and verified commands.
+1. **Open the storybook.** Choose **I'll draw my destiny** to meet Moss and discover your evil twin.
+2. **Sign in** with Auth0 and save your hero name (guests can skip straight to Swamp Bot).
+3. **Pick a game:** **Create game**, **Join game** with a four-digit room code, or **Play with Swamp Bot**. You can also click **Talk to Moss** and say it out loud.
+4. **Ready your sword.** On the *Wait! You need your sword!* page, connect over **Bluetooth** or **USB**, or choose **Keyboard**. Hold the sword upright and still until it says **Sword ready**.
+5. **Accept the quest.** The host starts the quest, and Moss reads a short briefing (written by Gemini, with local stories as a fallback). The battle begins once both players accept.
+6. **Duel.** Each cast goes like this:
+   - Choose **Easy**, **Medium**, or **Hard** to get a random spell from that group, or choose **Heal**.
+   - Press the spell's colored buttons in order. A wrong button restarts the sequence.
+   - Make the spell's motions (for example, Up then Down).
+   - The sword beeps and fires IR for up to 10 seconds. Aim at your opponent's sword.
+7. **Win, then rematch.** The first player to reach 0 HP loses. Either player can choose **rematch** to return to the same room. Every round's result is saved.
 
-**Play online or with Swamp Bot.** From `apps/web`, run `npm ci`, then `npm run dev`, and open http://localhost:5173. Choose **I’ll draw my destiny** to meet Moss and discover your evil twin. Then sign in through Auth0 and select **Create game**, **Join game**, or **Play with Swamp Bot**. Friends join the same **four-digit room code**. In the lobby, the host chooses **Start my quest**; both players read the story briefing and choose **Accept my quest** before battle begins. Guests can choose Swamp Bot practice from the login page. Online mode also needs `apps/server` running. Follow [the online play guide](docs/play-online.md) for environment settings and a two-account test.
+### Rules
 
-**Play from different networks.** [Optional Render hosting](docs/hosting-render.md) serves the website and backend at one public HTTPS address. Your existing local setup stays available. Both players open the hosted address; neither needs to run a server on their laptop. Internet access is required, but the players do not need the same Wi-Fi.
+| | |
+| --- | --- |
+| Health | 100 HP each |
+| Easy / Medium / Hard damage | 5–14 / 15–24 / 25–30 |
+| Heals | 2 per battle, 10–20 HP each, 5-second cooldown |
+| Spells | Nine in total (Flame, Waterdrop, Spark, Fireball, Rainfall, Thunder, Meteor, Tsunami, Lightning Bolt) |
 
-**Play again together.** After a battle, either player can choose **rematch** to return both players to the same lobby and room code. The host starts the next battle. Each completed round's result is kept in the database.
+**How hits are decided:**
+- **Both players have swords:** a hit counts only when the defender's sword actually receives the IR shot.
+- **Keyboard player, online:** hits are simulated.
+- **Swamp Bot:** hits are simulated with a random hit chance.
 
-After choosing Create lobby, Join lobby or Swamp Bot, the book shows
-**Wait! You need your sword!** before entering the lobby. Choose **Calibrate practice
-sword** to run the Pairing, Test Lights, Motion, and Camera checklist. Once all four
-checks pass, **Connect your sword** unlocks and opens the lobby. These checks are
-simulated in both modes while physical pairing and camera connection are being built;
-battles still use the keyboard. Rematches in the same room keep this preparation.
+The server rolls the damage and makes sure a shot can only count once. See [combat and voice](docs/combat-and-voice.md) for every spell's sequence.
 
-The pink **Leave game** button opens Moss's parchment popup asking
-**“Are you sure you want to leave the game?”** Choose **Leave game** to confirm,
-or **Keep playing**, **×** or Escape to stay. Moss's leave commands open the same popup.
+### Keyboard controls
 
-Spell combat uses the same rules in both modes.
+| Key | Sword equivalent |
+| --- | --- |
+| `1` `2` `3` `4` | Red, yellow, green, blue buttons |
+| `Q` / `E` / `R` / `W` | Swing left / swing right / rotate wrist / hold upright |
+| `Space` | Fire |
 
-Choose **Easy**, **Medium**, or **Hard** before each spell to receive a random
-spell from that group. Damage ranges are **5–14**, **15–24**, and **25–30**.
-Each player also gets **two 10–20 HP heals per battle**, with a **five-second
-cooldown** between uses. See [combat and voice](docs/combat-and-voice.md) for all
-nine sequences, controls, and testing.
+On a real sword: red = Easy, yellow = Medium, green = Hard, blue = Heal.
 
-Moss speaks automatically on story pages after you enter the prologue. Use
-**Mute Moss** to silence playback while narration keeps moving; unmuting
-returns at the current point. Choosing the next page stops its audio immediately.
-Playback is slightly faster while preserving the ElevenLabs
-voice’s pitch. In battle, Moss has
-spoken reactions such as “Good hit!” and “That one missed!”, controlled by a
-voice on/off button. **ElevenLabs is the main voice** when configured,
-including the prologue and guest games; the lighter browser voice takes over
-when credits run out or playback is unavailable. The browser backup has no speech
-API charge. Follow [ElevenLabs setup](docs/elevenlabs-setup.md).
-
-**Background music.** The welcome, story, login/sign-up, game selection, lobby and quest
-briefing pages share `apps/web/public/audio/lobby.mp3`; battles use
-`apps/web/public/audio/battle.mp3`. Both tracks repeat automatically. Turning pages
-keeps the menu music playing without restarting it. The header has a separate **Music** mute button and volume slider;
-settings are remembered in this browser and do not affect Moss's voice. Music fades
-between the lobby and battle, gets quieter while Moss speaks, and pauses while
-**Talk to Moss** is listening or the tab is hidden. Leaving a battle returns to menu music.
-Playback starts after your first click or keypress. If the browser blocks playback,
-click **Enable music** in the header. To replace a
-track, use the same filename and ensure you have permission to distribute the music.
-
-**Play with a real sword.** In the lobby, choose **Connect sword (Bluetooth)**, or **Connect sword (USB cable)** if the sword is plugged in (Chrome or Edge). Its buttons choose Easy/Medium/Hard/Heal (red/yellow/green/blue). The game sends the spell to the sword; press its buttons in order, make its motions, and the sword fires IR. When both players have swords, damage happens only when the opponent's sword receives the shot. The 3D sword follows the real one. Follow [the physical sword guide](docs/physical-sword.md) for wiring, flashing, and the line protocol.
-
-Without a sword, in either mode, the keyboard stands in for it:
-
-- `1`–`4`: the red, yellow, green and blue buttons
-- `Q`, `E`, `R`, `W`: swing left, swing right, rotate wrist, hold upright
-- `Space`: the trigger
-
-The interface uses a pastel pixel meadow, parchment scrolls, and Moss, the green NPC story guide. **Gemini can write Moss’s short quest briefing for each round**, shared by both players, with a different story on rematch and a quick local fallback. Follow [the Gemini setup guide](docs/gemini-setup.md) to enable and test it. See [the storyline guide](docs/storyline-ui.md) to edit the scenes, and [Auth0 appearance](docs/auth0-appearance.md) to match the hosted login screen to the game. The 3D fighters and swords are still placeholders. To use a real 3D model, put a `.glb` in `apps/web/public/models` and set its path in `apps/web/src/scene/models.ts`.
-
-Online battles use an authenticated WebSocket connection and server-owned spell/health state. The browser bot and online backend share messages and rules in `packages/protocol`. Physical swords connect to their player's browser over Bluetooth or USB and report real IR hits; camera capture still needs to be built. Online keyboard practice simulates successful attack hits.
-
-## The game we're building
-
-1. **Remember** the spell sequence shown on your laptop.
-2. **Enter** the sequence using the buttons on your sword.
-3. **Move and aim** your sword to cast the spell. The exact gesture and firing controls are still to be decided.
-4. **Land a hit:** the opponent's IR receiver detects the attack, and the server checks it before updating the game.
-
-Both laptops should see the same match state. We'll 3D print two swords to hold the electronics.
-
-## Find your folder
-
-Everything lives in one repository, with separate folders for each part of the project.
+## How it fits together
 
 ```text
-Sword/
-├── README.md
-├── apps/
-│   ├── web/
-│   │   ├── public/models/
-│   │   └── src/
-│   │       ├── components/
-│   │       └── hooks/
-│   └── server/
-│       └── src/
-├── packages/
-│   └── protocol/
-│       └── src/
-├── firmware/
-│   └── sword/          (sword.ino, Arduino IDE)
-├── hardware/
-│   ├── cad/
-│   ├── prints/
-│   └── electronics/
-├── docs/
-├── tools/
-└── .github/
-    └── workflows/
+Sword 1 (ESP32) ──BLE/USB── Browser 1 ──┐
+                                        ├── WebSocket ── Server ── Tiger Data (Postgres)
+Sword 2 (ESP32) ──BLE/USB── Browser 2 ──┘                  │
+         └────────── IR shots ──────────┘             Gemini, ElevenLabs
 ```
 
-| If you're working on… | Put it in… | Examples |
-| --- | --- | --- |
-| What players see | `apps/web` | Spell sequence, health bar, menus, 3D sword viewer |
-| Rules and multiplayer | `apps/server` | Validate spells, track health, update both laptops |
-| Messages between the parts | `packages/protocol` | Movement updates, button presses, player IDs, hit reports |
-| Code running on the ESP32 | `firmware` | Read sensors/buttons, connect to Wi-Fi, send/receive IR |
-| The physical swords | `hardware` | CAD models, print exports, wiring diagrams |
-| Guides and team decisions | `docs` | Setup, calibration, connection format, design notes |
-| Development helpers | `tools` | Fake sword data, sensor logs, calibration utilities |
-| Automated GitHub checks | `.github/workflows` | Build and type checks once the projects exist |
+- **The sword** ([firmware/sword/sword.ino](firmware/sword/sword.ino)) reads its four buttons and its MPU6500 motion sensor, checks the button sequence and motions, fires and receives IR, and streams its orientation about 20 times a second.
+- **The browser** connects to its own player's sword using Web Bluetooth or Web Serial (Chrome or Edge). It shows the 3D sword and arena with React Three Fiber and passes sword events on to the game.
+- **The server** owns the match: spells, damage, health, heals, and cooldowns. It syncs both players over an authenticated WebSocket and stores profiles, matches, results, and sword data in Tiger Data.
+- **Swamp Bot** runs entirely in the browser and uses the same rules, which are shared in [packages/protocol](packages/protocol).
+- **Moss's voice** uses ElevenLabs when it's configured and falls back to the browser's built-in speech. Moss reads story pages aloud and reacts during battle ("Good hit!").
 
-### Inside the website
+## Run it locally
 
-| Folder | What belongs here |
-| --- | --- |
-| `apps/web/src/components` | Reusable screen elements: spell display, health bar, player panel, sword viewer |
-| `apps/web/src/hooks` | Reusable React logic, such as connecting to the server and receiving updates |
-| `apps/web/public/models` | 3D models for the browser, preferably `.glb` files |
+You need Node.js 22.12 or newer.
 
-### Inside firmware and hardware
+**Swamp Bot only.** No accounts or server needed:
 
-| Folder | What belongs here |
-| --- | --- |
-| `firmware/include` | C++ header files: declarations, hardware interfaces, configuration structure |
-| `firmware/src` | C++ implementation: sensors, buttons, Wi-Fi, IR, and optional LEDs |
-| `hardware/cad` | Editable sword and enclosure design files |
-| `hardware/prints` | Printable `.stl` / `.3mf` exports and print settings |
-| `hardware/electronics` | Parts list, pin assignments, schematics, wiring photos, power details |
-
-**Browser model → `apps/web/public/models`. Printable sword → `hardware/prints`. Editable design → `hardware/cad`.**
-
-## How it connects
-
-**Voice commands:** on game selection, click **Talk to Moss** to create a game,
-join a four-digit room, or play with Swamp Bot by speaking. Moss acknowledges
-commands using the existing voice. See [voice commands](docs/voice-commands.md)
-for browser support, microphone permissions, and a quick test.
-
-```text
-Sword 1 / ESP32 ──┐                  ┌── Laptop 1 website
-                  ├── Shared server ─┤
-Sword 2 / ESP32 ──┘                  └── Laptop 2 website
+```sh
+cd apps/web
+npm ci
+npm run dev        # http://localhost:5173
 ```
 
-The swords send readings over Wi-Fi. The server coordinates the match and sends updates to both browsers. One laptop can run the shared server.
+**Online play.** You also need an Auth0 tenant and a Tiger Data database. Follow the [backend setup guide](docs/backend-setup.md), then:
 
-- **Firmware reads the hardware.** It reports movement, button presses, and received IR attacks.
-- **The server decides what happens.** It checks spells and hits, prevents duplicate damage, and keeps the match state consistent.
-- **The website shows the result.** It displays the spell sequence, sword movement, health, and score.
+```sh
+cd apps/server
+npm ci
+cp .env.example .env   # fill in Auth0 + DATABASE_URL
+npm run db:check
+npm run db:setup       # applies migrations; existing data is kept
+npm run dev            # http://localhost:3001/health
+```
 
-When another laptop or ESP32 connects, use the server laptop's local network address. `localhost` means the device you're currently using.
+Copy `apps/web/.env.example` to `apps/web/.env` and fill in the Auth0 values. Then start the web app as shown above. See [online play](docs/play-online.md) for a two-account test.
 
-## Suggested team split
+**Optional extras:**
+- [Gemini quest stories](docs/gemini-setup.md) (`npm run gemini:check`)
+- [ElevenLabs voice](docs/elevenlabs-setup.md) (`npm run voice:check`)
 
-| Teammate | Main folders | First goal |
-| --- | --- | --- |
-| Software 1 | `apps/web` | Build player login and character screens; add live movement when hardware is ready |
-| Software 2 | `apps/server`, `packages/protocol`, `tools` | Verify player identity and save profiles in Tiger Data |
-| Hardware 1 | `firmware`, `hardware/electronics` | Send button presses and real motion readings over Wi-Fi |
-| Hardware 2 | `hardware/cad`, `hardware/prints`, IR firmware | Test enclosure fit and IR transmission/reception |
+**Play from different networks.** [Render hosting](docs/hosting-render.md) serves the site, API, and WebSocket from one HTTPS address. On Render, Gemini runs through a [Cloud Run helper](docs/gemini-render.md).
 
-Agree together on wiring, sensor mounting, message formats, and how an IR shot identifies its sender. Keep shared decisions in `docs`.
+**Real swords.** Flash `sword.ino` to each ESP32, giving one `SWORD_ID 1` and the other `SWORD_ID 2`. [The physical sword guide](docs/physical-sword.md) covers wiring, flashing, and the message protocol.
 
-## Proposed tools
+**Tests.** Run `npm test` in `apps/web` and in `apps/server`.
 
-The website supports Auth0 login, online room codes, and local Swamp Bot games. The backend runs shared online battles and stores profiles, sessions, winners, sword readings, and camera tracking in Tiger Data. Hardware capture remains planned.
+## Repository layout
 
-Signed-in players choose **Save name** on the hero page to store their name with their account. Returning players see their saved name and an **Edit** button. Edit opens the name field again; **Save name** keeps the change, while **Cancel** restores the previous name. Save or cancel an edit before entering a game. Guest names stay local to the current visit.
+| Folder | What's in it |
+| --- | --- |
+| [apps/web](apps/web) | React + Vite storybook game: menus, battle screen, 3D scene, sword connection, voice |
+| [apps/server](apps/server) | Express + WebSocket server, game rules, database, Gemini and ElevenLabs integration ([README](apps/server/README.md)) |
+| [packages/protocol](packages/protocol) | Shared TypeScript types, messages, spells, and rules |
+| [firmware/sword](firmware/sword) | ESP32 Arduino sketch, shared by both swords |
+| [deploy/gemini-relay](deploy/gemini-relay) | Cloud Run helper for Gemini on hosted builds |
+| [tools](tools) | Hosted build scripts, Postman collection, Auth0 login templates |
+| [docs](docs) | Setup and feature guides |
+
+## Tech stack
 
 | Part | Tools |
 | --- | --- |
-| Website | React + TypeScript + Vite 7 (Vite 8 hits an npm 10.8 install bug) |
-| 3D viewer | Three.js + React Three Fiber |
-| Server | Node.js + TypeScript + Express + WebSockets |
-| Player login | Auth0 |
-| Database | Tiger Data / PostgreSQL |
-| Dialogue and story (planned) | Gemini API |
-| Shared messages | TypeScript + Zod for checking incoming data |
-| ESP32 | PlatformIO + Arduino framework + C++ |
-| Physical design | Team-selected CAD software |
-
-## Keep these in mind
-
-- **Start with rotation.** A motion sensor does not directly give reliable absolute position. Calibrate it and agree which sensor directions match the 3D model.
-- **Use one message format.** The website and server can share TypeScript definitions. The C++ firmware must send the same format, including agreed units and IDs.
-- **Give each sword its own identity.** Both can use the same firmware project with different device/player settings.
-- **Separate live updates from recordings.** WebSockets deliver live game updates. Tiger Data stores profiles, session state, events, and timestamped recordings; avoid writing every animation frame to the database.
-- **Keep secrets local.** Don't commit Wi-Fi passwords, database credentials, or tokens. Ignore rules exclude local environment files, dependency folders, and build output.
-
-## Git basics
-
-Git tracks files, so **empty folders won't appear on GitHub or in a fresh clone** until they contain tracked files. We can add real project files as we build, or use `.gitkeep` placeholders later if needed.
-
-To commit only this README when ready:
-
-```sh
-git status
-git add README.md
-git commit -m "Document project layout and next steps"
-```
-
-Review `git status` before committing. Local environment files, dependencies, and caches are ignored; commit the example configuration and lockfile.
-
+| Sword | ESP32, MPU6500 IMU, IR transmitter and receiver, Arduino C++, BLE (Nordic UART) |
+| Website | React, TypeScript, Vite 7, Three.js + React Three Fiber |
+| Server | Node.js, Express, WebSockets (`ws`), Zod |
+| Login and data | Auth0, Tiger Data (PostgreSQL / TimescaleDB) |
+| AI and voice | Gemini (quest briefings), ElevenLabs (Moss's voice), Web Speech API (voice commands and fallback voice) |
+| Hosting | Render, Google Cloud Run |
