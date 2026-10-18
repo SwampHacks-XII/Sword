@@ -12,6 +12,7 @@ interface Characteristic extends EventTarget {
   readonly value?: DataView;
   startNotifications(): Promise<Characteristic>;
   writeValueWithoutResponse?(value: BufferSource): Promise<void>;
+  writeValueWithResponse?(value: BufferSource): Promise<void>;
   writeValue(value: BufferSource): Promise<void>;
 }
 interface GattServer {
@@ -68,7 +69,19 @@ export async function openBluetoothSword(onLine: (line: string) => void, onClose
     write(line) {
       if (closing) return;
       const bytes = encoder.encode(line);
-      queue = queue.then(() => (rx.writeValueWithoutResponse ? rx.writeValueWithoutResponse(bytes) : rx.writeValue(bytes))).catch(() => {});
+      queue = queue.then(async () => {
+        if (closing) return;
+        // Spell assignment must reach the sword before its buttons can count.
+        if (rx.writeValueWithResponse) await rx.writeValueWithResponse(bytes);
+        else await rx.writeValue(bytes);
+      }).catch(() => {
+        if (closing) return;
+        closing = true;
+        tx.removeEventListener('characteristicvaluechanged', onValue);
+        device.removeEventListener('gattserverdisconnected', onDisconnected);
+        device.gatt?.disconnect();
+        onClosed();
+      });
     },
     async close() {
       if (closing) return;

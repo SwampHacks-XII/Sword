@@ -49,9 +49,11 @@ export const GESTURE_LABELS: Record<Gesture, string> = {
 };
 
 /** How long a spell stays armed after its motion, before it fizzles. */
-export const ARMED_WINDOW_MS = 5000;
+export const ARMED_WINDOW_MS = 10_000;
+/** Must match FIRE_WINDOW_MS in firmware/sword/sword.ino. */
+export const SWORD_FIRE_WINDOW_MS = 10_000;
 /** A physical sword keeps firing IR for up to 10 s (firmware FIRE_WINDOW_MS); its shot can land until then. */
-export const PHYSICAL_SHOT_MS = 10_500;
+export const PHYSICAL_SHOT_MS = SWORD_FIRE_WINDOW_MS + 500;
 export const MAX_HP = 100;
 export const HEAL_USES = 2;
 export const HEAL_RANGE = [10, 20] as const;

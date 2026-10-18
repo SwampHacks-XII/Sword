@@ -66,7 +66,11 @@ test('only a correct sequence then its motion arms the sword; expired spells can
   f.rules.handleSword({ type: 'sword.gesture', swordId: 'sword-1', gesture: 'upright' });
   assert.equal(f.rules.fighter('p1')!.castPhase, 'motion');
   f.rules.handleSword({ type: 'sword.gesture', swordId: 'sword-1', gesture: spell.gesture });
-  f.advance(5001);
+  const armed = f.rules.fighter('p1')!;
+  assert.equal(armed.armedUntil! - armed.armedAt!, 10_000);
+  f.advance(9000); f.rules.tick();
+  assert.equal(f.rules.fighter('p1')!.castPhase, 'armed', 'The player still has time to aim after nine seconds');
+  f.advance(1001);
   assert.equal(f.rules.handleSword({ type: 'sword.trigger', swordId: 'sword-1', shotId: 'late' }), 'ignored');
   assert.equal(f.rules.fighter('p1')!.castPhase, 'choose');
 });

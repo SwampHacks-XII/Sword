@@ -1,32 +1,28 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { getSpell } from '../game/spells';
 import { otherSlot, type FighterState, type MatchEvent, type MatchState, type PlayerSlot } from '../game/types';
 import { useKeyboardSword } from '../hooks/useKeyboardSword';
 import { useMatch } from '../hooks/useMatch';
 import { useSerialSword } from '../hooks/useSerialSword';
-import { CameraPlaceholder, CameraToggle } from './CameraPlaceholder';
 import { HealthBars } from './HealthBars';
 import { Parchment } from './Parchment';
 import { SpellPanel } from './SpellPanel';
 import { BattleMoss } from './BattleMoss';
-import { leaveBattle } from '../story/leaveBattle';
 import { MOSS_ENDINGS } from '@sword/protocol';
 import { MossVoice } from './MossVoice';
+import { CastTimer } from './CastTimer';
 
-export function BattleScreen({ match, you, now, onLeave }: { match: MatchState; you: PlayerSlot; now: number; onLeave(): void }) {
+export function BattleScreen({ match, you, now }: { match: MatchState; you: PlayerSlot; now: number }) {
   const { send, log, lobby, onlineStatus, error } = useMatch();
   const sword = useSerialSword();
   const fighting = match.phase === 'fighting';
   const online = lobby?.mode === 'online';
   const connected = !online || (onlineStatus === 'open' && lobby?.players.every(p => p.connected));
-  useKeyboardSword(fighting && connected);
+  useKeyboardSword(fighting && connected && sword.status !== 'ready');
   const mine = match.fighters[you];
   const theirs = match.fighters[otherSlot(you)];
   const endingLine = match.winner === you ? MOSS_ENDINGS.win : MOSS_ENDINGS.loss;
-  const leaveGame = () => leaveBattle(send, onLeave);
   const eventLog = useRef<HTMLUListElement>(null);
-  const cameraId = useId();
-  const [cameraHidden, setCameraHidden] = useState(true);
   useEffect(() => {
     if (eventLog.current) eventLog.current.scrollTop = eventLog.current.scrollHeight;
   }, [log]);
@@ -34,17 +30,11 @@ export function BattleScreen({ match, you, now, onLeave }: { match: MatchState; 
   return (
     <div className="battle">
       <SpellPanel fighter={mine} disabled={!fighting || !connected} />
-      <CameraPlaceholder id={cameraId} hidden={cameraHidden} />
+      {fighting && <CastTimer fighter={mine} firingUntil={sword.firingUntil} />}
       {fighting && <BattleMoss you={you} active>{({ guide, voiceControl }) =>
         <div className="battle-left-hud">
           <div className="battle-status">
-            <HealthBars you={mine} opponent={theirs} now={now}>
-              <p className="battle-mode">{online ? 'Online' : 'Swamp Bot'} · {sword.status === 'ready' ? 'physical sword' : 'keyboard practice'}</p>
-              <div className="health-bars-actions">
-                <CameraToggle id={cameraId} hidden={cameraHidden} onToggle={() => setCameraHidden(value => !value)} />
-                <button type="button" className="secondary-button leave-game-button" onClick={() => void leaveGame()}>Leave game <span aria-hidden="true">↗</span></button>
-              </div>
-            </HealthBars>
+            <HealthBars you={mine} opponent={theirs} now={now} />
             <div className="battle-controls">
               {voiceControl}
               {sword.error && <p className="error" role="alert">{sword.error}</p>}
@@ -73,7 +63,6 @@ export function BattleScreen({ match, you, now, onLeave }: { match: MatchState; 
             </div>
             <div className="row">
               <button type="button" className="quest-button" disabled={!connected} onClick={() => send({ type: 'match.rematch' })}>Rematch <span aria-hidden="true">↻</span></button>
-              <button type="button" className="secondary-button leave-game-button" onClick={() => void leaveGame()}>Leave game <span aria-hidden="true">↗</span></button>
             </div>
           </Parchment>
         </div>
