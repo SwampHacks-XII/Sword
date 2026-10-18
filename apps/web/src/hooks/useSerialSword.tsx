@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { SWORD_COLORS, getSpell, type FighterState, type SwordColor } from '../game/types';
-import { openSerialSword, parseSwordLine, serialSupported, swordSpellNumber, type SwordEvent, type SwordLink } from '../net/serialSword';
+import { SWORD_COLORS, getSpell, type FighterState, type PhysicalSwordNumber, type SwordColor } from '../game/types';
+import { openSerialSword, parseSwordLine, serialSupported, swordNumberOf, swordSpellNumber, type SwordEvent, type SwordLink } from '../net/serialSword';
 import { bluetoothSupported, openBluetoothSword } from '../net/bluetoothSword';
 import { useMatch } from './useMatch';
 
@@ -14,6 +14,8 @@ interface SerialSwordValue {
   /** How the current sword is connected, if it is. */
   transport: SwordTransport | null;
   status: SerialSwordStatus;
+  /** The connected sword's real SWORD_ID, once it has said anything. */
+  swordNumber: PhysicalSwordNumber | null;
   /** The sword is firing IR for a cast spell. It stops on a hit, a miss, or after 10 s. */
   firing: boolean;
   error: string | null;
@@ -45,6 +47,7 @@ export function SerialSwordProvider({ children }: { children: ReactNode }) {
   const [transport, setTransport] = useState<SwordTransport | null>(null);
   const [firing, setFiring] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [swordNumber, setSwordNumber] = useState<PhysicalSwordNumber | null>(null);
 
   const link = useRef<SwordLink | null>(null);
   const nextToken = useRef(1 + Math.floor(Math.random() * 255));
@@ -163,6 +166,8 @@ export function SerialSwordProvider({ children }: { children: ReactNode }) {
   handleRef.current = handleEvent;
 
   const onLine = useCallback((line: string) => {
+    const number = swordNumberOf(line);
+    if (number) setSwordNumber(number);
     const event = parseSwordLine(line);
     if (!event) return;
     if (pingTimer.current !== undefined) {
@@ -207,13 +212,13 @@ export function SerialSwordProvider({ children }: { children: ReactNode }) {
   const linkReady = status === 'ready';
   useEffect(() => {
     if (!lobby || (connectionKind === 'ws' && onlineStatus !== 'open')) return;
-    send({ type: 'sword.link', connected: linkReady });
-  }, [linkReady, lobby?.code, onlineStatus, connectionKind, send]);
+    send({ type: 'sword.link', connected: linkReady, ...(linkReady && swordNumber ? { number: swordNumber } : {}) });
+  }, [linkReady, swordNumber, lobby?.code, onlineStatus, connectionKind, send]);
 
   const reset = () => {
     clearInterval(pingTimer.current); pingTimer.current = undefined;
     link.current = null; clearSpell();
-    setStatus('disconnected'); setTransport(null);
+    setStatus('disconnected'); setTransport(null); setSwordNumber(null);
   };
 
   const connect = useCallback((via: SwordTransport) => {
@@ -250,8 +255,8 @@ export function SerialSwordProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<SerialSwordValue>(
-    () => ({ supported: { usb: serialSupported(), bluetooth: bluetoothSupported() }, transport, status, firing, error, connect, disconnect }),
-    [transport, status, firing, error, connect, disconnect],
+    () => ({ supported: { usb: serialSupported(), bluetooth: bluetoothSupported() }, transport, status, swordNumber, firing, error, connect, disconnect }),
+    [transport, status, swordNumber, firing, error, connect, disconnect],
   );
   return <SerialSwordContext value={value}>{children}</SerialSwordContext>;
 }

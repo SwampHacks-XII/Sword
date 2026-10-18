@@ -8,6 +8,7 @@ import { QuestHandoff } from './components/QuestHandoff';
 import { MossCommandVoice, type MossCommandVoiceControls } from './components/MossCommandVoice';
 import { PLAYER_SLOTS, type PlayerSlot } from './game/types';
 import { useMatch } from './hooks/useMatch';
+import { SWORD_TIP_COLORS } from './game/swordColors';
 import { useNow } from './hooks/useNow';
 import { useSwordPoses } from './hooks/useSwordPoses';
 import { MusicControls } from './components/MusicControls';
@@ -44,12 +45,15 @@ export function App() {
   const choosingGame = screen === 'practice' || (screen === 'play' && session.authenticated);
   const handoff = !!quest && bookClosed && swordReady;
   const battle = !!match && !quest;
+  // Colour each 3D sword like the physical sword its player holds.
+  const swordTips = Object.fromEntries((lobby?.players ?? [])
+    .filter(p => p.physicalSword).map(p => [p.slot, SWORD_TIP_COLORS[p.physicalSword!]]));
 
   return (
     <div className={`stage ${battle ? 'stage-battle' : 'stage-story'}`}>
       <WorldBackdrop showKnights={handoff} />
       {battle && <Suspense fallback={null}>
-        <Arena you={you} poses={poses} lastHitAt={lastHitAt} shielded={shielded} />
+        <Arena you={you} poses={poses} lastHitAt={lastHitAt} shielded={shielded} swordTips={swordTips} />
       </Suspense>}
       <header className="world-header">
         <button type="button" className="wordmark" disabled={!!lobby || !!match} onClick={() => navigate('home')} aria-label="duelwith.us home"><img className="wordmark-logo" src="/art/logo.png" alt="" /></button>

@@ -10,10 +10,12 @@ export interface ArenaProps {
   poses: PoseStore;
   lastHitAt: Partial<Record<PlayerSlot, number>>;
   shielded: Partial<Record<PlayerSlot, boolean>>;
+  /** Tip colour per player from their physical sword (pink = sword 1, purple = sword 2). */
+  swordTips?: Partial<Record<PlayerSlot, string>>;
 }
 
 /** Background 3D scene: your fighter in front (over-the-shoulder view), the opponent across the field. */
-export function Arena({ you, poses, lastHitAt, shielded }: ArenaProps) {
+export function Arena({ you, poses, lastHitAt, shielded, swordTips = {} }: ArenaProps) {
   const opponent = otherSlot(you);
   return (
     <Canvas
@@ -35,11 +37,11 @@ export function Arena({ you, poses, lastHitAt, shielded }: ArenaProps) {
 
       <Fighter
         slot={you} poses={poses} position={[-0.9, 0, 3]} facing={Math.PI}
-        lastHitAt={lastHitAt[you]} shielded={!!shielded[you]}
+        lastHitAt={lastHitAt[you]} shielded={!!shielded[you]} swordTip={swordTips[you]}
       />
       <Fighter
         slot={opponent} poses={poses} position={[0.6, 0, -3]} facing={0}
-        lastHitAt={lastHitAt[opponent]} shielded={!!shielded[opponent]}
+        lastHitAt={lastHitAt[opponent]} shielded={!!shielded[opponent]} swordTip={swordTips[opponent]}
       />
     </Canvas>
   );
