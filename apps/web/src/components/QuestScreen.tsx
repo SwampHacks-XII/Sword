@@ -1,8 +1,10 @@
 import { useMatch } from '../hooks/useMatch';
 import { StoryScene } from './StoryScene';
-import { confirmLeaveGame } from '../story/confirmLeaveGame';
+import { leaveBattle } from '../story/leaveBattle';
+import { navigate, useScreen } from '../hooks/useScreen';
 export function QuestScreen() {
   const { lobby, quest, onlineStatus, send, error } = useMatch();
+  const screen = useScreen();
   const accepted = !!lobby && !!quest?.accepted.includes(lobby.you);
   const connected = lobby?.mode !== 'online' || (onlineStatus === 'open' && lobby.players.every(player => player.connected));
   const story = quest?.story;
@@ -11,5 +13,7 @@ export function QuestScreen() {
     narration={!!story} action={accepted ? 'Quest accepted' : 'Accept my quest'}
     disabled={accepted || !connected || !story} onContinue={() => send({ type: 'quest.accept' })}
     status={!connected ? 'Waiting for both adventurers to reconnect…' : !story ? 'Moss is gathering the latest news…' : accepted ? 'Your sword is ready. Waiting for the other adventurer…' : 'The battle begins when both adventurers accept.'}
-    error={error} onLeave={async () => { if (await confirmLeaveGame()) send({ type: 'lobby.leave' }); }} />;
+    error={error} onLeave={() => void leaveBattle(send, () => {
+      if (screen === 'practice') navigate('login');
+    })} />;
 }

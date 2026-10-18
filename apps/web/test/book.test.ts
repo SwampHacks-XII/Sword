@@ -20,7 +20,8 @@ test('the cover Start control opens the book and reaches an interactive prologue
   const originals = new Map<string, PropertyDescriptor | undefined>();
   for (const [name, value] of Object.entries({ window: dom, document: dom.document,
     navigator: dom.navigator, HTMLElement: dom.HTMLElement, Element: dom.Element,
-    Node: dom.Node, Event: dom.Event, IS_REACT_ACT_ENVIRONMENT: true })) {
+    Node: dom.Node, Event: dom.Event, ResizeObserver: dom.ResizeObserver,
+    getComputedStyle: dom.getComputedStyle.bind(dom), IS_REACT_ACT_ENVIRONMENT: true })) {
     originals.set(name, Object.getOwnPropertyDescriptor(globalThis, name));
     Object.defineProperty(globalThis, name, { value, configurable: true, writable: true });
   }
