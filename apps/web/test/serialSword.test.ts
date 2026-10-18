@@ -1,10 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { SPELLS, getSpell, type ServerMessage } from '@sword/protocol';
-import { parseSwordLine, swordNumberOf, swordSpellNumber } from '../src/net/serialSword';
 import { SPELLS, SWORD_FIRE_WINDOW_MS, GameRules, getSpell, type ServerMessage, type ClientMessage } from '@sword/protocol';
 import { readFile } from 'node:fs/promises';
-import { parseSwordLine, swordSpellNumber } from '../src/net/serialSword';
+import { parseSwordLine, swordNumberOf, swordSpellNumber } from '../src/net/serialSword';
 import { createMockConnection } from '../src/net/mock/mockConnection';
 
 test('sword events parse into game input; debug output and malformed lines are ignored', () => {

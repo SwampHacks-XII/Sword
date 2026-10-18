@@ -163,6 +163,30 @@ test('online and guest lobby pages both render Talk to Moss beside quest control
   } finally { connection.close(); }
 });
 
+test('joined players keep their name but show Connected only after setup', () => {
+  const connection = createConnection({ request: async () => assert.fail('Rendering needs no API') } as Api);
+  try {
+    const render = (ready: boolean) => {
+      const lobby: LobbyState = { mode: 'online', code: '0123', you: 'p1', players: [
+        { slot: 'p1', name: 'Host', swordId: 'sword-1', connected: true, ready: true },
+        { slot: 'p2', name: 'Joining hero', swordId: 'sword-2', connected: true, ready },
+      ] };
+      return renderToStaticMarkup(createElement(ConnectionContext, { value: {
+        connection, poses: { p1: [1, 0, 0, 0], p2: [1, 0, 0, 0] },
+      } }, createElement(MatchProvider, { children: createElement(LobbyPages, {
+        lobby, onVoiceReply: async () => true, stopVoice() {},
+      }) })));
+    };
+    const joining = render(false);
+    assert.match(joining, /Joining hero/);
+    assert.match(joining, /Connecting sword…/);
+    assert.equal((joining.match(/>Connected</g) ?? []).length, 1);
+    const ready = render(true);
+    assert.doesNotMatch(ready, /Connecting sword…/);
+    assert.equal((ready.match(/>Connected</g) ?? []).length, 2);
+  } finally { connection.close(); }
+});
+
 test('guest bot requests accept conversational phrasing without becoming online commands', () => {
   for (const transcript of [
     'Hey Moss, can you play with SwampBot?', 'Moss, I want to play with Swamp Bot.',
@@ -254,10 +278,13 @@ test('lobby commands start the current quest or leave, without creating or switc
 
 test('lobby voice shares the host, player-readiness, connection and busy checks with the buttons', () => {
   const lobby: LobbyState = { mode: 'online', code: '0123', you: 'p1', players: [
-    { slot: 'p1', name: 'Hero', swordId: 'sword-1', connected: true },
-    { slot: 'p2', name: 'Rival', swordId: 'sword-2', connected: true },
+    { slot: 'p1', name: 'Hero', swordId: 'sword-1', connected: true, ready: true },
+    { slot: 'p2', name: 'Rival', swordId: 'sword-2', connected: true, ready: true },
   ] };
   const context = { lobby, pending: false, onlineStatus: 'open' as const };
+  assert.equal(planLobbyControl({ kind: 'begin' }, { ...context, lobby: { ...lobby,
+    players: lobby.players.map(player => ({ ...player, ready: player.slot === 'p1' })),
+  } }).ok, false, 'A joined player cannot start before finishing sword setup');
   assert.deepEqual(planLobbyControl({ kind: 'begin' }, context), {
     ok: true, message: { type: 'quest.begin' }, reply: MOSS_COMMAND_REPLIES.startQuest,
   });

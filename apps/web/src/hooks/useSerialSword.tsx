@@ -1,8 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { SWORD_COLORS, getSpell, type FighterState, type PhysicalSwordNumber, type SwordColor } from '../game/types';
+import { SWORD_COLORS, SWORD_FIRE_WINDOW_MS, getSpell, type FighterState, type PhysicalSwordNumber, type SwordColor } from '../game/types';
 import { openSerialSword, parseSwordLine, serialSupported, swordNumberOf, swordSpellNumber, type SwordEvent, type SwordLink } from '../net/serialSword';
-import { SWORD_COLORS, SWORD_FIRE_WINDOW_MS, getSpell, type FighterState, type SwordColor } from '../game/types';
-import { openSerialSword, parseSwordLine, serialSupported, swordSpellNumber, type SwordEvent, type SwordLink } from '../net/serialSword';
 import { bluetoothSupported, openBluetoothSword } from '../net/bluetoothSword';
 import { useMatch } from './useMatch';
 
@@ -270,10 +268,8 @@ export function SerialSwordProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<SerialSwordValue>(
-    () => ({ supported: { usb: serialSupported(), bluetooth: bluetoothSupported() }, transport, status, swordNumber, firing, error, connect, disconnect }),
-    [transport, status, swordNumber, firing, error, connect, disconnect],
-    () => ({ supported: { usb: serialSupported(), bluetooth: bluetoothSupported() }, transport, status, firing: firingUntil !== null, firingUntil, error, connect, disconnect }),
-    [transport, status, firingUntil, error, connect, disconnect],
+    () => ({ supported: { usb: serialSupported(), bluetooth: bluetoothSupported() }, transport, status, swordNumber, firing: firingUntil !== null, firingUntil, error, connect, disconnect }),
+    [transport, status, swordNumber, firingUntil, error, connect, disconnect],
   );
   return <SerialSwordContext value={value}>{children}</SerialSwordContext>;
 }

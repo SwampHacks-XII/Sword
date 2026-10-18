@@ -21,6 +21,8 @@ export interface LobbyPlayer {
   /** The physical sword this player has connected (its firmware SWORD_ID), if any. */
   physicalSword?: PhysicalSwordNumber;
   connected: boolean;
+  /** The player has finished the sword/keyboard setup page for this room. */
+  ready?: boolean;
 }
 
 export interface LobbyState {

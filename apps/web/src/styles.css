@@ -362,6 +362,10 @@ button { touch-action: manipulation; }
   transition: transform 100ms steps(1), background 100ms steps(1);
 }
 .difficulty-button > span { font-family: var(--label-font); text-transform: capitalize; }
+.difficulty-button:disabled { opacity: 1; }
+.difficulty-easy { background: var(--rune-red); }
+.difficulty-medium { background: var(--rune-yellow); }
+.difficulty-hard { background: var(--rune-green); }
 .difficulty-button small, .heal-button small { font-size: .72rem; line-height: 1.4; color: var(--ink-soft); }
 .difficulty-button:hover:not(:disabled), .heal-button:hover:not(:disabled) { background: #fbf0d6; transform: translateY(-4px); --sy: 8px; }
 .difficulty-button:active:not(:disabled), .heal-button:active:not(:disabled) { transform: translateY(4px); --sy: 0px; }
