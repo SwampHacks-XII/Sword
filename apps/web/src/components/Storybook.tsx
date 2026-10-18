@@ -12,14 +12,11 @@ import { swordSetupSpread } from './SwordSetupPages';
 import { BOOK_SPREAD as SPREAD, reportBookArrival } from '../story/bookNavigation';
 import { MossVoice } from './MossVoice';
 
-/** Swap in an image path (e.g. '/art/logo.png') once the logo art exists. */
-const LOGO_SRC: string | null = null;
-
 function CoverPage() {
   return <>
     <span className="book-cover-tagline">A tale of two selves</span>
     <h1 className="book-cover-logo">
-      {LOGO_SRC ? <img src={LOGO_SRC} alt="Sword" /> : <><span aria-hidden="true">⚔</span> SWORD <span aria-hidden="true">✦</span></>}
+      <span aria-hidden="true">⚔</span> HEXDUEL <span aria-hidden="true">✦</span>
     </h1>
     <span className="book-cover-rule" aria-hidden="true">◆◆◆</span>
     <button type="button" className="quest-button" onClick={() => navigate('lore')}>Start <span aria-hidden="true">→</span></button>

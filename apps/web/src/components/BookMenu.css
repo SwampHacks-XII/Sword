@@ -199,7 +199,6 @@
 @keyframes book-shrink { to { opacity: 0; transform: scale(.72) translateY(6%); } }
 
 .book-cover-logo { margin: 0; font: 700 clamp(28px, 5vw, 56px)/1 var(--pixel-font); letter-spacing: .14em; text-shadow: 4px 4px 0 var(--book-edge); }
-.book-cover-logo img { display: block; max-width: 100%; max-height: 40%; }
 .book-cover-logo span { font-size: .55em; letter-spacing: 0; vertical-align: middle; }
 .book-cover-tagline { margin: 0; font: 400 clamp(8px, 1vw, 12px) var(--label-font); letter-spacing: .28em; text-transform: uppercase; color: #f6e6bf; }
 .book-cover-rule { color: #e9cf8f; font-size: 10px; letter-spacing: 1.2em; padding-left: 1.2em; }
