@@ -205,6 +205,8 @@ export function createMockConnection(loadStory?: BotStoryLoader): GameConnection
           if (rules.snapshot()?.phase === 'fighting') livePose = { q: message.q, at: Date.now() };
           break;
         case 'sword.link':
+          rules.setPhysicalSword(you, message.connected ? message.number ?? null : null);
+          break;
         case 'lobby.ready':
         case 'sword.hit':
           break; // Swamp Bot has no IR, so hits on both sides stay simulated.

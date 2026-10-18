@@ -1,4 +1,6 @@
 export type PlayerSlot = 'p1' | 'p2';
+/** Firmware SWORD_ID: sword 1 is pink, sword 2 is purple. */
+export type PhysicalSwordNumber = 1 | 2;
 export const PLAYER_SLOTS: readonly PlayerSlot[] = ['p1', 'p2'];
 export const otherSlot = (slot: PlayerSlot): PlayerSlot => (slot === 'p1' ? 'p2' : 'p1');
 
@@ -16,6 +18,8 @@ export interface LobbyPlayer {
   slot: PlayerSlot;
   name: string;
   swordId: string;
+  /** The physical sword this player has connected (its firmware SWORD_ID), if any. */
+  physicalSword?: PhysicalSwordNumber;
   connected: boolean;
   /** The player has finished the sword/keyboard setup page for this room. */
   ready?: boolean;

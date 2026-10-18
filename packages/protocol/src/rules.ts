@@ -3,7 +3,7 @@ import { ARMED_WINDOW_MS, MAX_HP, SPELLS, getSpell, HEAL_USES, HEAL_RANGE, HEAL_
 import {
   PLAYER_SLOTS, otherSlot,
   type CheckId, type CheckStatus, type DeviceChecks, type FighterState, type LobbyPlayer,
-  type LobbyState, type MatchEvent, type MatchState, type PlayerSlot,
+  type LobbyState, type MatchEvent, type MatchState, type PhysicalSwordNumber, type PlayerSlot,
 } from './types.js';
 import type { ServerMessage, SwordEvent } from './messages.js';
 
@@ -44,9 +44,18 @@ export class GameRules {
 
   addPlayer(slot: PlayerSlot, name: string) {
     if (!this.code) return;
+    const sword = this.players.find(p => p.slot === slot)?.physicalSword; // Survives reconnects.
     this.players = this.players.filter((p) => p.slot !== slot);
-    this.players.push({ slot, name: cleanName(name, slot === 'p1' ? 'Player 1' : 'Player 2'), swordId: swordIdFor(slot), connected: true });
+    this.players.push({ slot, name: cleanName(name, slot === 'p1' ? 'Player 1' : 'Player 2'), swordId: swordIdFor(slot), connected: true, ...(sword ? { physicalSword: sword } : {}) });
     this.players.sort((a, b) => a.slot.localeCompare(b.slot));
+    this.emitLobby();
+  }
+
+  /** Records which physical sword a player has connected (null: none). */
+  setPhysicalSword(slot: PlayerSlot, sword: PhysicalSwordNumber | null) {
+    const player = this.players.find(p => p.slot === slot);
+    if (!player || (player.physicalSword ?? null) === sword) return;
+    if (sword) player.physicalSword = sword; else delete player.physicalSword;
     this.emitLobby();
   }
 

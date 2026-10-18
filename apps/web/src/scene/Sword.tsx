@@ -2,20 +2,21 @@ import { useRef, type RefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Quaternion, type Group } from 'three';
 import type { PlayerSlot } from '../game/types';
+import { SWORD_TIP_COLORS } from '../game/swordColors';
 import type { PoseStore } from '../hooks/useSwordPoses';
 import { ModelSlot } from './ModelSlot';
 import { MODELS } from './models';
 
 const GRIP_DOTS = ['#e0607e', '#6d9be0', '#6cc489', '#e8c75a'];
-// Each player's blade ends in their own glowing tip.
-const TIP_COLORS: Record<PlayerSlot, string> = { p1: '#a35cff', p2: '#ff5fb0' };
+/** Each blade ends in its sword's glowing tip. Without physical swords, player 1 gets sword 1's colour and player 2 sword 2's. */
+const SLOT_TIPS: Record<PlayerSlot, string> = { p1: SWORD_TIP_COLORS[1], p2: SWORD_TIP_COLORS[2] };
 const target = new Quaternion();
 
 /**
  * One sword, pivoting at the grip. Identity orientation = blade straight up.
  * Sensor axes may need remapping here once the real MPU6050 mounting is known.
  */
-export function Sword({ slot, poses, pivotRef }: { slot: PlayerSlot; poses: PoseStore; pivotRef?: RefObject<Group | null> }) {
+export function Sword({ slot, poses, pivotRef, tip }: { slot: PlayerSlot; poses: PoseStore; pivotRef?: RefObject<Group | null>; tip?: string }) {
   const own = useRef<Group>(null);
   // The fighter can pass its own ref so the arms follow the smoothed sword orientation.
   const ref = pivotRef ?? own;
@@ -31,7 +32,7 @@ export function Sword({ slot, poses, pivotRef }: { slot: PlayerSlot; poses: Pose
   return (
     <group ref={ref}>
       <ModelSlot model={MODELS.sword}>
-        <SwordPlaceholder tip={TIP_COLORS[slot]} />
+        <SwordPlaceholder tip={tip ?? SLOT_TIPS[slot]} />
       </ModelSlot>
     </group>
   );

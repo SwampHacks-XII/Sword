@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { FitText } from './FitText';
 import { useSerialSword, type SerialSwordStatus, type SwordTransport } from '../hooks/useSerialSword';
+import { SWORD_COLOR_NAMES } from '../game/swordColors';
 
 type SetupActions = { onContinue(): void; onLeave(): void };
 
@@ -47,7 +48,12 @@ function SwordConnectionOptions({ onKeyboard }: { onKeyboard(): void }) {
         Keyboard
       </button>
     </div>
-    {SWORD_STATUS[sword.status] && <p className="hint" role="status">{SWORD_STATUS[sword.status]}</p>}
+    {SWORD_STATUS[sword.status] && <p className="hint" role="status">
+      {sword.status === 'ready' && sword.swordNumber
+        // The real SWORD_ID from the sword itself; the browser's Bluetooth list can show an old cached name.
+        ? `Sword ${sword.swordNumber} (${SWORD_COLOR_NAMES[sword.swordNumber]}) ready. Its buttons and motion drive your spells.`
+        : SWORD_STATUS[sword.status]}
+    </p>}
     {!sword.supported.bluetooth && !sword.supported.usb && <p className="hint">To use a physical sword, open the game in Chrome or Edge.</p>}
     {sword.error && <p className="error" role="alert">{sword.error}</p>}
   </>;

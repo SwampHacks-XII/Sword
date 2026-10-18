@@ -1,7 +1,7 @@
 // Messages used by the website, the online server, and the offline bot adapter.
 // A physical sword plugs into its player's laptop over USB; the website forwards its input as these messages.
 import type {
-  DeviceChecks, Gesture, LobbyState, MatchEvent, MatchState, PlayerSlot, Quat, SwordColor,
+  DeviceChecks, Gesture, PhysicalSwordNumber, LobbyState, MatchEvent, MatchState, PlayerSlot, Quat, SwordColor,
 } from './types.js';
 import type { QuestStory } from './quests.js';
 import type { SpellDifficulty } from './spells.js';
@@ -35,7 +35,7 @@ export type ClientMessage =
   /** Live orientation from this player's USB-connected sword; relayed to both players during battle. */
   | { type: 'sword.pose'; q: Quat }
   /** Whether this player has a physical sword connected. Real IR then decides hits against them. */
-  | { type: 'sword.link'; connected: boolean }
+  | { type: 'sword.link'; connected: boolean; number?: PhysicalSwordNumber }
   /** This player's sword received the opponent's IR shot carrying this token (1–255). */
   | { type: 'sword.hit'; shot: number }
   /** Keyboard stand-in for this player's sword while testing without hardware. */

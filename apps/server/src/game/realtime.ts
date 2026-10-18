@@ -11,6 +11,8 @@ import { prepareQuest, type QuestGenerator } from '@sword/protocol';
 /** Live sword poses older than this fall back to the keyboard animation. */
 const LIVE_POSE_MS = 500;
 const unit = z.number().min(-1.0001).max(1.0001);
+/** How long a hit report can wait for its shot's "fired" message to arrive. */
+const EARLY_HIT_MS = 2000;
 /** The 1–255 token a physical sword puts in its IR signal. */
 const token = z.number().int().min(1).max(255);
 const poseSchema = z.object({ type: z.literal('sword.pose'), q: z.tuple([unit, unit, unit, unit]) }).strict();
@@ -31,7 +33,7 @@ const commandSchema = z.discriminatedUnion('type', [
     z.object({ kind: z.literal('gesture'), gesture: z.enum(['swing_left', 'swing_right', 'wrist_rotate', 'upright']) }).strict(),
     z.object({ kind: z.literal('trigger'), shot: token.optional() }).strict(),
   ]) }).strict(),
-  z.object({ type: z.literal('sword.link'), connected: z.boolean() }).strict(),
+  z.object({ type: z.literal('sword.link'), connected: z.boolean(), number: z.union([z.literal(1), z.literal(2)]).optional() }).strict(),
   z.object({ type: z.literal('sword.hit'), shot: token }).strict(),
 ]);
 type Snapshot = Awaited<ReturnType<GameStore['getMatch']>>;
@@ -44,6 +46,8 @@ interface Room {
   poses: ReturnType<typeof createPoseSimulator>; livePoses: Partial<Record<PlayerSlot, { q: Quat; at: number }>>;
   /** Players with a physical sword; IR then decides hits against them. physicalShots: "<attacker slot>:<IR token>" -> shotId. */
   swords: Partial<Record<PlayerSlot, boolean>>; physicalShots: Map<string, string>;
+  /** Hit reports that beat their own shot to the server (both travel sword -> browser -> server): key -> received at. */
+  earlyHits: Map<string, number>;
   prepared: Partial<Record<PlayerSlot, boolean>>;
   hostSubject?: string;
   disconnectDeadline: number | null; shot: number; closing: boolean; closeSubject: string;
@@ -121,7 +125,7 @@ export function createRealtimeHub(game: GameStore, players: PlayerStore, origin:
       if (rooms.size >= 100) throw new ApiError(503, 'rooms_full', 'The server is busy. Try again shortly.');
       const host = snapshot.players.find(p => p.slot === 1)!;
       const fresh: Room = {
-        id: matchId, snapshot, peers: new Set(), rules: null!, poses: createPoseSimulator(), livePoses: {}, swords: {}, physicalShots: new Map(), prepared: {},
+        id: matchId, snapshot, peers: new Set(), rules: null!, poses: createPoseSimulator(), livePoses: {}, swords: {}, physicalShots: new Map(), earlyHits: new Map(), prepared: {},
         disconnectDeadline: null, shot: 0, closing: false, closeSubject: peer.subject!, quest: null,
         previousBriefings: [], briefing: prepareQuest({ roundNumber: snapshot.roundNumber, previousBriefings: [] }, options.generateStory, options.storyWaitMs),
       };
@@ -197,6 +201,12 @@ export function createRealtimeHub(game: GameStore, players: PlayerStore, origin:
         broadcast(room, { type: 'lobby.state', lobby: room.rules.lobby() });
       }
       room.swords[peer.slot] = command.connected;
+      room.rules.setPhysicalSword(peer.slot, command.connected ? command.number ?? null : null);
+      const numbers = room.rules.lobby()?.players.map(p => p.physicalSword);
+      // Each sword ignores IR carrying its own number, so matching numbers can never hit each other.
+      if (command.connected && command.number && numbers?.filter(n => n === command.number).length === 2) {
+        broadcast(room, { type: 'error', message: `Both players connected Sword ${command.number}. Flash one sword as SWORD_ID ${command.number === 1 ? 2 : 1} so they can hit each other.` });
+      }
       return;
     }
     if (command.type === 'device.check') {
@@ -266,6 +276,7 @@ export function createRealtimeHub(game: GameStore, players: PlayerStore, origin:
       room.poses = createPoseSimulator();
       room.livePoses = {};
       room.physicalShots.clear();
+      room.earlyHits.clear();
       room.rules.returnToLobby();
       for (const slot of ['p1', 'p2'] as const) broadcast(room, { type: 'sword.pose', slot, q: [1, 0, 0, 0] });
       return;
@@ -279,8 +290,14 @@ export function createRealtimeHub(game: GameStore, players: PlayerStore, origin:
     if (command.type === 'sword.hit') {
       // Reported by the victim's own sword, so a player can only ever report hits against themselves.
       const attacker = otherSlot(slot);
-      const shotId = room.physicalShots.get(`${attacker}:${command.shot}`);
+      const key = `${attacker}:${command.shot}`;
+      const shotId = room.physicalShots.get(key);
       if (shotId) room.rules.handleSword({ type: 'sword.hit', attackerSwordId: swordIdFor(attacker), victimSwordId: swordId, shotId });
+      else {
+        // The attacker's "fired" message may still be on its way; the sword reports each shot only once.
+        if (room.earlyHits.size > 50) room.earlyHits.clear();
+        room.earlyHits.set(key, Date.now());
+      }
       return;
     }
     if (command.input.kind === 'button') room.rules.handleSword({ type: 'sword.button', swordId, color: command.input.color });
@@ -291,9 +308,14 @@ export function createRealtimeHub(game: GameStore, players: PlayerStore, origin:
       const shotId = `${room.id}:${++room.shot}`;
       // A physical shot against a player with a sword lands only when that sword reports the IR.
       const realIr = command.input.shot !== undefined && !!room.swords[otherSlot(slot)];
-      if (realIr) room.physicalShots.set(`${slot}:${command.input.shot}`, shotId);
+      const key = `${slot}:${command.input.shot}`;
+      if (realIr) room.physicalShots.set(key, shotId);
       const result = room.rules.handleSword({ type: 'sword.trigger', swordId, shotId, ...(realIr ? { ttlMs: PHYSICAL_SHOT_MS } : {}) });
-      if (result === 'fired' && !realIr) {
+      const early = room.earlyHits.get(key);
+      room.earlyHits.delete(key);
+      if (result === 'fired' && realIr && early !== undefined && Date.now() - early <= EARLY_HIT_MS) {
+        room.rules.handleSword({ type: 'sword.hit', attackerSwordId: swordId, victimSwordId: swordIdFor(otherSlot(slot)), shotId });
+      } else if (result === 'fired' && !realIr) {
         // Otherwise (keyboard practice, or an opponent without a sword) the hit is simulated.
         room.rules.handleSword({ type: 'sword.hit', attackerSwordId: swordId, victimSwordId: swordIdFor(otherSlot(slot)), shotId });
       }
@@ -327,6 +349,7 @@ export function createRealtimeHub(game: GameStore, players: PlayerStore, origin:
         room.prepared[peer.slot!] = false;
         room.swords[peer.slot!] = false;
         room.rules.setConnected(peer.slot!, false);
+        room.rules.setPhysicalSword(peer.slot!, null);
         room.disconnectDeadline ??= Date.now() + (options.disconnectGraceMs ?? 30_000);
       });
     });

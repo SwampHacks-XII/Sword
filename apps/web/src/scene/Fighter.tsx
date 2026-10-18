@@ -59,9 +59,11 @@ interface FighterProps {
   facing: number;
   lastHitAt?: number;
   shielded: boolean;
+  /** Blade tip colour of the physical sword this player holds, if known. */
+  swordTip?: string;
 }
 
-export function Fighter({ slot, poses, position, facing, lastHitAt, shielded }: FighterProps) {
+export function Fighter({ slot, poses, position, facing, lastHitAt, shielded, swordTip }: FighterProps) {
   // One material per fighter for each tone, so every body part flashes together when hit.
   const skin = useMemo(() => new MeshStandardMaterial({ color: SKIN, flatShading: true }), []);
   const shade = useMemo(() => new MeshStandardMaterial({ color: SHADE, flatShading: true }), []);
@@ -82,7 +84,7 @@ export function Fighter({ slot, poses, position, facing, lastHitAt, shielded }: 
         <KnightFigure skin={skin} shade={shade} sword={sword} />
       </ModelSlot>
       <group ref={grip} position={REACH.clone().add(CHEST)}>
-        <Sword slot={slot} poses={poses} pivotRef={sword} />
+        <Sword slot={slot} poses={poses} pivotRef={sword} tip={swordTip} />
       </group>
       {shielded && (
         <mesh position={[0, 1.1, 0]}>

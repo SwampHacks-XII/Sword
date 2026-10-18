@@ -375,7 +375,14 @@ test('against a player with a physical sword, damage waits for their sword to re
   const b = await socketClient('bob', matchId);
   try {
     await a.wait(m => m.type === 'lobby.state' && m.lobby?.players.filter(p => p.connected).length === 2);
-    b.send({ type: 'sword.link', connected: true });
+    b.send({ type: 'sword.link', connected: true, number: 2 });
+    await a.wait(m => m.type === 'lobby.state' && m.lobby?.players.find(p => p.slot === 'p2')?.physicalSword === 2);
+    // Two swords with the same number ignore each other's IR, so both players are warned.
+    a.send({ type: 'sword.link', connected: true, number: 2 });
+    await b.wait(m => m.type === 'error' && m.message.includes('Both players connected Sword 2'));
+    a.send({ type: 'sword.link', connected: false });
+    await b.wait(m => m.type === 'lobby.state' && !m.lobby?.players.find(p => p.slot === 'p1')?.physicalSword);
+    a.send({ type: 'lobby.ready', ready: true }); b.send({ type: 'lobby.ready', ready: true });
     a.send({ type: 'quest.begin' });
     await a.wait(m => m.type === 'quest.state' && !!m.quest?.story);
     a.send({ type: 'quest.accept' }); b.send({ type: 'quest.accept' });
@@ -401,6 +408,19 @@ test('against a player with a physical sword, damage waits for their sword to re
     const hp = b.latestMatch()!.fighters.p2.hp;
     await new Promise(resolve => setTimeout(resolve, 150));
     assert.equal(b.latestMatch()!.fighters.p2.hp, hp);
+    // Over the internet the victim's IR report can reach the server before the attacker's "fired" message.
+    from = a.messages.length;
+    a.send({ type: 'spell.choose', difficulty: 'easy' });
+    await a.wait(m => m.type === 'match.state' && m.match?.fighters.p1.castPhase === 'enter', from);
+    const second = getSpell(a.latestMatch()!.fighters.p1.spellId!);
+    b.send({ type: 'sword.hit', shot: 43 });
+    await new Promise(resolve => setTimeout(resolve, 100));
+    from = a.messages.length;
+    for (const color of second.combo) a.send({ type: 'dev.sword', input: { kind: 'button', color } });
+    a.send({ type: 'dev.sword', input: { kind: 'gesture', gesture: second.gesture } });
+    a.send({ type: 'dev.sword', input: { kind: 'trigger', shot: 43 } });
+    await a.wait(m => m.type === 'match.event' && m.event.kind === 'hit', from);
+    await b.wait(m => m.type === 'match.state' && !!m.match && m.match.fighters.p2.hp < hp);
     await call('alice', 'POST', `/matches/${matchId}/leave`, {});
   } finally { a.ws.close(); b.ws.close(); }
 });

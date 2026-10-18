@@ -14,7 +14,7 @@
 //                                           POSE,w,x,y,z           orientation (~20 Hz)
 //
 // Debug output (lines not starting with "S<digit>,") is ignored.
-import { SPELLS, type Quat } from '../game/types';
+import { SPELLS, type PhysicalSwordNumber, type Quat } from '../game/types';
 
 export const SWORD_BAUD_RATE = 115200;
 
@@ -61,6 +61,12 @@ export function parseSwordLine(line: string): SwordEvent | null {
     }
     default: return null;
   }
+}
+
+/** The sword's real SWORD_ID, from the "S1," / "S2," prefix on every event (the browser's device list can show stale names). */
+export function swordNumberOf(line: string): PhysicalSwordNumber | null {
+  const match = /^S([12]),/.exec(line.trim());
+  return match ? (Number(match[1]) as PhysicalSwordNumber) : null;
 }
 
 /** The firmware numbers spells 1–9 in the same order as SPELLS. */

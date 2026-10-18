@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { SPELLS, SWORD_FIRE_WINDOW_MS, GameRules, getSpell, type ServerMessage, type ClientMessage } from '@sword/protocol';
 import { readFile } from 'node:fs/promises';
-import { parseSwordLine, swordSpellNumber } from '../src/net/serialSword';
+import { parseSwordLine, swordNumberOf, swordSpellNumber } from '../src/net/serialSword';
 import { createMockConnection } from '../src/net/mock/mockConnection';
 
 test('sword events parse into game input; debug output and malformed lines are ignored', () => {
@@ -20,6 +20,13 @@ test('sword events parse into game input; debug output and malformed lines are i
     'S1,SEL,X', 'S1,STEP,0,1', 'S1,FIRE,300', 'S1,HIT,2', 'S1,POSE,1,0,0', 'S1,POSE,1,0,0,nan', 'S1,POSE,2,0,0,0', 'S1,BAD_CMD']) {
     assert.equal(parseSwordLine(line), null, line);
   }
+});
+
+test('the real sword number comes from every event, not the Bluetooth device name', () => {
+  assert.equal(swordNumberOf('S1,PONG'), 1);
+  assert.equal(swordNumberOf('S2,POSE,1,0,0,0\r'), 2);
+  assert.equal(swordNumberOf('Sword 2 ready; BLE advertising as Sword2'), null);
+  assert.equal(swordNumberOf('S3,PONG'), null);
 });
 
 test('spell numbers and colours match the firmware table', () => {
