@@ -7,12 +7,14 @@ import { MOSS_COMMAND_REPLIES } from '@sword/protocol';
 import type { BookSpread } from './BookMenu';
 import { Knight } from './Knight';
 import { confirmLeaveGame } from '../story/confirmLeaveGame';
+import { navigate, useScreen } from '../hooks/useScreen';
 
 /** Start/leave by button or voice. Voice commands wait for Moss to finish replying before acting. */
 export function useLobbyControls(lobby: LobbyState | null, { onVoiceReply, stopVoice }: {
   onVoiceReply(text: string): Promise<boolean>; stopVoice(): void;
 }) {
   const { send, onlineStatus, pending } = useMatch();
+  const screen = useScreen();
   const [acting, setActing] = useState(false);
   const actingRef = useRef(false);
   const mounted = useRef(true);
@@ -37,21 +39,25 @@ export function useLobbyControls(lobby: LobbyState | null, { onVoiceReply, stopV
       if (voice && !await onVoiceReply(plan.reply)) return;
       if (!mounted.current || !latestContext.current) return;
       const refreshed = planLobbyControl(command, latestContext.current);
-      if (refreshed.ok) send(refreshed.message);
+      if (refreshed.ok) { send(refreshed.message); return true; }
       else void onVoiceReply(refreshed.reply);
     } finally { actingRef.current = false; if (mounted.current) setActing(false); }
   }
+  async function leaveGame(voice = false) {
+    if (await submitCommand({ kind: 'leave' }, voice) && screen === 'practice') navigate('login');
+  }
   function voiceCommand(text: string) {
     const command = parseMossLobbyCommand(text);
-    if (command) void submitCommand(command, true);
+    if (command?.kind === 'leave') void leaveGame(true);
+    else if (command) void submitCommand(command, true);
     else void onVoiceReply(MOSS_COMMAND_REPLIES.lobbyUnknown);
   }
-  return { acting, canStart: !!start?.ok, canLeave: !!leave?.ok, submitCommand, voiceCommand, stopVoice };
+  return { acting, canStart: !!start?.ok, canLeave: !!leave?.ok, submitCommand, leaveGame, voiceCommand, stopVoice };
 }
 
 /** The party on the left page; the party code and the call to begin on the right. */
 export function lobbySpread(lobby: LobbyState | null, { error, onlineStatus, pending }: ReturnType<typeof useMatch>,
-  { acting, canStart, canLeave, submitCommand, voiceCommand, stopVoice }: ReturnType<typeof useLobbyControls>): BookSpread {
+  { acting, canStart, canLeave, submitCommand, leaveGame, voiceCommand, stopVoice }: ReturnType<typeof useLobbyControls>, voiceActive = false): BookSpread {
   // Before any lobby exists this spread is never shown, but the book still needs pages for it.
   if (!lobby) return { left: { kicker: 'Your party' }, right: { kicker: 'Party code' } };
   const online = lobby.mode === 'online';
@@ -92,9 +98,9 @@ export function lobbySpread(lobby: LobbyState | null, { error, onlineStatus, pen
           <button type="button" className="quest-button" disabled={acting || !canStart} onClick={() => void submitCommand({ kind: 'begin' })}>
             Start my quest <span aria-hidden="true">→</span>
           </button>
-          <button type="button" className="secondary-button leave-game-button" disabled={acting || !canLeave} onClick={() => void submitCommand({ kind: 'leave' })}>Leave game <span aria-hidden="true">↗</span></button>
+          <button type="button" className="secondary-button leave-game-button" disabled={acting || !canLeave} onClick={() => void leaveGame()}>Leave game <span aria-hidden="true">↗</span></button>
         </div>
-        <MossCommandInput disabled={pending || acting} onTranscript={voiceCommand} stopVoice={stopVoice}
+        <MossCommandInput active={voiceActive} disabled={pending || acting} onTranscript={voiceCommand} stopVoice={stopVoice}
           example="Try “Hey Moss, start my quest” or “leave the room.”" />
         {acting && <p className="hint" role="status">Moss is answering before turning the page…</p>}
         {online && !host && <p className="hint">Waiting for the host to begin your quest.</p>}

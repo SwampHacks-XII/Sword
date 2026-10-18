@@ -12,6 +12,7 @@ import { useNow } from './hooks/useNow';
 import { useSwordPoses } from './hooks/useSwordPoses';
 import { MusicControls } from './components/MusicControls';
 import { LeaveGameDialog } from './components/LeaveGameDialog';
+import { gameExitScreen } from './story/leaveBattle';
 const loadArena = () => import('./scene/Arena');
 const Arena = lazy(() => loadArena().then(module => ({ default: module.Arena })));
 
@@ -57,7 +58,7 @@ export function App() {
       <main className="overlay">
         {handoff ? <QuestHandoff />
           : match && !quest ? <BattleScreen match={match} you={you} now={now}
-            onLeave={() => navigate(session.authenticated ? 'play' : 'practice')} />
+            onLeave={() => navigate(gameExitScreen(screen, session.authenticated))} />
           : <div className="entry-layout storybook-layout">
             <Storybook onClosed={() => setBookClosed(true)}
               swordReady={swordReady} onSwordReady={() => setPreparedRoom(roomKey)}

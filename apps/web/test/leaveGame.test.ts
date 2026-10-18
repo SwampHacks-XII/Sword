@@ -3,7 +3,21 @@ import { test } from 'node:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createLeaveConfirmation, leaveConfirmation } from '../src/story/confirmLeaveGame';
-import { leaveBattle } from '../src/story/leaveBattle';
+import { gameExitScreen, leaveBattle } from '../src/story/leaveBattle';
+
+test('practice returns to sign-in after leaving or finishing a battle; online games return to game choices', async () => {
+  for (const authenticated of [false, true]) {
+    const calls: string[] = [];
+    const result = leaveBattle(message => calls.push(message.type), () => {
+      calls.push(gameExitScreen('practice', authenticated));
+    });
+    assert.deepEqual(calls, []);
+    leaveConfirmation.resolve(true);
+    await result;
+    assert.deepEqual(calls, ['lobby.leave', 'login']);
+  }
+  assert.equal(gameExitScreen('play', true), 'play');
+});
 
 test('leaving a battle returns to game choices only after confirmation and the room-leave command', async () => {
   for (const confirmed of [false, true]) {

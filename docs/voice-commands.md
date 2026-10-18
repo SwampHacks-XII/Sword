@@ -9,13 +9,37 @@ temporary words are marked **not final yet** and never execute a game action.
 If the browser cannot start or finish recognition, its error replaces the
 example prompt.
 
+## Hands-free “Hey Moss”
+
+On game choices or a game lobby, enable **Hands-free “Hey Moss”** once and allow
+microphone access. Say **Hey Moss**, listen for the two-note chime, then say one
+command. A single utterance such as **Hey Moss, play with Swamp Bot** also works.
+The existing **Talk to Moss** button captures one command without the wake phrase.
+
+Hands-free mode continuously uses the browser's speech recognition service to
+look for the wake phrase. Unrelated speech does not reach the command handler or
+the **Heard** caption. It may still be processed by the browser's speech provider.
+No new model, provider account, API key, or Gemini call is used for wake detection.
+
+The opt-in lasts only for the current app session and carries between eligible
+pages. Recognition runs only on the fully opened game-choice or lobby page:
+it stops during page turns, on sword setup, the cover, lore, sign-in, quests and
+battles, and while the tab is hidden. Busy actions and Moss's narration pause it.
+It resumes when an eligible page is ready and visible again. Permission, device,
+or speech-service failures turn hands-free off instead of repeatedly retrying.
+Normal silence restarts wake detection; an unanswered wake times out after ten
+seconds and returns to waiting for **Hey Moss**.
+
+Leave-game confirmation and all existing name, sign-in, connection and host
+checks still apply. Turn off the checkbox to stop hands-free listening.
+
 | Say | What happens |
 | --- | --- |
 | “Hey Moss, create a new game” | Creates an online room using your hero name |
 | “Hey Moss, join room code zero one two three” | Joins room `0123` |
 | “Hey Moss, play with Swamp Bot” | Opens a bot practice lobby |
 | “Hey Moss, sign out” / “Log me out” | Signs out through Auth0 and returns to sign-in |
-| “Hey Moss, leave game” | Returns to the welcome page; keeps an existing login |
+| “Hey Moss, leave game” | Practice returns to sign-in; online game choices return to the cover. Keeps an existing login |
 
 “Hey Moss” is optional after clicking the microphone. Say room digits one at a
 time, including any leading zero. Ordinary four-digit numerals also work.
@@ -87,6 +111,10 @@ No database migration or new environment variables are needed.
 
 ## Quick manual check
 
+0. Enable hands-free in game choices. Ordinary speech must not run an action.
+   Say **Hey Moss** and check the chime, then give a command. Also try a combined
+   utterance. Verify it pauses for Moss's speech, page turns, non-voice pages,
+   busy actions and hidden tabs. Turn it off and verify the button still works.
 1. Sign in, enter a hero name, click the microphone, and ask Moss to create a game.
    Verify exactly one lobby opens and Moss acknowledges it.
 2. On another signed-in player, ask to join its four digits. Verify the same lobby.
