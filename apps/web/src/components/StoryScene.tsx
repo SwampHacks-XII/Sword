@@ -19,7 +19,7 @@ export function StoryScene({ title, paragraphs, action, onContinue, disabled, st
   return <Parchment className="story-scroll dialogue-scroll">
     <h1>{title}</h1>
     <div className="speaker-line"><span className="speaker-dot" /> Moss</div>
-    {narration && <MossVoice text={paragraphs.join(' ')} controlRef={voice} />}
+    <div className="story-voice">{narration && <MossVoice text={paragraphs.join(' ')} controlRef={voice} />}</div>
     <div className="story-dialogue">
       <div className="sr-only" aria-live="polite">{paragraphs.map(text => <p key={text}>{text}</p>)}</div>
       <div aria-hidden="true">{paragraphs.map(text => {
@@ -29,12 +29,11 @@ export function StoryScene({ title, paragraphs, action, onContinue, disabled, st
     </div>
     <div className="dialogue-toolbar">
       {page && <span className="dialogue-page">Page {page}</span>}
-      {visible < total ? <button type="button" className="text-button" onClick={showAll}>Show all dialogue <span aria-hidden="true">↠</span></button>
-        : <span className="dialogue-finished">A new page is waiting.</span>}
+      {visible < total && <button type="button" className="text-button" onClick={showAll}>Show all dialogue <span aria-hidden="true">↠</span></button>}
     </div>
     <div className="story-actions">
-      <button type="button" className="quest-button" disabled={disabled} onClick={() => { voice.current?.stop(); onContinue(); }}>{action}<span aria-hidden="true">→</span></button>
       {status && <p className="hint quest-status" role="status">{status}</p>}
+      <button type="button" className="quest-button" disabled={disabled} onClick={() => { voice.current?.stop(); onContinue(); }}>{action}<span aria-hidden="true">→</span></button>
       {error && <p className="error" role="alert">{error}</p>}
       {onLeave && <button type="button" className="secondary-button leave-game-button" onClick={onLeave}>Leave game <span aria-hidden="true">↗</span></button>}
     </div>

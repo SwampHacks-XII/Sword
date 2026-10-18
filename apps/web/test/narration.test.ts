@@ -4,7 +4,13 @@ import { createNarrator, type NarrationState } from '../src/story/narration';
 import { MOSS_REACTIONS, mossReaction } from '../src/story/reactions';
 import { createMossNarrator } from '../src/story/elevenLabsNarration';
 import { loadMossAudio } from '../src/net/voice';
-import { MOSS_PROLOGUE, MOSS_CHEER, MOSS_ENDINGS, FALLBACK_BRIEFINGS } from '@sword/protocol';
+import { MOSS_PROLOGUE, MOSS_PROLOGUE_NARRATION, MOSS_NAME_PROMPT, MOSS_CHEER, MOSS_ENDINGS, FALLBACK_BRIEFINGS, isPublicMossLine } from '@sword/protocol';
+
+test('the condensed prologue narrates both pages as one guest-accessible introduction', () => {
+  assert.equal(MOSS_PROLOGUE_NARRATION, MOSS_PROLOGUE.flatMap(page => page.text).join(' '));
+  assert.ok(MOSS_PROLOGUE_NARRATION.split(/\s+/).length <= 65);
+  assert.equal(isPublicMossLine(MOSS_PROLOGUE_NARRATION), true);
+});
 
 test('browser narration uses an English device voice, replaces old speech, and stops cleanly', () => {
   const states: NarrationState[] = [];
@@ -158,7 +164,7 @@ test('opening dialogue, guest quests and battle lines use ElevenLabs before logi
     return new Response(new Uint8Array([73, 68, 51]), { headers: { 'Content-Type': 'audio/mpeg' } });
   };
   try {
-    const lines = [...MOSS_PROLOGUE.map(chapter => chapter.text.join(' ')), ...FALLBACK_BRIEFINGS,
+    const lines = [MOSS_PROLOGUE_NARRATION, MOSS_NAME_PROMPT, ...MOSS_PROLOGUE.map(chapter => chapter.text.join(' ')), ...FALLBACK_BRIEFINGS,
       ...Object.values(MOSS_REACTIONS).flat(), ...Object.values(MOSS_ENDINGS), MOSS_CHEER];
     for (const text of lines) await loadMossAudio(text, async () => { throw new Error('Built-in speech must not require login'); }, new AbortController().signal);
     assert.equal(calls.length, lines.length);

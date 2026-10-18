@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, type R
 import { describeAuthError, logoutOptions, type AuthIssue } from './errors';
 import { loginInPopup } from './popupLogin';
 import { navigate } from '../hooks/useScreen';
+import { signOutFromBook } from '../story/bookNavigation';
 
 interface Session {
   configured: boolean; loading: boolean; authenticated: boolean; subject: string; name: string; error: string | null;
@@ -24,6 +25,7 @@ const SessionContext = createContext<Session>(fallback);
 function AuthSession({ children }: { children: ReactNode }) {
   const auth = useAuth0();
   const popupRef = useRef<Window | null>(null);
+  const logoutAttempt = useRef<Promise<void> | null>(null);
   const [popupAttempt, setPopupAttempt] = useState(false);
   const issue = useMemo(() => {
     const result = auth.error ? describeAuthError(auth.error) : null;
@@ -68,7 +70,14 @@ function AuthSession({ children }: { children: ReactNode }) {
       popupRef.current?.close();
       navigate('login');
     },
-    logout: () => auth.logout(logoutOptions(window.location.origin)),
+    logout: () => {
+      if (!logoutAttempt.current) {
+        logoutAttempt.current = signOutFromBook(() => navigate('login'),
+          () => auth.logout(logoutOptions(window.location.origin)))
+          .finally(() => { logoutAttempt.current = null; });
+      }
+      return logoutAttempt.current;
+    },
     getToken: async () => {
       const token = await auth.getAccessTokenSilently();
       if (!token) throw new Error('Please sign in again.');

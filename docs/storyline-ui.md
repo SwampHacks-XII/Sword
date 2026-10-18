@@ -6,17 +6,64 @@ at the lower-left edge of the scroll. The guide is currently named **Moss**.
 
 ## Player journey
 
-1. **Welcome:** animated meadow, drifting clouds, floating light, and two sword-bearing figures.
-   The opening button is **I’ll draw my destiny**.
-2. **Prologue:** two animated dialogue pages introduce Moss and the evil twin.
-   The last button leads to login/sign-up. **Show all dialogue** skips the typing
-   effect; it never skips the page itself.
+1. **Welcome:** the closed storybook sits on the animated meadow. **Start** swings
+   the cover open to plain brown backing and a title leaf. That leaf then turns
+   automatically to reveal the two-page prologue. The cover stays opaque throughout;
+   the narrow layout also uses a cover turn followed by an upward leaf turn.
+   The cover has curved outer corners and square corners at the spine: the opened
+   inside face is rounded on the left and square on the right, with the front face
+   mirrored for the closed book. The first leaf has a separate flip and lands
+   directly against the spine, with its top and bottom aligned with the right page.
+   Animated leaves, resting pages, and stacks share the same grid dimensions and
+   matching inner borders, leaving a thin central seam instead of an open gap.
+   The first spread keeps these same bounds when the next page lands, so the
+   contents do not shift sideways when the left stack appears. No left layers
+   are shown during this first flip or while reading the first spread. The next page
+   flips normally above that sheet; its left stack is progressively uncovered
+   from the spine outward during the turn and is fully visible before landing.
+   The same stack stays mounted afterward, avoiding an end-of-turn pop.
+   Later page turns keep the stack, and closing the book resets this sequence.
+   The dark-brown binding is two persistent halves. Its halves and the moving
+   cover share the same bounds, including the book border, so the cover lands
+   at the resting cover's exact height without switching to a larger rectangle.
+   The inside cover is plain light-brown cardboard with a matching brown lining
+   visible on both the moving cover and its resting surface. The right title page
+   stays cream throughout opening. The exposed left edge is brown binding followed
+   by two cream paper layers, from outside to inside. On the right, the two cream
+   sheets sit above light-brown lining and the brown back cover. The backing stays
+   blank while the cover opens; the left paper layers reveal beneath the next turning page.
+   Matching light-brown cardboard remains beneath the pages on both inside covers.
+   The cardboard keeps its 92% size and scales from the spine edge, including on
+   the moving cover. The mirrored back-cover lining is anchored to the opposite
+   spine edge. Both pieces stay connected to their covers throughout the turns.
+   Opening uses a shorter cover turn and a brief 40 ms transition into the first
+   leaf. Its rotation slows gently into the landing, without a mid-turn dip. Its
+   inner-edge shading matches the resting page. The opening finishes on the leaf's
+   animation-end event, with a short delayed timer fallback if that event is unavailable.
+   The first leaf takes 1125 ms (80% of its original speed); cover and later turns
+   keep their existing timing. A fixed narration area is reserved throughout the
+   flip, so showing voice controls or loading/replay messages cannot recenter the text.
+   The mute/unmute control stays mounted on the prologue, including its turning
+   copy; only automatic speech waits for the page to finish opening.
+   All Moss voice controls keep the mute/unmute button visible while audio loads,
+   without displaying a preparing-voice message or a temporary initialization hint.
+2. **Prologue:** Moss appears on the left page beside a condensed introduction to
+   the evil twin. One narration reads both pages after the opening finishes.
+   **Mute Moss** keeps the saved voice preference; ElevenLabs has the existing browser
+   voice backup. Leaving the prologue immediately stops narration. The right-page
+   button leads to login/sign-up without waiting for the voice to finish.
 3. **Login/sign-up:** an open book shows Moss and a story passage on the left,
-   with Log in / Sign up on the right. Auth0 credentials open in a popup, keeping
+   with Log in / Sign up on the right. Moss reads “Let’s put your name in the story before your twin takes all
+   the credit.” after the spread lands. This built-in line works before login.
+   Sign out sits in a separate footer directly above Back to the tale.
+   Auth0 credentials open in a popup, keeping
    the book open behind it. Closing the window or choosing **Back to the book**
    leaves the player on the hero ledger. Successful authentication opens game selection. Signing out
    returns directly to the hero ledger. See [Auth0 appearance](auth0-appearance.md)
    for matching hosted-login colors and the optional back-button page template.
+   Returning to an earlier spread flips the page backward. Sign-out waits for the
+   return to the hero ledger before Auth0 redirects, and closing the book folds
+   the cover shut. The inside-left page stays visible on the moving cover as it opens.
 4. **Choose a game:** name your hero, create/join an online room, or train with Swamp Bot.
 5. **Ready your sword:** after creating or joining a room (including Swamp Bot),
    the book opens **Wait! You need your sword!**. Both modes show the Pairing,
@@ -32,6 +79,8 @@ at the lower-left edge of the scroll. The guide is currently named **Moss**.
    Swamp Bot is ready automatically and waits for the human player.
    Starting the quest closes the book directly into this briefing, without an
    extra Moss chat window or a chapter banner.
+   The scroll enters with a continuous ease-out animation, and its narration
+   controls keep a fixed space so audio loading cannot shift the panel as it arrives.
    Moss peeks around the scroll's lower-left corner with his speech bubble above
    him on the parchment, leaving the decorative knight unobstructed.
    Moss reads the script automatically. **Mute Moss** persists across pages and
@@ -44,6 +93,8 @@ at the lower-left edge of the scroll. The guide is currently named **Moss**.
    encouragement, and a looking-glass camera placeholder. Victory/defeat leads
    to rematch or leave. Rematch keeps the room, returns both players to its lobby,
    and lets them open a fresh briefing for the next round.
+   Confirming **Leave game** during combat or on the results screen returns to
+   game selection (online choices for signed-in players, practice choices for guests).
 
 The sword wordmark and music controls float over the scene with no header strip.
 In battle, the left column stacks health bars, Moss's voice switch, the game mode

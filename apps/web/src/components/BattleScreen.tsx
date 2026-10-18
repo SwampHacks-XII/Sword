@@ -9,11 +9,11 @@ import { HealthBars } from './HealthBars';
 import { Parchment } from './Parchment';
 import { SpellPanel } from './SpellPanel';
 import { BattleMoss } from './BattleMoss';
-import { confirmLeaveGame } from '../story/confirmLeaveGame';
+import { leaveBattle } from '../story/leaveBattle';
 import { MOSS_ENDINGS } from '@sword/protocol';
 import { MossVoice } from './MossVoice';
 
-export function BattleScreen({ match, you, now }: { match: MatchState; you: PlayerSlot; now: number }) {
+export function BattleScreen({ match, you, now, onLeave }: { match: MatchState; you: PlayerSlot; now: number; onLeave(): void }) {
   const { send, log, lobby, onlineStatus, error } = useMatch();
   const sword = useSerialSword();
   const fighting = match.phase === 'fighting';
@@ -23,7 +23,7 @@ export function BattleScreen({ match, you, now }: { match: MatchState; you: Play
   const mine = match.fighters[you];
   const theirs = match.fighters[otherSlot(you)];
   const endingLine = match.winner === you ? MOSS_ENDINGS.win : MOSS_ENDINGS.loss;
-  const leaveGame = async () => { if (await confirmLeaveGame()) send({ type: 'lobby.leave' }); };
+  const leaveGame = () => leaveBattle(send, onLeave);
   const eventLog = useRef<HTMLUListElement>(null);
   useEffect(() => {
     if (eventLog.current) eventLog.current.scrollTop = eventLog.current.scrollHeight;

@@ -56,7 +56,8 @@ export function App() {
       </header>
       <main className="overlay">
         {handoff ? <QuestHandoff />
-          : match && !quest ? <BattleScreen match={match} you={you} now={now} />
+          : match && !quest ? <BattleScreen match={match} you={you} now={now}
+            onLeave={() => navigate(session.authenticated ? 'play' : 'practice')} />
           : <div className="entry-layout storybook-layout">
             <Storybook onClosed={() => setBookClosed(true)}
               swordReady={swordReady} onSwordReady={() => setPreparedRoom(roomKey)}

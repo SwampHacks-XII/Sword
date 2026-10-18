@@ -2,6 +2,92 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { describeAuthError, loginOptions, logoutOptions } from '../src/auth/errors';
 import { loginInPopup } from '../src/auth/popupLogin';
+import { BOOK_SPREAD, BOOK_TIMING, playBookOpening, reportBookArrival, signOutFromBook } from '../src/story/bookNavigation';
+
+test('Start opens the cover, shows the first leaf, then turns it before the prologue is ready', t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const stages: string[] = [];
+  const cancel = playBookOpening(stage => stages.push(stage));
+  assert.deepEqual(stages, ['opening']);
+  t.mock.timers.tick(BOOK_TIMING.open - 1);
+  assert.deepEqual(stages, ['opening']);
+  t.mock.timers.tick(1);
+  assert.deepEqual(stages, ['opening', 'first-page']);
+  t.mock.timers.tick(BOOK_TIMING.firstPagePause);
+  assert.deepEqual(stages, ['opening', 'first-page', 'revealing']);
+  t.mock.timers.tick(BOOK_TIMING.firstPageTurn - 1);
+  assert.equal(stages.at(-1), 'revealing');
+  t.mock.timers.tick(1);
+  assert.equal(stages.at(-1), 'revealing', 'The fallback must not cut off the CSS landing');
+  t.mock.timers.tick(BOOK_TIMING.firstPageFallback);
+  assert.equal(stages.at(-1), 'open');
+  cancel();
+});
+
+test('leaving during opening cancels the remaining page turn and narration readiness', t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  for (const elapsed of [0, BOOK_TIMING.open, BOOK_TIMING.open + BOOK_TIMING.firstPagePause,
+    BOOK_TIMING.open + BOOK_TIMING.firstPagePause + BOOK_TIMING.firstPageTurn]) {
+    const stages: string[] = [];
+    const cancel = playBookOpening(stage => stages.push(stage));
+    t.mock.timers.tick(elapsed);
+    cancel();
+    const before = [...stages];
+    t.mock.timers.tick(10_000);
+    assert.deepEqual(stages, before);
+    assert.ok(!stages.includes('open'));
+  }
+});
+
+test('sign-out turns back to login and waits for that page before redirecting', async () => {
+  const calls: string[] = [];
+  reportBookArrival(BOOK_SPREAD.hub);
+  const result = signOutFromBook(() => calls.push('login'), async () => { calls.push('logout'); });
+  await Promise.resolve();
+  assert.deepEqual(calls, ['login']);
+  reportBookArrival(BOOK_SPREAD.sword);
+  await Promise.resolve();
+  assert.deepEqual(calls, ['login'], 'An unrelated or interrupted turn must not start logout');
+  reportBookArrival(BOOK_SPREAD.auth);
+  await result;
+  assert.deepEqual(calls, ['login', 'logout']);
+  reportBookArrival(null);
+});
+
+test('sign-out from login or outside the book needs no extra animation wait', async () => {
+  for (const spread of [BOOK_SPREAD.auth, null]) {
+    reportBookArrival(spread);
+    let loggedOut = false;
+    await signOutFromBook(() => {}, async () => { loggedOut = true; });
+    assert.equal(loggedOut, true);
+  }
+  await assert.rejects(signOutFromBook(() => {}, async () => { throw new Error('Logout failed'); }), /Logout failed/);
+});
+
+test('an unavailable animation cannot trap the user before logout', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  reportBookArrival(BOOK_SPREAD.hub);
+  let loggedOut = false;
+  const result = signOutFromBook(() => {}, async () => { loggedOut = true; });
+  t.mock.timers.tick(BOOK_TIMING.turn * 3 - 1);
+  await Promise.resolve();
+  assert.equal(loggedOut, false);
+  t.mock.timers.tick(1);
+  await result;
+  assert.equal(loggedOut, true);
+  reportBookArrival(null);
+});
+
+test('unmounting the book releases a pending logout without stale listeners', async () => {
+  reportBookArrival(BOOK_SPREAD.hub);
+  let calls = 0;
+  const result = signOutFromBook(() => {}, async () => { calls++; });
+  reportBookArrival(null);
+  await result;
+  reportBookArrival(BOOK_SPREAD.auth);
+  assert.equal(calls, 1);
+  reportBookArrival(null);
+});
 
 test('the observed API denial explains the required user-delegated grant', () => {
   const error = { error: 'invalid_request', message: 'Client "public-client" is not authorized to access resource server "https://sword-api".' };
