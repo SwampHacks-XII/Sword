@@ -95,6 +95,7 @@ export function createOnlineConnection(api: Api, emit: (message: ServerMessage) 
         return;
       }
       if (status !== 'open' || socket?.readyState !== WebSocket.OPEN) {
+        if (message.type === 'sword.pose') return; // Streamed constantly; a stale pose is not worth an error.
         emit({ type: 'error', message: 'Reconnecting to the game server…' }); return;
       }
       socket.send(JSON.stringify(message));

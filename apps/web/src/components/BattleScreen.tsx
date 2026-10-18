@@ -3,6 +3,7 @@ import { getSpell } from '../game/spells';
 import { otherSlot, type FighterState, type MatchEvent, type MatchState, type PlayerSlot } from '../game/types';
 import { useKeyboardSword } from '../hooks/useKeyboardSword';
 import { useMatch } from '../hooks/useMatch';
+import { useSerialSword } from '../hooks/useSerialSword';
 import { CameraPlaceholder } from './CameraPlaceholder';
 import { HealthBars } from './HealthBars';
 import { Parchment } from './Parchment';
@@ -14,6 +15,7 @@ import { MossVoice } from './MossVoice';
 
 export function BattleScreen({ match, you, now }: { match: MatchState; you: PlayerSlot; now: number }) {
   const { send, log, lobby, onlineStatus, error } = useMatch();
+  const sword = useSerialSword();
   const fighting = match.phase === 'fighting';
   const online = lobby?.mode === 'online';
   const connected = !online || (onlineStatus === 'open' && lobby?.players.every(p => p.connected));
@@ -37,7 +39,8 @@ export function BattleScreen({ match, you, now }: { match: MatchState; you: Play
             <HealthBars you={mine} opponent={theirs} now={now} />
             <div className="battle-controls">
               {voiceControl}
-              <p className="battle-mode">{online ? 'Online · keyboard practice' : 'Swamp Bot · keyboard practice'}</p>
+              <p className="battle-mode">{online ? 'Online' : 'Swamp Bot'} · {sword.status === 'ready' ? 'physical sword' : 'keyboard practice'}</p>
+              {sword.error && <p className="error" role="alert">{sword.error}</p>}
               {!connected && <p role="status">Waiting for both players to reconnect…</p>}
               {error && <p className="error" role="alert">{error}</p>}
               <button type="button" className="secondary-button leave-game-button" onClick={() => void leaveGame()}>Leave game <span aria-hidden="true">↗</span></button>

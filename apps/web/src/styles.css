@@ -272,6 +272,7 @@ button { touch-action: manipulation; }
 .status-ok { color: var(--ok); }
 .status-wait { color: var(--ink-soft); }
 .connect-panel { width: min(320px, 45vw); padding: 1.25rem 1.5rem; margin-right: 1rem; }
+.connect-panel .link-button { display: block; margin-top: .35rem; }
 .parchment-title { font-size: 1.45rem; font-weight: 500; margin: 0 0 1rem; }
 .checklist { list-style: none; margin: 0 0 .7rem; padding: 0; display: grid; gap: .5rem; font-size: .92rem; }
 .check { display: flex; justify-content: space-between; }

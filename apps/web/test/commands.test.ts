@@ -13,6 +13,7 @@ import { createCommandFeedback } from '../src/story/commandFeedback';
 import { executeMenuExit } from '../src/story/menuExit';
 import { ConnectionContext } from '../src/hooks/useConnection';
 import { MatchProvider, useMatch } from '../src/hooks/useMatch';
+import { SerialSwordProvider } from '../src/hooks/useSerialSword';
 import { lobbySpread, useLobbyControls } from '../src/components/LobbyPages';
 import { swordSetupSpread } from '../src/components/SwordSetupPages';
 import { SwordSetupForm } from '../src/components/SwordConnectPanel';
@@ -176,8 +177,8 @@ test('guest and online sword preparation both show the full checklist with no by
       connection: { kind, status: () => 'open', send: () => assert.fail('Rendering must not send device commands'),
         subscribe: () => () => {}, close() {} },
       poses: { p1: [1, 0, 0, 0], p2: [1, 0, 0, 0] },
-    } }, createElement(MatchProvider, { children: createElement('div', null,
-      createElement('h2', null, spread.left.title), spread.left.content, spread.right.content) })));
+    } }, createElement(MatchProvider, { children: createElement(SerialSwordProvider, { children: createElement('div', null,
+      createElement('h2', null, spread.left.title), spread.left.content, spread.right.content) }) })));
     assert.match(html, /Wait! You need your sword!/);
     assert.match(html, /<button[^>]*class="quest-button"[^>]*disabled=""[^>]*>Connect your sword/);
     for (const { label } of SWORD_CHECKS) assert.ok(html.includes(label));
@@ -205,6 +206,12 @@ test('Connect your sword unlocks only when all four checks have passed', () => {
   assert.equal(swordChecksPassed(ready), true);
   assert.match(render(ready), /All four practice checks passed!/);
   assert.match(render(ready), /<button type="button" class="quest-button">Connect your sword/);
+  const physical = renderToStaticMarkup(createElement(SwordSetupForm, {
+    checks: { pairing: 'pending', lights: 'pending', motion: 'pending', camera: 'pending' },
+    swordReady: true, onCalibrate() {}, onContinue() {}, onLeave() {},
+  }));
+  assert.match(physical, /<button type="button" class="quest-button">Connect your sword/, 'A ready physical sword skips practice calibration');
+  assert.match(physical, /physical sword is connected and ready/);
 });
 
 test('practice calibration stays locked until completion and cancels updates when leaving', t => {

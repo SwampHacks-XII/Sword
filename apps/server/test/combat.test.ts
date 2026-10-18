@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { GameRules, getSpell, SPELLS, DAMAGE_RANGES, HEAL_COOLDOWN_MS, type ServerMessage, type SpellDifficulty } from '@sword/protocol';
+import { GameRules, getSpell, SPELLS, DAMAGE_RANGES, HEAL_COOLDOWN_MS, PHYSICAL_SHOT_MS, type ServerMessage, type SpellDifficulty } from '@sword/protocol';
 
 function setup(random = () => 0) {
   const messages: ServerMessage[] = [];
@@ -23,7 +23,7 @@ function setup(random = () => 0) {
 }
 
 test('all nine spells have the exact requested sequences and difficulty ranges', () => {
-  const numbers = { red: 1, blue: 2, green: 3, yellow: 4 };
+  const numbers = { red: 1, yellow: 2, green: 3, blue: 4 };
   const expected = ['2-2-2', '1-2-3', '4-2-4', '2-2-4-1-3', '1-2-3-1-2', '4-4-2-3-1', '2-4-2-2-3-1-3', '1-2-1-3-1-4-1', '1-2-4-4-3-2-1'];
   assert.equal(SPELLS.length, 9);
   SPELLS.forEach((spell, index) => {
@@ -58,7 +58,8 @@ test('only a correct sequence then its motion arms the sword; expired spells can
   const spell = getSpell(f.rules.fighter('p1')!.spellId!);
   f.rules.handleSword({ type: 'sword.gesture', swordId: 'sword-1', gesture: spell.gesture });
   assert.equal(f.rules.fighter('p1')!.castPhase, 'enter');
-  f.rules.handleSword({ type: 'sword.button', swordId: 'sword-1', color: 'yellow' });
+  const wrong = (['red', 'yellow', 'green', 'blue'] as const).find(color => color !== spell.combo[0])!;
+  f.rules.handleSword({ type: 'sword.button', swordId: 'sword-1', color: wrong });
   assert.equal(f.rules.fighter('p1')!.entered, 0);
   for (const color of spell.combo) f.rules.handleSword({ type: 'sword.button', swordId: 'sword-1', color });
   assert.equal(f.rules.fighter('p1')!.castPhase, 'motion');
@@ -88,6 +89,27 @@ test('an unanswered shot misses without damage; a late hit cannot become a hit',
   f.advance(1001); f.rules.tick(); f.rules.handleSword(event);
   assert.equal(f.rules.fighter('p2')!.hp, 100);
   assert.equal(f.messages.some(m => m.type === 'match.event' && m.event.kind === 'miss'), true);
+});
+
+test('a physical sword shot can land until its longer IR window closes', () => {
+  const f = setup();
+  f.rules.chooseSpell('p1', 'easy');
+  const spell = getSpell(f.rules.fighter('p1')!.spellId!);
+  const fire = (shotId: string) => {
+    for (const color of spell.combo) f.rules.handleSword({ type: 'sword.button', swordId: 'sword-1', color });
+    f.rules.handleSword({ type: 'sword.gesture', swordId: 'sword-1', gesture: spell.gesture });
+    assert.equal(f.rules.handleSword({ type: 'sword.trigger', swordId: 'sword-1', shotId, ttlMs: PHYSICAL_SHOT_MS }), 'fired');
+  };
+  fire('ir-1');
+  f.advance(PHYSICAL_SHOT_MS - 500); f.rules.tick();
+  f.rules.handleSword({ type: 'sword.hit', attackerSwordId: 'sword-1', victimSwordId: 'sword-2', shotId: 'ir-1' });
+  const hurt = f.rules.fighter('p2')!.hp;
+  assert.ok(hurt < 100);
+  f.rules.chooseSpell('p1', 'easy');
+  fire('ir-2');
+  f.advance(PHYSICAL_SHOT_MS + 1); f.rules.tick();
+  f.rules.handleSword({ type: 'sword.hit', attackerSwordId: 'sword-1', victimSwordId: 'sword-2', shotId: 'ir-2' });
+  assert.equal(f.rules.fighter('p2')!.hp, hurt);
 });
 
 test('healing rolls 10–20, has exactly two uses per player and enforces the full five-second cooldown', () => {

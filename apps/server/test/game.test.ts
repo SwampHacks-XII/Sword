@@ -231,6 +231,12 @@ test('online combat saves its winner; rematch returns both players to the same l
     await a.wait(m => m.type === 'match.state' && m.match?.phase === 'fighting');
     await b.wait(m => m.type === 'match.state' && m.match?.phase === 'fighting');
     assert.deepEqual(a.latestMatch(), b.latestMatch());
+    // A USB sword's pose reaches both players in place of the keyboard animation; bad poses are rejected.
+    a.send({ type: 'sword.pose', q: [0.5, 0.5, 0.5, 0.5] });
+    await b.wait(m => m.type === 'sword.pose' && m.slot === 'p1' && m.q.every(n => n === 0.5));
+    const poseFrom = a.messages.length;
+    a.send({ type: 'sword.pose', q: [2, 0, 0, 0] });
+    await a.wait(m => m.type === 'error' && m.message === 'Invalid game message.', poseFrom);
     a.send({ type: 'dev.sword', input: { kind: 'button', color: 'red', slot: 'p2' } });
     await a.wait(m => m.type === 'error' && m.message === 'Invalid game message.');
     const bobBefore = b.latestMatch()!.fighters.p2;
@@ -306,6 +312,42 @@ test('online combat saves its winner; rematch returns both players to the same l
     assert.equal(restarted.type === 'match.state' && restarted.match?.fighters.p2.healUsesRemaining, 2);
     assert.equal(restarted.type === 'match.state' && restarted.match?.fighters.p2.healReadyAt, null);
     assert.equal(restarted.type === 'match.state' && restarted.match?.fighters.p1.castPhase, 'choose');
+    await call('alice', 'POST', `/matches/${matchId}/leave`, {});
+  } finally { a.ws.close(); b.ws.close(); }
+});
+
+test('against a player with a physical sword, damage waits for their sword to report the IR shot', async () => {
+  const matchId = await matchPair();
+  const a = await socketClient('alice', matchId);
+  const b = await socketClient('bob', matchId);
+  try {
+    await a.wait(m => m.type === 'lobby.state' && m.lobby?.players.filter(p => p.connected).length === 2);
+    b.send({ type: 'sword.link', connected: true });
+    a.send({ type: 'quest.begin' });
+    await a.wait(m => m.type === 'quest.state' && !!m.quest?.story);
+    a.send({ type: 'quest.accept' }); b.send({ type: 'quest.accept' });
+    await b.wait(m => m.type === 'match.state' && m.match?.phase === 'fighting');
+    let from = a.messages.length;
+    a.send({ type: 'spell.choose', difficulty: 'easy' });
+    await a.wait(m => m.type === 'match.state' && m.match?.fighters.p1.castPhase === 'enter', from);
+    const spell = getSpell(a.latestMatch()!.fighters.p1.spellId!);
+    from = a.messages.length;
+    for (const color of spell.combo) a.send({ type: 'dev.sword', input: { kind: 'button', color } });
+    a.send({ type: 'dev.sword', input: { kind: 'gesture', gesture: spell.gesture } });
+    a.send({ type: 'dev.sword', input: { kind: 'trigger', shot: 42 } });
+    await a.wait(m => m.type === 'match.event' && m.event.kind === 'cast', from);
+    // No simulated hit, and a token Alice never fired does nothing.
+    b.send({ type: 'sword.hit', shot: 41 });
+    await new Promise(resolve => setTimeout(resolve, 150));
+    assert.equal(b.latestMatch()!.fighters.p2.hp, 100);
+    b.send({ type: 'sword.hit', shot: 42 });
+    const hit = await a.wait(m => m.type === 'match.event' && m.event.kind === 'hit', from);
+    assert.equal(hit.type === 'match.event' && hit.event.kind === 'hit' && hit.event.victim, 'p2');
+    b.send({ type: 'sword.hit', shot: 42 });
+    await b.wait(m => m.type === 'match.state' && !!m.match && m.match.fighters.p2.hp < 100);
+    const hp = b.latestMatch()!.fighters.p2.hp;
+    await new Promise(resolve => setTimeout(resolve, 150));
+    assert.equal(b.latestMatch()!.fighters.p2.hp, hp);
     await call('alice', 'POST', `/matches/${matchId}/leave`, {});
   } finally { a.ws.close(); b.ws.close(); }
 });

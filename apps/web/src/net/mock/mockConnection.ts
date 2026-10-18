@@ -1,7 +1,7 @@
 import { createPoseSimulator, prepareQuest, type QuestStory } from '@sword/protocol';
 // In-browser stand-in for the game server, the opponent's laptop, and both swords.
 // Lets the whole flow run with no server or hardware. Swap for a WebSocket connection later.
-import { SWORD_COLORS, otherSlot, type CheckId, type Gesture, type PlayerSlot } from '../../game/types';
+import { SWORD_COLORS, otherSlot, type CheckId, type Gesture, type PlayerSlot, type Quat } from '../../game/types';
 import { getSpell } from '../../game/spells';
 import type { GameConnection } from '../connection';
 import type { ClientMessage, ServerMessage } from '../messages';
@@ -10,6 +10,7 @@ import { MockGameRules, randomRoomCode, swordIdFor } from './mockRules';
 const LATENCY_MS = 15;
 const POSE_INTERVAL_MS = 33; // ~30 Hz, similar to what the ESP32 would send
 const RULES_INTERVAL_MS = 100;
+const LIVE_POSE_MS = 500; // A USB sword that stops reporting falls back to the keyboard animation.
 const BOT_NAME = 'Swamp Bot';
 const YOUR_HIT_CHANCE = 0.85; // Pretend aim: real IR depends on where the sword points.
 const BOT_HIT_CHANCE = 0.6;
@@ -29,6 +30,7 @@ export function createMockConnection(loadStory?: BotStoryLoader): GameConnection
   let roundNumber = 1;
   let previousBriefings: string[] = [];
   let briefing: ReturnType<typeof prepareQuest> | undefined;
+  let livePose: { q: Quat; at: number } | null = null;
 
   function prepareBriefing() {
     briefing?.dispose();
@@ -109,7 +111,10 @@ export function createMockConnection(loadStory?: BotStoryLoader): GameConnection
 
   const poseTimer = setInterval(() => {
     const now = Date.now();
-    for (const slot of ['p1', 'p2'] as const) deliver({ type: 'sword.pose', slot, q: poses.sample(slot, now) });
+    for (const slot of ['p1', 'p2'] as const) {
+      const live = slot === you && livePose && now - livePose.at < LIVE_POSE_MS ? livePose.q : null;
+      deliver({ type: 'sword.pose', slot, q: live ?? poses.sample(slot, now) });
+    }
   }, POSE_INTERVAL_MS);
   const rulesTimer = setInterval(() => {
     rules.tick();
@@ -196,6 +201,12 @@ export function createMockConnection(loadStory?: BotStoryLoader): GameConnection
           else pressTrigger(you);
           break;
         }
+        case 'sword.pose':
+          if (rules.snapshot()?.phase === 'fighting') livePose = { q: message.q, at: Date.now() };
+          break;
+        case 'sword.link':
+        case 'sword.hit':
+          break; // Swamp Bot has no IR, so hits on both sides stay simulated.
         case 'spell.choose':
           rules.chooseSpell(you, message.difficulty);
           break;
