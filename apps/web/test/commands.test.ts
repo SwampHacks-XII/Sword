@@ -91,6 +91,19 @@ test('cancelled speech does not navigate, and logout failures receive safe spoke
   assert.deepEqual(replies, [MOSS_COMMAND_REPLIES.signOut, MOSS_COMMAND_REPLIES.signOutFailed]);
 });
 
+test('leaving practice game choices returns to sign-in without signing out', async () => {
+  for (const authenticated of [false, true]) {
+    const destinations: string[] = [];
+    const result = await executeMenuExit({ kind: 'leave' }, {
+      authenticated, practice: true, reply: async () => true,
+      logout: async () => assert.fail('Leaving practice must not sign out an account'),
+      navigate: page => { destinations.push(page); },
+    });
+    assert.equal(result, 'done');
+    assert.deepEqual(destinations, ['login']);
+  }
+});
+
 test('a command acknowledgement finishes before its action, ignoring the narrator’s initial reset', async () => {
   const captions: string[] = [];
   const feedback = createCommandFeedback({

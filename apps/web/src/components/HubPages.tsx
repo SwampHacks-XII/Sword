@@ -74,6 +74,7 @@ export function useHubMenu({ guestOnly, onVoiceReply, stopVoice }: {
       if (!mounted.current) return;
       const result = await executeMenuExit(command, {
         authenticated: session.authenticated,
+        practice: guestOnly,
         reply: async text => {
           if (!mounted.current) return false;
           return voice ? onVoiceReply(text) : true;
@@ -95,7 +96,7 @@ export function useHubMenu({ guestOnly, onVoiceReply, stopVoice }: {
 }
 
 /** Your hero on the left page; create, join or Swamp Bot on the right. */
-export function hubSpread(hub: ReturnType<typeof useHubMenu>, stopVoice: () => void): BookSpread {
+export function hubSpread(hub: ReturnType<typeof useHubMenu>, stopVoice: () => void, voiceActive = false): BookSpread {
   const { guestOnly, session, error, pending, exiting, accountError, profile, validName, canPlayOnline,
     joining, setJoining, code, setCode, submitCommand, voiceCommand, exitMenu, join } = hub;
   return {
@@ -137,7 +138,7 @@ export function hubSpread(hub: ReturnType<typeof useHubMenu>, stopVoice: () => v
             <span className="option-icon" aria-hidden="true">✿</span><strong>Play with Swamp Bot</strong><span className="option-description">A friendly practice</span><span className="option-arrow" aria-hidden="true">↗</span>
           </button>
         </div>
-        <MossCommandInput disabled={pending || (!guestOnly && session.loading)} onTranscript={voiceCommand} stopVoice={stopVoice}
+        <MossCommandInput active={voiceActive} disabled={pending || (!guestOnly && session.loading)} onTranscript={voiceCommand} stopVoice={stopVoice}
           example={guestOnly ? 'Try “play with Swamp Bot” or “leave game.” No sign-in needed.'
             : 'Try “create a game,” “join room code zero one two three,” “sign out,” or “leave game.”'} />
         {pending && <p className="hint" role="status">{exiting ? 'Moss is helping you leave…' : 'Connecting to your room…'}</p>}
@@ -145,7 +146,7 @@ export function hubSpread(hub: ReturnType<typeof useHubMenu>, stopVoice: () => v
         <div className="choice-footer">
           {guestOnly && <button type="button" className="link-button small" disabled={pending} onClick={() => navigate(session.authenticated ? 'play' : 'login')}>
             {session.authenticated ? 'Play online' : 'Sign in for online games'}</button>}
-          <button type="button" className="link-button small" disabled={pending} onClick={() => void exitMenu({ kind: 'leave' })}>← Close the book</button>
+          <button type="button" className="link-button small" disabled={pending} onClick={() => void exitMenu({ kind: 'leave' })}>{guestOnly ? '← Back to sign in' : '← Close the book'}</button>
         </div>
       </div>,
     },

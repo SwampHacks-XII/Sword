@@ -80,10 +80,11 @@ export function Storybook({ onClosed, onVoiceReply, stopVoice, swordReady, onSwo
   const target = lobby ? swordReady ? SPREAD.lobby : SPREAD.sword : choosingGame ? SPREAD.hub : screen === 'login' || screen === 'play' ? SPREAD.auth : SPREAD.lore;
   const phase: BookPhase = quest && swordReady ? 'closing' : screen === 'home' && !lobby ? 'cover' : 'open';
   const canNarrate = phase === 'open' && arrivedSpread === target && !lobby;
+  const voicePageReady = phase === 'open' && arrivedSpread === target;
   const spreads = [loreSpread(screen === 'lore' && canNarrate),
-    authSpread(auth, target === SPREAD.auth && canNarrate), hubSpread(hub, stopVoice),
+    authSpread(auth, target === SPREAD.auth && canNarrate), hubSpread(hub, stopVoice, voicePageReady && target === SPREAD.hub),
     swordSetupSpread(onSwordReady, () => void lobbyControls.submitCommand({ kind: 'leave' })),
-    lobbySpread(shownLobby, match, lobbyControls)];
+    lobbySpread(shownLobby, match, lobbyControls, voicePageReady && target === SPREAD.lobby)];
 
   return <div className="storybook">
     <BookMenu className="story-book" label="Sword storybook" showNav={false} interactive={false}

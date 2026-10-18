@@ -248,6 +248,9 @@ button { touch-action: manipulation; }
 }
 .moss-command-input { margin-top: 1.1rem; padding-top: 1rem; border-top: 4px dashed #b7a27370; }
 .moss-command-input .secondary-button { min-height: 44px; gap: .6rem; }
+.moss-hands-free { display: flex; align-items: center; gap: .5rem; margin-bottom: .65rem; font-size: .85rem; cursor: pointer; }
+.moss-hands-free input { accent-color: var(--leaf); width: 18px; height: 18px; flex: none; }
+.moss-command-input .hands-free-notice { font-size: .72rem; line-height: 1.4; color: var(--ink-soft); }
 .moss-command-input .hint { margin: .65rem 0 .3rem; }
 .moss-command-input.is-listening .secondary-button { --edge: #65753f; --hi: #edf5d4; --lo: #a5c578; --lip: #65753f; background: #dce8b9; }
 .voice-input-notice { margin: .3rem 0; font-size: .76rem; line-height: 1.5; color: var(--ink-soft); }
