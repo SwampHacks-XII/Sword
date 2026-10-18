@@ -7,10 +7,10 @@ import {
 } from './types.js';
 import type { ServerMessage, SwordEvent } from './messages.js';
 
-/** How long after a trigger press an IR hit report still counts. */
+/** How long after a keyboard trigger press a hit report still counts. */
 const SHOT_TTL_MS = 1000;
 
-interface PendingShot { attacker: PlayerSlot; spellId: string; firedAt: number; damage: number }
+interface PendingShot { attacker: PlayerSlot; spellId: string; expiresAt: number; damage: number }
 export type TriggerResult = 'fired' | 'self-cast' | 'ignored';
 
 const cleanName = (name: string, fallback: string) => name.trim().slice(0, 40) || fallback;
@@ -182,7 +182,9 @@ export class GameRules {
         if (fighter.armedUntil !== null && now > fighter.armedUntil) { this.tick(); return 'ignored'; }
         if (this.pendingShots.has(event.shotId) || this.usedShots.has(event.shotId)) return 'ignored';
         this.emitEvent({ kind: 'cast', slot, spellId: spell.id }, now);
-        this.pendingShots.set(event.shotId, { attacker: slot, spellId: spell.id, firedAt: now, damage: this.roll(spell.damageRange) });
+        this.pendingShots.set(event.shotId, {
+          attacker: slot, spellId: spell.id, expiresAt: now + (event.ttlMs ?? SHOT_TTL_MS), damage: this.roll(spell.damageRange),
+        });
         this.nextSpell(fighter);
         this.emitMatch();
         return 'fired';
@@ -204,7 +206,7 @@ export class GameRules {
       }
     }
     for (const [shotId, shot] of this.pendingShots) {
-      if (now - shot.firedAt > SHOT_TTL_MS) {
+      if (now > shot.expiresAt) {
         this.pendingShots.delete(shotId);
         this.emitEvent({ kind: 'miss', attacker: shot.attacker, spellId: shot.spellId }, now);
       }
@@ -219,7 +221,7 @@ export class GameRules {
     const victim = slotForSword(event.victimSwordId);
     // Ignore unknown, repeated, stale, or self hits. One IR shot can be received several times.
     if (!shot || this.usedShots.has(event.shotId) || !attacker || !victim) return;
-    if (shot.attacker !== attacker || victim !== otherSlot(attacker) || now - shot.firedAt > SHOT_TTL_MS) return;
+    if (shot.attacker !== attacker || victim !== otherSlot(attacker) || now > shot.expiresAt) return;
     this.pendingShots.delete(event.shotId);
     this.usedShots.add(event.shotId);
 

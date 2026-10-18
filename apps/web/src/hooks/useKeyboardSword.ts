@@ -3,7 +3,7 @@ import type { Gesture, SwordColor } from '../game/types';
 import type { DevSwordInput } from '../net/messages';
 import { useMatch } from './useMatch';
 
-export const KEY_BUTTONS: Record<string, SwordColor> = { '1': 'red', '2': 'blue', '3': 'green', '4': 'yellow' };
+export const KEY_BUTTONS: Record<string, SwordColor> = { '1': 'red', '2': 'yellow', '3': 'green', '4': 'blue' };
 export const KEY_GESTURES: Record<string, Gesture> = { q: 'swing_left', e: 'swing_right', r: 'wrist_rotate', w: 'upright' };
 export const GESTURE_KEYS: Record<Gesture, string> = { swing_left: 'Q', swing_right: 'E', wrist_rotate: 'R', upright: 'W' };
 

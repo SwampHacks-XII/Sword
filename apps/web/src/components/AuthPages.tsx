@@ -70,7 +70,7 @@ export function authSpread({ session, pending, issue, signIn, setError }: Return
       kicker: 'Chapter one',
       title: <>Every legend<br />begins with <em>you.</em></>,
       content: <div className="book-art">
-        <Knight className="book-art-knight" label="A small pixel knight holding a sword" />
+        <Knight plain className="book-art-knight" label="A small pixel hero, waiting for a sword" />
         <NpcGuide message={MOSS_NAME_PROMPT} />
         <div className="book-auth-voice"><MossVoice text={MOSS_NAME_PROMPT} autoSpeak={narrate} /></div>
       </div>,

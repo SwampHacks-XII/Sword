@@ -125,6 +125,8 @@ button { touch-action: manipulation; }
 /* moss-fly.png is a 24-frame boomerang strip (frames 1→13→2), so a plain forward loop plays it back and forth. */
 /* knight-idle.png holds six 64×112 frames side by side; size it by width or height and the other follows. */
 .knight-sprite { flex: none; aspect-ratio: 64 / 112; background: url(/art/knight-idle.png) 0 0 / 600% 100% no-repeat; image-rendering: pixelated; animation: knight-idle 1.6s step-end infinite; }
+/* The swordless hero on the pages before the sword: three frames in knight-plain.png. */
+.knight-sprite.knight-plain { background-image: url(/art/knight-plain.png); background-size: 300% 100%; animation-name: knight-plain-idle; animation-duration: 1.6s; }
 /* moss-fly.png holds the original 192px frames; pixelated rendering keeps hard edges when scaled. */
 .npc-moss { width: 256px; aspect-ratio: 1; flex: 0 0 auto; background: url(/art/moss-fly.png) 0 0 / 2400% 100% no-repeat; image-rendering: pixelated; filter: none; animation: moss-fly 2s steps(24) infinite; }
 .npc-caption { align-self: center; width: min(240px, 65%); padding-top: 47px; }
@@ -282,6 +284,7 @@ button { touch-action: manipulation; }
 .status-ok { color: var(--ok); }
 .status-wait { color: var(--ink-soft); }
 .connect-panel { width: min(320px, 45vw); padding: 1.25rem 1.5rem; margin-right: 1rem; }
+.connect-panel .link-button { display: block; margin-top: .35rem; }
 .parchment-title { font-size: 1.45rem; font-weight: 500; margin: 0 0 1rem; }
 .checklist { list-style: none; margin: 0 0 .7rem; padding: 0; display: grid; gap: .5rem; font-size: .92rem; }
 .check { display: flex; justify-content: space-between; }
@@ -395,6 +398,12 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
 @keyframes scroll-arrive { from { opacity: 0; translate: 0 16px; } to { opacity: 1; translate: 0 0; } }
 @keyframes moss-fly { to { background-position-x: calc(100% * 24 / 23); } }
 /* Boomerang: frames 1→6→2, so neither end frame is shown twice in a row. Frame k sits at k × 20%. */
+/* Boomerang over three frames: 1→2→3→2. Frame k sits at k × 50%. */
+@keyframes knight-plain-idle {
+  0%, 100% { background-position-x: 0%; }
+  25%, 75% { background-position-x: 50%; }
+  50% { background-position-x: 100%; }
+}
 @keyframes knight-idle {
   0%, 100% { background-position-x: 0%; }
   10%, 90% { background-position-x: 20%; }

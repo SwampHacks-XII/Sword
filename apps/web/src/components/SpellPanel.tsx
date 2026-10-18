@@ -3,14 +3,17 @@ import type { FighterState } from '../game/types';
 import { GESTURE_KEYS, KEY_BUTTONS } from '../hooks/useKeyboardSword';
 import { useNow } from '../hooks/useNow';
 import { Parchment } from './Parchment';
-import { DAMAGE_RANGES, SPELL_DIFFICULTIES, HEAL_RANGE, HEAL_USES } from '@sword/protocol';
+import { DAMAGE_RANGES, SPELL_DIFFICULTIES, HEAL_RANGE, HEAL_USES, SWORD_MOTION_LABELS } from '@sword/protocol';
 import { useMatch } from '../hooks/useMatch';
+import { useSerialSword } from '../hooks/useSerialSword';
 
 const COLOR_KEYS = Object.fromEntries(Object.entries(KEY_BUTTONS).map(([key, color]) => [color, key]));
 
 /** Your current spell: rune sequence (flat circles for now), then motion, then fire. */
 export function SpellPanel({ fighter, disabled = false }: { fighter: FighterState; disabled?: boolean }) {
   const { send } = useMatch();
+  const sword = useSerialSword();
+  const swordReady = sword.status === 'ready';
   const spell = fighter.spellId ? getSpell(fighter.spellId) : null;
   const armed = fighter.castPhase === 'armed';
   const now = useNow(100, true);
@@ -22,6 +25,7 @@ export function SpellPanel({ fighter, disabled = false }: { fighter: FighterStat
   return (
     <Parchment className="spell-panel">
       {!spell ? <>
+        {sword.firing && <div className="armed"><p>FIRING — aim your sword at your opponent!</p></div>}
         <p className="label">Your next move</p>
         <h2 className="spell-name">Choose your spell difficulty</h2>
         <div className="difficulty-options">
@@ -30,7 +34,9 @@ export function SpellPanel({ fighter, disabled = false }: { fighter: FighterStat
             <span>{difficulty}</span><small>{DAMAGE_RANGES[difficulty].join('–')} damage · {difficulty === 'easy' ? 3 : difficulty === 'medium' ? 5 : 7} runes</small>
           </button>)}
         </div>
-        <p className="hint">Receive one random spell from your chosen difficulty.</p>
+        <p className="hint">{swordReady
+          ? 'Sword buttons: red easy · yellow medium · green hard · blue heal.'
+          : 'Receive one random spell from your chosen difficulty.'}</p>
       </> : <>
       <p className="label">{spell.difficulty} · {spell.damageRange.join('–')} damage</p>
       <h2 className="spell-name">{spell.name}</h2>
@@ -42,7 +48,9 @@ export function SpellPanel({ fighter, disabled = false }: { fighter: FighterStat
         ))}
       </ol>
       <div className={`step ${fighter.castPhase === 'motion' ? 'active' : ''}`}>
-        Then: {GESTURE_LABELS[spell.gesture]} <kbd>{GESTURE_KEYS[spell.gesture]}</kbd>
+        {swordReady
+          ? <>Then move your sword: {[...spell.swordMotions].map(m => SWORD_MOTION_LABELS[m]).join(' → ')}</>
+          : <>Then: {GESTURE_LABELS[spell.gesture]} <kbd>{GESTURE_KEYS[spell.gesture]}</kbd></>}
       </div>
       {armed && (
         <div className="armed">
@@ -50,7 +58,9 @@ export function SpellPanel({ fighter, disabled = false }: { fighter: FighterStat
           <div className="armed-bar"><div style={{ width: `${remaining * 100}%` }} /></div>
         </div>
       )}
-      <p className="hint">Keys stand in for the sword: 1–4 runes · Q/E/R/W motions · Space fire</p>
+      <p className="hint">{swordReady
+        ? 'Press the runes on your sword, then make the motions. It fires IR for up to 10 seconds — aim!'
+        : 'Keys stand in for the sword: 1–4 runes · Q/E/R/W motions · Space fire'}</p>
       </>}
       <div className="heal-control">
         <button type="button" className="heal-button" disabled={disabled || fighter.healUsesRemaining <= 0 || healWait > 0 || fighter.hp >= fighter.maxHp}

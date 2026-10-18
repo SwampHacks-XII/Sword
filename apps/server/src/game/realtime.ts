@@ -2,12 +2,18 @@ import { randomBytes } from 'node:crypto';
 import type { Server } from 'node:http';
 import { WebSocket, WebSocketServer } from 'ws';
 import { z } from 'zod';
-import { GameRules, createPoseSimulator, otherSlot, swordIdFor, type PlayerSlot, type ServerMessage } from '@sword/protocol';
+import { GameRules, PHYSICAL_SHOT_MS, createPoseSimulator, otherSlot, swordIdFor, type PlayerSlot, type Quat, type ServerMessage } from '@sword/protocol';
 import type { PlayerStore } from '../db/players.js';
 import type { GameStore } from './store.js';
 import { ApiError } from './errors.js';
 import { prepareQuest, type QuestGenerator } from '@sword/protocol';
 
+/** Live sword poses older than this fall back to the keyboard animation. */
+const LIVE_POSE_MS = 500;
+const unit = z.number().min(-1.0001).max(1.0001);
+/** The 1–255 token a physical sword puts in its IR signal. */
+const token = z.number().int().min(1).max(255);
+const poseSchema = z.object({ type: z.literal('sword.pose'), q: z.tuple([unit, unit, unit, unit]) }).strict();
 const commandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('session.auth'), ticket: z.string().regex(/^[a-f0-9]{64}$/) }).strict(),
   z.object({ type: z.literal('room.subscribe'), matchId: z.uuid() }).strict(),
@@ -22,8 +28,10 @@ const commandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('dev.sword'), input: z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('button'), color: z.enum(['red', 'blue', 'green', 'yellow']) }).strict(),
     z.object({ kind: z.literal('gesture'), gesture: z.enum(['swing_left', 'swing_right', 'wrist_rotate', 'upright']) }).strict(),
-    z.object({ kind: z.literal('trigger') }).strict(),
+    z.object({ kind: z.literal('trigger'), shot: token.optional() }).strict(),
   ]) }).strict(),
+  z.object({ type: z.literal('sword.link'), connected: z.boolean() }).strict(),
+  z.object({ type: z.literal('sword.hit'), shot: token }).strict(),
 ]);
 type Snapshot = Awaited<ReturnType<GameStore['getMatch']>>;
 interface Peer {
@@ -32,7 +40,10 @@ interface Peer {
 }
 interface Room {
   id: string; snapshot: Snapshot; peers: Set<Peer>; rules: GameRules;
-  poses: ReturnType<typeof createPoseSimulator>; hostSubject?: string;
+  poses: ReturnType<typeof createPoseSimulator>; livePoses: Partial<Record<PlayerSlot, { q: Quat; at: number }>>;
+  /** Players with a physical sword; IR then decides hits against them. physicalShots: "<attacker slot>:<IR token>" -> shotId. */
+  swords: Partial<Record<PlayerSlot, boolean>>; physicalShots: Map<string, string>;
+  hostSubject?: string;
   disconnectDeadline: number | null; shot: number; closing: boolean; closeSubject: string;
   quest: Extract<ServerMessage, { type: 'quest.state' }>['quest'];
   briefing: ReturnType<typeof prepareQuest>; previousBriefings: string[];
@@ -98,7 +109,7 @@ export function createRealtimeHub(game: GameStore, players: PlayerStore, origin:
       if (rooms.size >= 100) throw new ApiError(503, 'rooms_full', 'The server is busy. Try again shortly.');
       const host = snapshot.players.find(p => p.slot === 1)!;
       const fresh: Room = {
-        id: matchId, snapshot, peers: new Set(), rules: null!, poses: createPoseSimulator(),
+        id: matchId, snapshot, peers: new Set(), rules: null!, poses: createPoseSimulator(), livePoses: {}, swords: {}, physicalShots: new Map(),
         disconnectDeadline: null, shot: 0, closing: false, closeSubject: peer.subject!, quest: null,
         previousBriefings: [], briefing: prepareQuest({ roundNumber: snapshot.roundNumber, previousBriefings: [] }, options.generateStory, options.storyWaitMs),
       };
@@ -127,6 +138,19 @@ export function createRealtimeHub(game: GameStore, players: PlayerStore, origin:
     send(peer, { type: 'quest.state', quest: room.quest });
     send(peer, { type: 'room.ready' });
   }
+  /**
+   * Poses stream many times a second and never change the rules, so they skip the command queue
+   * (a slow database call must not back them up). Outside battle they are dropped quietly.
+   */
+  function handlePose(peer: Peer, data: unknown): boolean {
+    const pose = poseSchema.safeParse(data);
+    if (!pose.success) return false;
+    const room = peer.room;
+    if (peer.subject && peer.slot && room && !room.closing && room.rules.snapshot()?.phase === 'fighting') {
+      room.livePoses[peer.slot] = { q: pose.data.q, at: Date.now() };
+    }
+    return true;
+  }
   async function handle(peer: Peer, data: unknown) {
     const parsed = commandSchema.safeParse(data);
     if (!parsed.success) throw new ApiError(400, 'invalid_message', 'Invalid game message.');
@@ -150,6 +174,7 @@ export function createRealtimeHub(game: GameStore, players: PlayerStore, origin:
     if (!room || !peer.slot) throw new ApiError(409, 'room_required', 'Join a room first.');
     if (command.type === 'lobby.leave') { await closeRoom(room, peer.subject, 'A player left the room. You can create or join another game.'); return; }
     if (room.closing) return;
+    if (command.type === 'sword.link') { room.swords[peer.slot] = command.connected; return; }
     if (command.type === 'device.check') {
       send(peer, { type: 'error', message: 'Keyboard practice is ready. Physical sword and camera checks become available when hardware is connected.' });
       return;
@@ -211,6 +236,8 @@ export function createRealtimeHub(game: GameStore, players: PlayerStore, origin:
       room.quest = null;
       broadcast(room, { type: 'quest.state', quest: null });
       room.poses = createPoseSimulator();
+      room.livePoses = {};
+      room.physicalShots.clear();
       room.rules.returnToLobby();
       for (const slot of ['p1', 'p2'] as const) broadcast(room, { type: 'sword.pose', slot, q: [1, 0, 0, 0] });
       return;
@@ -221,14 +248,25 @@ export function createRealtimeHub(game: GameStore, players: PlayerStore, origin:
     const swordId = swordIdFor(slot);
     if (command.type === 'spell.choose') { room.rules.chooseSpell(slot, command.difficulty); return; }
     if (command.type === 'player.heal') { room.rules.heal(slot); return; }
+    if (command.type === 'sword.hit') {
+      // Reported by the victim's own sword, so a player can only ever report hits against themselves.
+      const attacker = otherSlot(slot);
+      const shotId = room.physicalShots.get(`${attacker}:${command.shot}`);
+      if (shotId) room.rules.handleSword({ type: 'sword.hit', attackerSwordId: swordIdFor(attacker), victimSwordId: swordId, shotId });
+      return;
+    }
     if (command.input.kind === 'button') room.rules.handleSword({ type: 'sword.button', swordId, color: command.input.color });
     else if (command.input.kind === 'gesture') {
       room.poses.play(slot, command.input.gesture, Date.now());
       room.rules.handleSword({ type: 'sword.gesture', swordId, gesture: command.input.gesture });
     } else {
       const shotId = `${room.id}:${++room.shot}`;
-      if (room.rules.handleSword({ type: 'sword.trigger', swordId, shotId }) === 'fired') {
-        // Online keyboard practice simulates a receiver hit. Real IR reports need device authentication.
+      // A physical shot against a player with a sword lands only when that sword reports the IR.
+      const realIr = command.input.shot !== undefined && !!room.swords[otherSlot(slot)];
+      if (realIr) room.physicalShots.set(`${slot}:${command.input.shot}`, shotId);
+      const result = room.rules.handleSword({ type: 'sword.trigger', swordId, shotId, ...(realIr ? { ttlMs: PHYSICAL_SHOT_MS } : {}) });
+      if (result === 'fired' && !realIr) {
+        // Otherwise (keyboard practice, or an opponent without a sword) the hit is simulated.
         room.rules.handleSword({ type: 'sword.hit', attackerSwordId: swordId, victimSwordId: swordIdFor(otherSlot(slot)), shotId });
       }
     }
@@ -244,6 +282,7 @@ export function createRealtimeHub(game: GameStore, players: PlayerStore, origin:
       if (binary || ++peer.count > 100 || peer.pending >= 20) { ws.close(1008, 'Too many or invalid messages'); return; }
       let data: unknown;
       try { data = JSON.parse(raw.toString()); } catch { ws.close(1008, 'Invalid JSON'); return; }
+      if (handlePose(peer, data)) return;
       peer.pending++;
       enqueue(async () => {
         try { if (ws.readyState === WebSocket.OPEN) await handle(peer, data); }
@@ -258,6 +297,7 @@ export function createRealtimeHub(game: GameStore, players: PlayerStore, origin:
         if (!room) return;
         room.peers.delete(peer);
         room.rules.setConnected(peer.slot!, false);
+        room.swords[peer.slot!] = false; // A reconnecting browser announces its sword again.
         room.disconnectDeadline ??= Date.now() + (options.disconnectGraceMs ?? 30_000);
       });
     });
@@ -285,7 +325,11 @@ export function createRealtimeHub(game: GameStore, players: PlayerStore, origin:
       }
       if (room.peers.size === 2) room.rules.tick();
       if (room.rules.snapshot()?.phase === 'fighting') {
-        for (const slot of ['p1', 'p2'] as const) broadcast(room, { type: 'sword.pose', slot, q: room.poses.sample(slot, now) });
+        for (const slot of ['p1', 'p2'] as const) {
+          const live = room.livePoses[slot];
+          const q = live && now - live.at < LIVE_POSE_MS ? live.q : room.poses.sample(slot, now);
+          broadcast(room, { type: 'sword.pose', slot, q });
+        }
       }
     }
   }, 33);
