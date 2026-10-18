@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { describeAuthError, loginOptions, logoutOptions } from '../src/auth/errors';
-import { loginInPopup } from '../src/auth/popupLogin';
+import { createPopupLogin, loginInPopup } from '../src/auth/popupLogin';
 import { BOOK_SPREAD, BOOK_TIMING, playBookOpening, reportBookArrival, signOutFromBook } from '../src/story/bookNavigation';
 
 test('Start opens the cover, shows the first leaf, then turns it before the prologue is ready', t => {
@@ -185,4 +185,43 @@ test('each popup supplies the requested form and releases its window on success 
     }
   }
   assert.equal(describeAuthError({ error: 'timeout', popup: {} }).code, 'popup_timeout');
+});
+
+test('repeated login and signup clicks share one popup until the transaction finishes', async () => {
+  for (const cancel of [false, true]) {
+    let opened = 0;
+    let focused = 0;
+    let closed = 0;
+    let complete!: () => void;
+    let reject!: (error: unknown) => void;
+    let response = new Promise<void>((resolve, fail) => { complete = resolve; reject = fail; });
+    const popup = { focus: () => { focused++; }, close: () => { closed++; } } as unknown as Window;
+    const forms: unknown[] = [];
+    const login = createPopupLogin({
+      open: () => { opened++; return popup; },
+      track: () => {},
+      authenticate: options => { forms.push(options.authorizationParams?.screen_hint); return response; },
+    });
+    const first = login('login');
+    assert.equal(login('login'), first);
+    assert.equal(login('signup'), first);
+    await Promise.resolve();
+    assert.equal(login('login'), first, 'An unrelated render or async task must not release the attempt');
+    assert.equal(opened, 1);
+    assert.equal(focused, 3);
+    assert.equal(closed, 0);
+    assert.deepEqual(forms, ['login']);
+    if (cancel) {
+      reject({ error: 'cancelled' });
+      await assert.rejects(first);
+    } else {
+      complete();
+      await first;
+    }
+    assert.equal(closed, 1);
+    response = Promise.resolve();
+    await login('signup');
+    assert.equal(opened, 2, 'Finishing or cancelling must allow another sign-in');
+    assert.deepEqual(forms, ['login', 'signup']);
+  }
 });

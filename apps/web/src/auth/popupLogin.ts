@@ -7,6 +7,23 @@ interface PopupLoginDependencies {
   authenticate(options: PopupLoginOptions, config: PopupConfigOptions): Promise<void>;
 }
 
+/** Keep one authentication transaction alive, even across rapid or repeated clicks. */
+export function createPopupLogin(dependencies: PopupLoginDependencies) {
+  let pending: Promise<void> | null = null;
+  let popup: Window | null = null;
+  return (mode: 'login' | 'signup' = 'login'): Promise<void> => {
+    if (pending) {
+      popup?.focus();
+      return pending;
+    }
+    pending = loginInPopup(mode, {
+      ...dependencies,
+      track: value => { popup = value; dependencies.track(value); },
+    }).finally(() => { pending = null; });
+    return pending;
+  };
+}
+
 /** Open synchronously in the click handler, then let Auth0 verify the response. */
 export async function loginInPopup(mode: 'login' | 'signup', dependencies: PopupLoginDependencies) {
   const popup = dependencies.open();

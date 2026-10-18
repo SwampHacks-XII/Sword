@@ -568,6 +568,8 @@ test('four-digit codes preserve leading zeroes, retry collisions, and become reu
 test('hosted build serves HTML and assets with Auth0/WSS policy while API authentication stays enforced', { skip: !hosted }, async () => {
   const response = await testFetch(base);
   assert.equal(response.status, 200); assert.match(response.headers.get('content-type')!, /text\/html/);
+  assert.equal(response.headers.get('cross-origin-opener-policy'), 'same-origin-allow-popups',
+    'The hosted page must retain its Auth0 popup instead of treating it as closed');
   const html = await response.text();
   const asset = html.match(/src="([^"]+\.js)"/)?.[1]; assert.ok(asset);
   const bundle = await testFetch(`${base}${asset}`);
