@@ -17,6 +17,8 @@ export interface LobbyPlayer {
   name: string;
   swordId: string;
   connected: boolean;
+  /** The player has finished the sword/keyboard setup page for this room. */
+  ready?: boolean;
 }
 
 export interface LobbyState {

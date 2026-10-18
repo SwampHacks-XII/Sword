@@ -10,6 +10,7 @@ import { PLAYER_SLOTS, type PlayerSlot } from './game/types';
 import { useMatch } from './hooks/useMatch';
 import { useNow } from './hooks/useNow';
 import { useSwordPoses } from './hooks/useSwordPoses';
+import { useSerialSword } from './hooks/useSerialSword';
 import { MusicControls } from './components/MusicControls';
 import { LeaveGameDialog } from './components/LeaveGameDialog';
 import { leaveBattle, gameExitScreen } from './story/leaveBattle';
@@ -21,7 +22,8 @@ export function App() {
   const screen = useScreen();
   const session = useSession();
   const commandVoice = useRef<MossCommandVoiceControls>(null);
-  const { lobby, match, quest, lastHitAt, send } = useMatch();
+  const { lobby, match, quest, lastHitAt, send, onlineStatus, connectionKind } = useMatch();
+  const sword = useSerialSword();
   const poses = useSwordPoses();
   const you = lobby?.you ?? 'p1';
   // Re-render a few times a second during a match so shield/slow timers expire on screen.
@@ -35,8 +37,13 @@ export function App() {
   // Keep preparation across a rematch; leaving the room starts a fresh preparation step.
   const roomKey = lobby ? `${lobby.mode ?? 'bot'}:${lobby.code}` : null;
   const [preparedRoom, setPreparedRoom] = useState<string | null>(null);
+  const [preparedWithSword, setPreparedWithSword] = useState(false);
   if (!lobby && preparedRoom !== null) setPreparedRoom(null);
-  const swordReady = roomKey !== null && preparedRoom === roomKey;
+  const swordReady = roomKey !== null && preparedRoom === roomKey && (!preparedWithSword || sword.status === 'ready');
+  useEffect(() => {
+    if (!roomKey || (connectionKind === 'ws' && onlineStatus !== 'open')) return;
+    send({ type: 'lobby.ready', ready: swordReady });
+  }, [roomKey, swordReady, onlineStatus, connectionKind, send]);
   // Fetch the 3D arena while players gather, so the battle opens without a wait.
   const gathering = !!lobby;
   useEffect(() => { if (gathering) void loadArena(); }, [gathering]);
@@ -64,7 +71,7 @@ export function App() {
           : match && !quest ? <BattleScreen match={match} you={you} now={now} />
           : <div className="entry-layout storybook-layout">
             <Storybook onClosed={() => setBookClosed(true)}
-              swordReady={swordReady} onSwordReady={() => setPreparedRoom(roomKey)}
+              swordReady={swordReady} onSwordReady={() => { setPreparedWithSword(sword.status === 'ready'); setPreparedRoom(roomKey); }}
               onVoiceReply={text => commandVoice.current?.speak(text) ?? Promise.resolve(false)} stopVoice={() => commandVoice.current?.stop()} />
           </div>}
       </main>

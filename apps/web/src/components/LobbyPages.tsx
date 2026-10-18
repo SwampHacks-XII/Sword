@@ -69,15 +69,16 @@ export function lobbySpread(lobby: LobbyState | null, { error, onlineStatus, pen
       content: <ul className="book-party">
         {PLAYER_SLOTS.map((slot) => {
           const player = lobby.players.find((p) => p.slot === slot);
+          const ready = player?.connected && (!online || player.ready === true);
           return (
-            <li key={slot} className={`book-party-member book-party-${slot} ${player?.connected ? '' : 'is-waiting'}`}>
+            <li key={slot} className={`book-party-member book-party-${slot} ${ready ? '' : 'is-waiting'}`}>
               <Knight />
               <span className="slot-name">
                 {player ? player.name : `Player ${slot === 'p1' ? 1 : 2}`}
                 {slot === lobby.you && ' (you)'}
               </span>
-              <span className={player?.connected ? 'status-ok' : 'status-wait'}>
-                {player?.connected ? 'Connected' : 'Waiting…'}
+              <span className={ready ? 'status-ok' : 'status-wait'}>
+                {ready ? 'Connected' : player?.connected ? 'Connecting sword…' : player ? 'Disconnected' : 'Waiting…'}
               </span>
             </li>
           );
@@ -104,6 +105,7 @@ export function lobbySpread(lobby: LobbyState | null, { error, onlineStatus, pen
           example="Try “Hey Moss, start my quest” or “leave the room.”" />
         {acting && <p className="hint" role="status">Moss is answering before turning the page…</p>}
         {online && !host && <p className="hint">Waiting for the host to begin your quest.</p>}
+        {online && lobby.players.some(player => player.connected && !player.ready) && <p className="hint" role="status">Both players must finish the sword setup page before the quest can start.</p>}
         {online && onlineStatus !== 'open' && <p className="error" role="status">Connecting to the server…</p>}
         {error && <p className="error">{error}</p>}
       </div>,

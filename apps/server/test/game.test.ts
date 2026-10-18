@@ -160,7 +160,7 @@ after(async () => {
 });
 
 type WireMessage = ServerMessage | { type: 'session.ready' } | { type: 'room.ready' };
-async function socketClient(user: string, matchId?: string, suppliedTicket?: string) {
+async function socketClient(user: string, matchId?: string, suppliedTicket?: string, prepared = true) {
   const ticket = suppliedTicket ?? (await call(user, 'POST', '/realtime-ticket')).data.ticket;
   const ws = new WebSocket(`${base.replace(/^http/, 'ws')}/realtime`, { origin, ...(hosted ? { ca: testCa } : {}) });
   sockets.add(ws);
@@ -183,7 +183,13 @@ async function socketClient(user: string, matchId?: string, suppliedTicket?: str
   send({ type: 'session.auth', ticket });
   if (!suppliedTicket) {
     await wait(m => m.type === 'session.ready');
-    if (matchId) { send({ type: 'room.subscribe', matchId }); await wait(m => m.type === 'room.ready'); }
+    if (matchId) {
+      send({ type: 'room.subscribe', matchId }); await wait(m => m.type === 'room.ready');
+      if (prepared) {
+        send({ type: 'lobby.ready', ready: true });
+        await wait(m => m.type === 'lobby.state' && !!m.lobby?.players.some(player => player.slot === m.lobby!.you && player.ready));
+      }
+    }
   }
   return { ws, messages, wait, send,
     latestMatch: (): MatchState | undefined => {
@@ -210,6 +216,53 @@ test('live tickets require authentication, are single-use, and cannot reveal ano
   assert.equal(denied.type === 'error' && denied.message, 'Match not found for this player.');
   assert.equal(outsider.messages.some(m => m.type === 'lobby.state'), false);
   outsider.ws.close();
+});
+
+test('joining shows the player but setup completion gates quest and battle start for both players', async () => {
+  const matchId = await matchPair();
+  const a = await socketClient('alice', matchId, undefined, false);
+  const b = await socketClient('bob', matchId, undefined, false);
+  try {
+    const joined = await a.wait(m => m.type === 'lobby.state' && m.lobby?.players.length === 2);
+    assert.ok(joined.type === 'lobby.state' && joined.lobby);
+    assert.equal(joined.lobby.players.every(player => player.connected && !player.ready), true);
+    const blocked = async (type: 'quest.begin' | 'match.start') => {
+      const from = a.messages.length;
+      a.send({ type });
+      await a.wait(m => m.type === 'error' && m.message.includes('sword setup'), from);
+      assert.equal(a.latestMatch(), undefined);
+    };
+    await blocked('quest.begin'); await blocked('match.start');
+    a.send({ type: 'sword.link', connected: true });
+    await blocked('quest.begin'); // Merely connecting the device does not finish the setup page.
+    a.send({ type: 'lobby.ready', ready: true });
+    await a.wait(m => m.type === 'lobby.state' && m.lobby?.players.some(player => player.slot === 'p1' && player.ready) === true);
+    await blocked('quest.begin'); // The other player is still on the sword page.
+    b.send({ type: 'sword.link', connected: true });
+    b.send({ type: 'lobby.ready', ready: true });
+    await a.wait(m => m.type === 'lobby.state' && m.lobby?.players.every(player => player.ready) === true);
+    let from = a.messages.length;
+    b.send({ type: 'sword.link', connected: false });
+    await a.wait(m => m.type === 'lobby.state' && m.lobby?.players.some(player => player.slot === 'p2' && !player.ready) === true, from);
+    await blocked('quest.begin');
+    b.send({ type: 'sword.link', connected: true });
+    await blocked('quest.begin'); // Reconnecting must finish setup again.
+    b.send({ type: 'lobby.ready', ready: true });
+    from = a.messages.length;
+    await a.wait(m => m.type === 'lobby.state' && m.lobby?.players.every(player => player.ready) === true, from);
+    a.send({ type: 'quest.begin' });
+    await a.wait(m => m.type === 'quest.state' && !!m.quest?.story);
+    a.send({ type: 'quest.accept' });
+    from = b.messages.length;
+    b.send({ type: 'lobby.ready', ready: false });
+    b.send({ type: 'quest.accept' });
+    await b.wait(m => m.type === 'error' && m.message.includes('sword setup'), from);
+    assert.equal(a.latestMatch(), undefined);
+    b.send({ type: 'lobby.ready', ready: true });
+    b.send({ type: 'quest.accept' });
+    await a.wait(m => m.type === 'match.state' && m.match?.phase === 'fighting');
+    await call('alice', 'POST', `/matches/${matchId}/leave`, {});
+  } finally { a.ws.close(); b.ws.close(); }
 });
 
 test('online combat saves its winner; rematch returns both players to the same lobby with history intact', async () => {

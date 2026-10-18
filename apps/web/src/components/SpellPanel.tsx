@@ -25,7 +25,7 @@ export function SpellPanel({ fighter, disabled = false }: { fighter: FighterStat
         <p className="label">Your next move</p>
         <h2 className="spell-name"><FitText>{swordReady ? 'Choose with your sword' : 'Choose your spell difficulty'}</FitText></h2>
         <div className="difficulty-options">
-          {SPELL_DIFFICULTIES.map(difficulty => <button type="button" className="difficulty-button" key={difficulty}
+          {SPELL_DIFFICULTIES.map(difficulty => <button type="button" className={`difficulty-button difficulty-${difficulty}`} key={difficulty}
             disabled={disabled || swordReady} onClick={() => send({ type: 'spell.choose', difficulty })}>
             <span>{difficulty}</span><small>{DAMAGE_RANGES[difficulty].join('–')} damage · {difficulty === 'easy' ? 3 : difficulty === 'medium' ? 5 : 7} runes</small>
           </button>)}
