@@ -1,4 +1,5 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react';
+import { FitText } from './FitText';
 import { leaveConfirmation } from '../story/confirmLeaveGame';
 
 /** Native dialog supplies focus trapping and an inert backdrop; all visuals belong to the game. */
@@ -22,7 +23,7 @@ export function LeaveGameDialog({ scope }: { scope: string }) {
         onClick={() => leaveConfirmation.resolve(false)}>×</button>
       <div className="leave-dialog-portrait" aria-hidden="true"><span className="leave-dialog-spark">✦</span><div className="npc-moss" /><span className="leave-dialog-spark">✧</span></div>
       <span className="leave-dialog-kicker">A note from Moss</span>
-      <h2 id="leave-dialog-title">Close this chapter?</h2>
+      <h2 id="leave-dialog-title"><FitText>Close this chapter?</FitText></h2>
       <p id="leave-dialog-question">Are you sure you want to leave the game?</p>
       <p className="leave-dialog-note">The glade is a little brighter with you here.</p>
       <div className="leave-dialog-actions">

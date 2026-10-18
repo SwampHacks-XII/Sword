@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { FitText } from './FitText';
 import { useMatch } from '../hooks/useMatch';
 import { useSession } from '../auth/SessionProvider';
 import { usePlayerName } from '../hooks/usePlayerName';
@@ -117,14 +118,14 @@ export function hubSpread(hub: ReturnType<typeof useHubMenu>, stopVoice: () => v
     right: {
       className: 'book-page-dense',
       content: <div className="book-form">
-        <h1>{guestOnly ? 'A little sword practice.' : 'Every tale needs a rival.'}</h1>
+        <h1><FitText>{guestOnly ? 'A little sword practice.' : 'Every tale needs a rival.'}</FitText></h1>
         <div className="game-options" aria-label="Game options">
           {!guestOnly && <>
             <button type="button" className="game-option" disabled={!canPlayOnline} onClick={() => submitCommand({ kind: 'create', mode: 'online' })}>
-              <span className="option-icon" aria-hidden="true">⚔</span><strong>Create lobby</strong><span className="option-description">Open a new chapter</span><span className="option-arrow" aria-hidden="true">↗</span>
+              <span className="option-icon" aria-hidden="true">⚔</span><strong>Create lobby</strong><span className="option-arrow" aria-hidden="true">↗</span>
             </button>
             <button type="button" className="game-option" disabled={!canPlayOnline} onClick={() => setJoining(v => !v)} aria-expanded={joining}>
-              <span className="option-icon" aria-hidden="true">⌘</span><strong>Join lobby</strong><span className="option-description">Follow your friend’s party code</span><span className="option-arrow" aria-hidden="true">↗</span>
+              <span className="option-icon" aria-hidden="true">⌘</span><strong>Join lobby</strong><span className="option-arrow" aria-hidden="true">↗</span>
             </button>
             {joining && <form className="join-form game-join" onSubmit={join}>
               <label className="field"><span>Party code</span>
@@ -135,7 +136,7 @@ export function hubSpread(hub: ReturnType<typeof useHubMenu>, stopVoice: () => v
             </form>}
           </>}
           <button type="button" className="game-option" disabled={!validName || pending} onClick={() => submitCommand({ kind: 'create', mode: 'bot' })}>
-            <span className="option-icon" aria-hidden="true">✿</span><strong>Play with Swamp Bot</strong><span className="option-description">A friendly practice</span><span className="option-arrow" aria-hidden="true">↗</span>
+            <span className="option-icon" aria-hidden="true">✿</span><strong>Play with Swamp Bot</strong><span className="option-arrow" aria-hidden="true">↗</span>
           </button>
         </div>
         <MossCommandInput active={voiceActive} disabled={pending || (!guestOnly && session.loading)} onTranscript={voiceCommand} stopVoice={stopVoice}

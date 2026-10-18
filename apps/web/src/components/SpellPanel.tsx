@@ -1,4 +1,5 @@
 import { GESTURE_LABELS, getSpell } from '../game/spells';
+import { FitText } from './FitText';
 import type { FighterState } from '../game/types';
 import { GESTURE_KEYS, KEY_BUTTONS } from '../hooks/useKeyboardSword';
 import { useNow } from '../hooks/useNow';
@@ -27,7 +28,7 @@ export function SpellPanel({ fighter, disabled = false }: { fighter: FighterStat
       {!spell ? <>
         {sword.firing && <div className="armed"><p>FIRING — aim your sword at your opponent!</p></div>}
         <p className="label">Your next move</p>
-        <h2 className="spell-name">Choose your spell difficulty</h2>
+        <h2 className="spell-name"><FitText>Choose your spell difficulty</FitText></h2>
         <div className="difficulty-options">
           {SPELL_DIFFICULTIES.map(difficulty => <button type="button" className="difficulty-button" key={difficulty}
             disabled={disabled} onClick={() => send({ type: 'spell.choose', difficulty })}>
@@ -39,7 +40,7 @@ export function SpellPanel({ fighter, disabled = false }: { fighter: FighterStat
           : 'Receive one random spell from your chosen difficulty.'}</p>
       </> : <>
       <p className="label">{spell.difficulty} · {spell.damageRange.join('–')} damage</p>
-      <h2 className="spell-name">{spell.name}</h2>
+      <h2 className="spell-name"><FitText>{spell.name}</FitText></h2>
       <ol className="runes">
         {spell.combo.map((color, i) => (
           <li key={i} className={`rune rune-${color} ${i < fighter.entered ? 'lit' : ''}`}>

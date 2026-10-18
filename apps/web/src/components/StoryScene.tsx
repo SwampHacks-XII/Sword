@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { FitText } from './FitText';
 import { useTypewriter } from '../hooks/useTypewriter';
 import { Parchment } from './Parchment';
 import { NpcGuide } from './NpcGuide';
@@ -17,9 +18,9 @@ export function StoryScene({ title, paragraphs, action, onContinue, disabled, st
   const [visible, showAll] = useTypewriter(total, title);
   let offset = 0;
   return <Parchment className="story-scroll dialogue-scroll">
-    <h1>{title}</h1>
-    <div className="speaker-line"><span className="speaker-dot" /> Moss</div>
-    <div className="story-voice">{narration && <MossVoice text={paragraphs.join(' ')} controlRef={voice} />}</div>
+    <h1><FitText>{title}</FitText></h1>
+    <div className="speaker-line"><span className="speaker-dot" /> Moss
+      {narration && <MossVoice text={paragraphs.join(' ')} controlRef={voice} />}</div>
     <div className="story-dialogue">
       <div className="sr-only" aria-live="polite">{paragraphs.map(text => <p key={text}>{text}</p>)}</div>
       <div aria-hidden="true">{paragraphs.map(text => {
@@ -32,7 +33,7 @@ export function StoryScene({ title, paragraphs, action, onContinue, disabled, st
       {visible < total && <button type="button" className="text-button" onClick={showAll}>Show all dialogue <span aria-hidden="true">↠</span></button>}
     </div>
     <div className="story-actions">
-      {status && <p className="hint quest-status" role="status">{status}</p>}
+      {status && <p className="hint quest-status" role="status"><FitText>{status}</FitText></p>}
       <button type="button" className="quest-button" disabled={disabled} onClick={() => { voice.current?.stop(); onContinue(); }}>{action}<span aria-hidden="true">→</span></button>
       {error && <p className="error" role="alert">{error}</p>}
       {onLeave && <button type="button" className="secondary-button leave-game-button" onClick={onLeave}>Leave game <span aria-hidden="true">↗</span></button>}

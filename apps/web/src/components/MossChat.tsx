@@ -19,6 +19,7 @@ export function MossChat({ lines, onContinue }: { lines: readonly string[]; onCo
       <div className="moss-chat-portrait">
         <div className="npc-moss" role="img" aria-label="Moss, a tiny smiling green forest spirit with a pink flower" />
         <span className="moss-chat-name"><span className="speaker-dot" /> Moss</span>
+        <MossVoice text={text} controlRef={voice} />
       </div>
       <div className="moss-chat-log">
         <div className="sr-only" aria-live="polite">{lines.map(line => <p key={line}>{line}</p>)}</div>
@@ -32,7 +33,6 @@ export function MossChat({ lines, onContinue }: { lines: readonly string[]; onCo
       </div>
     </div>
     <footer className="moss-chat-footer">
-      <MossVoice text={text} controlRef={voice} />
       {done ? <button type="button" className="quest-button" onClick={() => { voice.current?.stop(); onContinue(); }}>Show me the scroll <span aria-hidden="true">→</span></button>
         : <button type="button" className="text-button" onClick={showAll}>Show all <span aria-hidden="true">↠</span></button>}
     </footer>

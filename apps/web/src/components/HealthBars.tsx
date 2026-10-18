@@ -1,10 +1,12 @@
+import type { ReactNode } from 'react';
 import type { FighterState } from '../game/types';
 
-export function HealthBars({ you, opponent, now }: { you: FighterState; opponent: FighterState; now: number }) {
+export function HealthBars({ you, opponent, now, children }: { you: FighterState; opponent: FighterState; now: number; children?: ReactNode }) {
   return (
     <div className="health-bars">
       <HealthBar fighter={you} label="You" now={now} />
       <HealthBar fighter={opponent} label="Opponent" now={now} />
+      {children && <div className="health-bars-footer">{children}</div>}
     </div>
   );
 }

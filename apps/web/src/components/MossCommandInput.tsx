@@ -85,6 +85,7 @@ export function MossCommandInput({ active = false, disabled, onTranscript, stopV
         }} />
       <span>Hands-free “Hey Moss”</span>
     </label>
+    <div className="moss-command-row">
     <button type="button" className="secondary-button" disabled={!active || disabled || !available} aria-pressed={listening}
       onClick={() => {
         if (listening) { listener.current?.stop(); setManual(false); return; }
@@ -98,6 +99,7 @@ export function MossCommandInput({ active = false, disabled, onTranscript, stopV
       {listening ? 'Stop listening' : 'Talk to Moss'}
     </button>
     <p className="heard-command" aria-live="polite">Heard: {heard ? <>“{heard}”{!final && ' (not final yet)'}</> : 'No words received yet.'}</p>
+    </div>
     <p className={error ? 'error' : 'hint'} role={error ? 'alert' : 'status'}>{error || (handsFree && speaking ? 'Hands-free pauses while Moss speaks.'
       : mode !== 'off' ? !started ? 'Opening microphone… allow access if your browser asks.'
         : listening ? 'Moss is listening… say one command.' : 'Say “Hey Moss” to hear the chime, then say your command.'

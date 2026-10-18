@@ -1,10 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { getSpell } from '../game/spells';
 import { otherSlot, type FighterState, type MatchEvent, type MatchState, type PlayerSlot } from '../game/types';
 import { useKeyboardSword } from '../hooks/useKeyboardSword';
 import { useMatch } from '../hooks/useMatch';
 import { useSerialSword } from '../hooks/useSerialSword';
-import { CameraPlaceholder } from './CameraPlaceholder';
+import { CameraPlaceholder, CameraToggle } from './CameraPlaceholder';
 import { HealthBars } from './HealthBars';
 import { Parchment } from './Parchment';
 import { SpellPanel } from './SpellPanel';
@@ -25,6 +25,8 @@ export function BattleScreen({ match, you, now, onLeave }: { match: MatchState; 
   const endingLine = match.winner === you ? MOSS_ENDINGS.win : MOSS_ENDINGS.loss;
   const leaveGame = () => leaveBattle(send, onLeave);
   const eventLog = useRef<HTMLUListElement>(null);
+  const cameraId = useId();
+  const [cameraHidden, setCameraHidden] = useState(true);
   useEffect(() => {
     if (eventLog.current) eventLog.current.scrollTop = eventLog.current.scrollHeight;
   }, [log]);
@@ -32,18 +34,22 @@ export function BattleScreen({ match, you, now, onLeave }: { match: MatchState; 
   return (
     <div className="battle">
       <SpellPanel fighter={mine} disabled={!fighting || !connected} />
-      <CameraPlaceholder />
+      <CameraPlaceholder id={cameraId} hidden={cameraHidden} />
       {fighting && <BattleMoss you={you} active>{({ guide, voiceControl }) =>
         <div className="battle-left-hud">
           <div className="battle-status">
-            <HealthBars you={mine} opponent={theirs} now={now} />
+            <HealthBars you={mine} opponent={theirs} now={now}>
+              <p className="battle-mode">{online ? 'Online' : 'Swamp Bot'} · {sword.status === 'ready' ? 'physical sword' : 'keyboard practice'}</p>
+              <div className="health-bars-actions">
+                <CameraToggle id={cameraId} hidden={cameraHidden} onToggle={() => setCameraHidden(value => !value)} />
+                <button type="button" className="secondary-button leave-game-button" onClick={() => void leaveGame()}>Leave game <span aria-hidden="true">↗</span></button>
+              </div>
+            </HealthBars>
             <div className="battle-controls">
               {voiceControl}
-              <p className="battle-mode">{online ? 'Online' : 'Swamp Bot'} · {sword.status === 'ready' ? 'physical sword' : 'keyboard practice'}</p>
               {sword.error && <p className="error" role="alert">{sword.error}</p>}
               {!connected && <p role="status">Waiting for both players to reconnect…</p>}
               {error && <p className="error" role="alert">{error}</p>}
-              <button type="button" className="secondary-button leave-game-button" onClick={() => void leaveGame()}>Leave game <span aria-hidden="true">↗</span></button>
             </div>
           </div>
           <div className="battle-conversation">
@@ -61,9 +67,8 @@ export function BattleScreen({ match, you, now, onLeave }: { match: MatchState; 
             <div className="ending-moss">
               <div className="npc-moss" aria-hidden="true" />
               <div>
-                <div className="speaker-line"><span className="speaker-dot" /> Moss</div>
+                <div className="speaker-line"><span className="speaker-dot" /> Moss <MossVoice text={endingLine} /></div>
                 <p>{endingLine}</p>
-                <MossVoice text={endingLine} />
               </div>
             </div>
             <div className="row">

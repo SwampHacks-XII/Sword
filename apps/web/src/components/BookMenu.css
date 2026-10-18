@@ -70,7 +70,8 @@
   background-image: linear-gradient(90deg, var(--book-grid) 1px, transparent 1px), linear-gradient(var(--book-grid) 1px, transparent 1px);
   background-size: 8px 8px;
 }
-.book-kicker { color: var(--book-accent); font-family: var(--label-font); font-size: clamp(7px, 1vw, 11px); letter-spacing: .28em; text-transform: uppercase; }
+.book-kicker { color: var(--book-accent); font-family: var(--label-font); font-size: clamp(7px, 1vw, 11px); letter-spacing: .28em; text-transform: uppercase; display: flex; align-items: center; gap: .8em; }
+.book-kicker::before, .book-kicker::after { content: ''; width: clamp(16px, 3vw, 40px); height: 1px; background: currentColor; opacity: .6; }
 .book-ornament { margin: clamp(6px, 1.6vh, 18px); color: var(--rune-red); font-size: 8px; }
 .book-page-content > h2 { max-width: 360px; margin: 0; font: 400 clamp(14px, min(2.2vw, 3.3vh), 26px)/1.35 var(--label-font); color: var(--ink); }
 .book-page-content > p { max-width: 330px; margin: clamp(12px, 2vw, 24px) 0 0; color: var(--ink-soft); font: 400 clamp(11px, 1.4vw, 17px)/1.45 var(--pixel-font); }

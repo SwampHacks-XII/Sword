@@ -7,6 +7,7 @@ import './MusicControls.css';
 export function MusicControls({ scene }: { scene: MusicScene }) {
   const [player, setPlayer] = useState<ReturnType<typeof createMusicPlayer> | null>(null);
   const [state, setState] = useState<MusicState>({ volume: 0.3, muted: false, status: 'idle' });
+  const [open, setOpen] = useState(false);
   useEffect(() => {
     let saved: string | null = null;
     try { saved = localStorage.getItem(MUSIC_PREFERENCE); } catch { /* Music also works without storage. */ }
@@ -34,16 +35,26 @@ export function MusicControls({ scene }: { scene: MusicScene }) {
   if (!scene) return null;
   const silent = state.muted || state.volume === 0;
   const needsRetry = state.status === 'blocked' || state.status === 'error';
+  const icon = <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M4 9h4l5-4v14l-5-4H4V9Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+    {silent ? <path d="m17 9 5 6m0-6-5 6" stroke="currentColor" strokeWidth="2" />
+      : <path d="M17 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />}
+  </svg>;
+  const retry = needsRetry && !silent && <button type="button" className="music-retry" onClick={() => player?.retry()}>
+    {state.status === 'blocked' ? 'Enable music' : 'Retry music'}
+  </button>;
+  if (!open) return <div className="music-controls" role="group" aria-label="Background music">
+    <button type="button" className="music-toggle" aria-expanded={false}
+      title="Show music controls" onClick={() => setOpen(true)}>
+      {icon}<span>Music</span>
+    </button>
+    {retry}
+  </div>;
   return <div className="music-controls" role="group" aria-label="Background music">
     <button type="button" className="music-toggle" aria-label={silent ? 'Unmute music' : 'Mute music'}
       aria-pressed={silent} title={silent ? 'Unmute music' : 'Mute music'} disabled={!player}
       onClick={() => { player?.setMuted(!silent); if (silent) player?.retry(); }}>
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M4 9h4l5-4v14l-5-4H4V9Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-        {silent ? <path d="m17 9 5 6m0-6-5 6" stroke="currentColor" strokeWidth="2" />
-          : <path d="M17 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />}
-      </svg>
-      <span>Music</span>
+      {icon}
     </button>
     <label className="music-volume">
       <span className="sr-only">Music volume</span>
@@ -52,9 +63,9 @@ export function MusicControls({ scene }: { scene: MusicScene }) {
         onChange={event => player?.setVolume(Number(event.target.value) / 100)} />
     </label>
     <output className="music-percent" aria-hidden="true">{silent ? 'Off' : `${Math.round(state.volume * 100)}%`}</output>
-    {needsRetry && !silent && <button type="button" className="music-retry" onClick={() => player?.retry()}>
-      {state.status === 'blocked' ? 'Enable music' : 'Retry music'}
-    </button>}
+    <button type="button" className="music-hide" aria-label="Hide music controls" aria-expanded={true}
+      title="Hide music controls" onClick={() => setOpen(false)}>×</button>
+    {retry}
     <span className="sr-only" role="status">{state.status === 'error' ? 'Music could not play. You can retry.'
       : state.status === 'blocked' ? 'Select Enable music to allow playback.' : ''}</span>
   </div>;

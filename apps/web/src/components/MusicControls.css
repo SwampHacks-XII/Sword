@@ -3,11 +3,13 @@
   padding: .35rem .6rem; background: var(--parchment-hi); color: var(--ink);
   box-shadow: 0 0 0 3px var(--frame), 4px 4px 0 #5b4a3a33;
 }
-.music-toggle, .music-retry {
+.music-toggle, .music-retry, .music-hide {
   display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
   border: 0; background: transparent; cursor: pointer; min-height: 36px; padding: .2rem;
 }
 .music-toggle[aria-pressed='true'] { color: var(--ink-soft); }
+.music-hide { min-width: 28px; font-size: 1.1rem; line-height: 1; color: var(--ink-soft); }
+.music-hide:hover { color: var(--ink); }
 .music-volume { display: flex; align-items: center; }
 .music-volume input { width: 90px; height: 32px; margin: 0; cursor: pointer; accent-color: var(--leaf); }
 .music-percent { min-width: 3ch; font-size: .8rem; text-align: right; }

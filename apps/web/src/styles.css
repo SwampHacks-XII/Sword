@@ -41,27 +41,38 @@ button { touch-action: manipulation; }
 /* Each *-loop.png is the art baked as normal, mirrored, normal, mirrored in one image, so there are no tile seams;
    sliding by half the strip (one normal+mirrored pair) loops seamlessly. */
 .landscape-strip { position: absolute; top: 0; left: 0; height: 100%; aspect-ratio: 2000 / 312; background: 0 0 / 100% 100% no-repeat; image-rendering: pixelated; animation: landscape-scroll 80s linear infinite; }
-/* Parallax: the grass drifts slower than the sky. */
-.landscape-strip.sky { background-image: url('/art/meadow-sky-loop.png'); animation-duration: 120s; }
-.landscape-strip.grass { background-image: url('/art/meadow-grass-loop.png'); animation-duration: 320s; }
+/* Parallax: the grass drifts slower than the sky. The sky strip is twice as long (8 tiles) so the star only shows on
+   the first tile of each half — the copies use star-free art — and its duration doubles to keep the same speed. */
+.landscape-strip.sky { aspect-ratio: 4000 / 312; background-image: url('/art/meadow-sky-loop.png'); animation-duration: 240s; }
+/* Grown from the bottom edge: the horizon sits ~48% up the art, so +21px of height lifts it ~10px. */
+.landscape-strip.grass { top: auto; bottom: 0; height: calc(100% + 21px); background-image: url('/art/meadow-grass-loop.png'); animation-duration: 320s; }
 .world-haze { background: linear-gradient(0deg, #6d805013, transparent 40%); }
 .wandering-clouds { position: absolute; width: 135%; height: 25%; left: -15%; top: 15%; opacity: .15; background: #f2dce9; clip-path: polygon(0 35%, 10% 35%, 10% 15%, 17% 15%, 17% 40%, 30% 40%, 30% 60%, 41% 60%, 41% 48%, 52% 48%, 52% 25%, 62% 25%, 62% 50%, 77% 50%, 77% 30%, 84% 30%, 84% 55%, 100% 55%, 100% 85%, 0 85%); animation: cloud-wander 38s steps(40) infinite alternate; }
+.cloud-layer, .night-stars { position: absolute; inset: 0; pointer-events: none; }
+/* Blocky pixel clouds: start just off the right edge and drift fully off the left. */
+.pixel-cloud { position: absolute; left: 100%; aspect-ratio: 3 / 1; background: linear-gradient(#fff7fc 0 68%, #e8d0e8 68%); animation: cloud-drift linear infinite; will-change: transform; }
+.pixel-cloud.shape-a { clip-path: polygon(0 100%, 0 70%, 8% 70%, 8% 50%, 20% 50%, 20% 30%, 34% 30%, 34% 10%, 56% 10%, 56% 25%, 68% 25%, 68% 45%, 84% 45%, 84% 60%, 100% 60%, 100% 100%); }
+.pixel-cloud.shape-b { clip-path: polygon(0 100%, 0 60%, 12% 60%, 12% 35%, 26% 35%, 26% 15%, 40% 15%, 40% 35%, 52% 35%, 52% 0, 70% 0, 70% 30%, 82% 30%, 82% 55%, 100% 55%, 100% 100%); }
+.cloud-layer.far .pixel-cloud { filter: blur(.5px); }
+/* Pixel "plus" stars: a square core with four arms drawn by box-shadows. */
+.night-stars i { position: absolute; width: 3px; height: 3px; background: #fffbe6; color: #fffbe6aa; box-shadow: 3px 0, -3px 0, 0 3px, 0 -3px; opacity: .15; animation: star-flash 3s steps(6) infinite; }
+.night-stars i.big { width: 4px; height: 4px; box-shadow: 4px 0, -4px 0, 0 4px, 0 -4px, 0 0 6px 2px #fff4bb88; }
 .fireflies i { position: absolute; width: 6px; height: 6px; background: #fff4bb; box-shadow: 0 0 0 3px #fff4bb55; animation: firefly 8s steps(10) infinite; }
 .duel-illustration { width: 49%; }
 .near-knight, .distant-knight { position: absolute; filter: drop-shadow(8px 8px 0 #4d6a4e33); }
-.near-knight .knight-sprite, .distant-knight .knight-sprite { width: 100%; image-rendering: auto; }
+.near-knight .knight-sprite, .distant-knight .knight-sprite { width: 100%; }
 .near-knight { left: 3%; bottom: 2%; width: 45%; max-height: 66%; transform: scaleX(-1); }
 .distant-knight { right: 4%; bottom: 26%; width: 26%; }
-.duel-caption { position: absolute; left: 12%; bottom: 7%; color: #3f553f; font-size: .9rem; }
 
 .world-header { position: absolute; z-index: 5; inset: 0 0 auto; height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0 3.2vw; color: #3f3a30; background: transparent; pointer-events: none; }
 .wordmark { display: inline-flex; align-items: center; gap: .6rem; border: 0; padding: .25rem 0; background: none; letter-spacing: .12em; font-weight: 700; font-size: 1.6rem; text-shadow: 3px 3px 0 #c9bde8; pointer-events: auto; cursor: pointer; }
 .wordmark:disabled { opacity: 1; }
 .wordmark > span:first-child { font-size: 1.6rem; letter-spacing: 0; }
-.wordmark-star { font-size: .8rem; letter-spacing: 0; color: #756ca3; text-shadow: none; animation: twinkle 1.6s steps(1) infinite; }
+.wordmark-logo { display: block; height: 64px; width: auto; image-rendering: pixelated; }
+.wordmark-star {font-size: .8rem; letter-spacing: 0; color: #756ca3; text-shadow: none; animation: twinkle 1.6s steps(1) infinite; }
 .world-edition { font-size: .9rem; }
 .world-footer { position: absolute; z-index: 2; inset: auto 3.2vw 22px; display: flex; justify-content: space-between; gap: 1rem; font-size: .8rem; color: #2f4229; pointer-events: none; }
-.world-footer > span, .duel-caption { padding: 2px 8px; background: #eef5d3d9; box-shadow: 0 2px 0 #2f422933; }
+.world-footer > span { padding: 2px 8px; background: #eef5d3d9; box-shadow: 0 2px 0 #2f422933; }
 .arena { position: absolute !important; inset: 0; }
 .arena canvas { image-rendering: pixelated; }
 .overlay { position: absolute; inset: 0; pointer-events: none; }
@@ -119,13 +130,14 @@ button { touch-action: manipulation; }
 .leave-dialog-portrait { display: flex; align-items: center; justify-content: center; gap: .4rem; }
 .leave-dialog-portrait .npc-moss { width: 104px; }
 .leave-dialog-spark { color: #ac8bba; font-size: 1.2rem; }
-.leave-dialog-kicker { font-family: var(--label-font); font-size: .68rem; color: var(--leaf); }
+.leave-dialog-kicker { font-family: var(--label-font); font-size: .68rem; color: var(--leaf); display: flex; align-items: center; justify-content: center; gap: .8em; }
+/* Short rules either side, like the book pages' .book-kicker. */
+.leave-dialog-kicker::before, .leave-dialog-kicker::after { content: ''; width: clamp(16px, 3vw, 40px); height: 1px; background: currentColor; opacity: .6; }
 .leave-dialog-card h2 { margin: .65rem 0 .75rem; font-weight: 500; font-size: clamp(1.6rem, 5vw, 2rem); }
 .leave-dialog-card p { margin: .6rem 0; line-height: 1.5; }
 .leave-dialog-card .leave-dialog-note { font-size: .85rem; color: var(--ink-soft); }
 .leave-dialog-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: .7rem; margin-top: 1.1rem; }
 .leave-dialog-actions > button { flex: 1 1 155px; }
-.battle-controls .leave-game-button { margin: 4px; min-height: 44px; }
 
 .npc-guide { position: absolute; bottom: -31px; left: -75px; display: flex; align-items: flex-end; gap: 3px; pointer-events: none; width: calc(100% + 30px); }
 /* moss-fly.png is a 24-frame boomerang strip (frames 1→13→2), so a plain forward loop plays it back and forth. */
@@ -153,13 +165,16 @@ button { touch-action: manipulation; }
 .book-form .auth-actions { grid-template-columns: 1fr; gap: .4rem; margin-block: .8rem .4rem; }
 .book-auth-footer { display: flex; flex-direction: column; align-items: flex-start; gap: .25rem; margin-top: 1.5rem; }
 .book-auth-footer > .link-button { display: block; margin: 0; }
-.book-form .game-option { padding: .6rem 1rem .6rem 2.5rem; }
-.book-form .game-option .option-description { white-space: nowrap; font-size: clamp(.62rem, 1vw, .82rem); }
-.sword-setup > .hint { margin: .5rem 0; font-size: .8rem; }
+.book-form .game-options { margin-top: .6rem; }
+.book-form .game-option { padding: 1rem 1rem 1rem 2.5rem; }.sword-setup > .hint { margin: .5rem 0; font-size: .8rem; }
 .sword-setup .checklist { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: .8rem; margin-block: .6rem; font-size: .82rem; }
 .sword-setup .secondary-button { min-height: 36px; padding: .45rem .6rem; font-size: .85rem; }
 .sword-setup-actions { display: grid; justify-items: center; gap: .5rem; margin-top: .6rem; }
 .sword-setup-actions .quest-button { font-size: .9rem; }
+.sword-connection-title { margin: .8rem 0 .4rem; font-size: 1rem; font-weight: 500; text-align: center; }
+.sword-connection-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; }
+.sword-setup .sword-connection-option { padding-inline: .4rem; font-size: .8rem; }
+.sword-connection-option.is-active { --edge: #65753f; --hi: #edf5d4; --lo: #a5c578; --lip: #65753f; background: #dce8b9; }
 .sword-setup-status { text-align: center; }
 .sword-setup-art { margin-top: .5rem; }
 .book-form .moss-command-input { margin-top: .8rem; padding-top: .7rem; }
@@ -195,13 +210,8 @@ button { touch-action: manipulation; }
 .book-lore-moss { display: grid; justify-items: center; gap: .15rem; margin: -.4rem 0 .65rem; }
 .book-lore-moss .npc-moss { width: clamp(72px, 14vh, 125px); }
 .book-lore-moss .speaker-line { margin: 0; }
-/* Reserve narration controls during the flip, so starting speech cannot recenter the prose. */
-.book-lore-voice, .book-auth-voice, .story-voice { position: relative; width: 100%; height: 4.5rem; margin-top: .5rem; }
-.book-lore-voice > .moss-voice, .book-auth-voice > .moss-voice, .story-voice > .moss-voice {
-  position: absolute; inset: 0; justify-content: center; align-content: start;
-  margin: 0; gap: .35rem .5rem; font-size: .8rem;
-}
-.book-lore-voice .moss-voice > .hint, .book-auth-voice .moss-voice > .hint, .story-voice .moss-voice > .hint { flex-basis: 100%; margin: 0; line-height: 1.35; }
+.npc-caption .moss-voice { margin: .4rem 0 0; gap: .4rem; pointer-events: auto; }
+.npc-caption .moss-voice .hint { flex-basis: 100%; margin: 0; font-size: .75rem; line-height: 1.35; }
 
 /* After the book closes: Moss pops up in a little chat window, then the quest scroll. */
 .quest-layout { align-items: flex-end; }
@@ -224,7 +234,7 @@ button { touch-action: manipulation; }
 .moss-chat-bubble { position: relative; margin: 0 0 .7rem; padding: .6rem .8rem; background: #fff8e6; box-shadow: 0 0 0 3px #8a7448, 4px 4px 0 3px #5b4a3a33; font-size: clamp(.92rem, 1.3vw, 1.05rem); line-height: 1.5; animation: scroll-arrive .2s steps(2) both; }
 .moss-chat-bubble::before { content: ''; position: absolute; left: -11px; top: 12px; width: 8px; height: 8px; background: #8a7448; }
 .moss-chat-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem; padding: .4rem 1.2rem 1.1rem; }
-.moss-chat-footer .moss-voice { margin: 0; }
+.moss-chat-portrait .moss-voice { justify-content: center; margin-top: .4rem; }
 .moss-chat-footer > button { margin-left: auto; }
 @keyframes chat-pop { from { opacity: 0; transform: scale(.85) translateY(20px); } to { opacity: 1; transform: none; } }
 @media (max-width: 720px) {
@@ -243,8 +253,7 @@ button { touch-action: manipulation; }
   .book-hero-figure .npc-moss { width: 60px; }
   .book-page-content > h2 { font-size: 15px; }
   .book-lore p { font-size: .78rem; line-height: 1.45; }
-  .book-form .game-option { padding-block: .4rem; }
-  .book-form .game-option .option-description { font-size: .7rem; }
+  .book-form .game-option { padding-block: .65rem; }
 }
 .moss-command-input { margin-top: 1.1rem; padding-top: 1rem; border-top: 4px dashed #b7a27370; }
 .moss-command-input .secondary-button { min-height: 44px; gap: .6rem; }
@@ -254,7 +263,9 @@ button { touch-action: manipulation; }
 .moss-command-input .hint { margin: .65rem 0 .3rem; }
 .moss-command-input.is-listening .secondary-button { --edge: #65753f; --hi: #edf5d4; --lo: #a5c578; --lip: #65753f; background: #dce8b9; }
 .voice-input-notice { margin: .3rem 0; font-size: .76rem; line-height: 1.5; color: var(--ink-soft); }
-.heard-command { font-size: .9rem; line-height: 1.5; overflow-wrap: anywhere; }
+.moss-command-row { display: flex; align-items: center; gap: .8rem; }
+.moss-command-row .secondary-button { flex: 0 0 auto; }
+.heard-command { flex: 1; min-width: 0; margin: 0; font-size: .9rem; line-height: 1.5; overflow-wrap: anywhere; }
 .moss-command-reply { position: absolute; z-index: 8; left: 50%; bottom: 54px; transform: translateX(-50%); margin: 0; width: max-content; max-width: min(520px, 85vw); padding: .8rem 1rem; background: var(--parchment); border: 4px solid var(--frame); box-shadow: 4px 4px 0 var(--drop); font-size: 1rem; line-height: 1.5; pointer-events: none; }
 .moss-command-reply strong { color: var(--leaf); margin-right: .3rem; }
 .back-button { margin-top: 1.1rem; }
@@ -265,11 +276,11 @@ button { touch-action: manipulation; }
 .game-options { display: grid; gap: 0; border-top: 4px solid #b9a16a80; }
 .game-option { position: relative; background: transparent; border: 0; border-bottom: 4px solid #b9a16a80; padding: .85rem 1.8rem .85rem 3rem; display: grid; gap: .27rem; text-align: left; cursor: pointer; }
 .game-option:hover:not(:disabled) { background: #fff9e666; }
-.game-option:hover:not(:disabled) .option-arrow { transform: translateX(4px); }
+.game-option:hover:not(:disabled) .option-arrow { transform: translate(4px, -50%); }
 .game-option strong { font-size: 1.2rem; font-weight: 500; }
 .game-option > span:not(.option-icon):not(.option-arrow) { font-size: .82rem; color: var(--ink-soft); line-height: 1.4; }
-.option-icon { position: absolute; left: .2rem; top: 1rem; font-size: 1.5rem; color: #7c8357; }
-.option-arrow { position: absolute; right: .15rem; top: 1rem; font-size: 1.2rem; color: #7b704e; }
+.option-icon { position: absolute; left: .2rem; top: 50%; transform: translateY(-50%); font-size: 1.5rem; line-height: 1; color: #7c8357; }
+.option-arrow { position: absolute; right: .15rem; top: 50%; transform: translateY(-50%); font-size: 1.2rem; line-height: 1; color: #7b704e; }
 .join-form { display: flex; gap: 1rem; align-items: end; padding: 1rem 0; }
 .join-form .field { flex: 1; margin: 0; }
 .join-form input { letter-spacing: .3em; }
@@ -305,8 +316,6 @@ button { touch-action: manipulation; }
 .speaker-line { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: 1.4rem 0 1rem; font-size: 1rem; font-weight: 600; color: #566736; }
 .speaker-dot { width: 8px; height: 8px; background: #8fa854; box-shadow: 0 0 0 2px #566736; }
 .dialogue-scroll > .speaker-line { margin-bottom: .15rem; }
-.dialogue-scroll > .story-voice { margin-top: 0; }
-.dialogue-scroll > .story-voice > .moss-voice { justify-content: flex-start; }
 .story-dialogue { font-size: clamp(1.02rem, 1.5vw, 1.2rem); line-height: 1.65; }
 .story-dialogue p { position: relative; margin: 0 0 1.15rem; }
 .dialogue-reserve { visibility: hidden; }
@@ -315,7 +324,7 @@ button { touch-action: manipulation; }
 .dialogue-toolbar { min-height: 1.5rem; display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
 .dialogue-toolbar > :last-child { margin-left: auto; }
 .dialogue-page { font-size: 1rem; color: var(--ink); }
-.quest-status { max-width: 330px; margin-left: auto; }
+.quest-status { max-width: 100%; margin-left: auto; text-align: right; }
 .dialogue-scroll .story-actions { margin-top: 1rem; }
 .story-actions > .quest-status { margin: 0 0 .5rem auto; }
 .story-actions > .leave-game-button { display: flex; width: fit-content; margin: 1rem 4px 4px auto; }
@@ -325,6 +334,11 @@ button { touch-action: manipulation; }
 .battle-left-hud { position: absolute; top: 94px; bottom: 18px; left: 2.5vw; width: min(350px, 32vw); display: flex; flex-direction: column; gap: 1.25rem; padding: 4px 12px 8px 4px; overflow-y: auto; scrollbar-width: thin; pointer-events: none; }
 .battle-status { display: grid; gap: .9rem; flex: 0 0 auto; pointer-events: auto; }
 .health-bars { --hi: var(--parchment-hi); --lo: var(--parchment-lo); --lip: var(--drop); --sx: 8px; --sy: 8px; width: 100%; display: grid; gap: .85rem; padding: 1rem 1.2rem; background: #efe3c2f2; }
+.health-bars-footer { display: grid; gap: .6rem; padding-top: .8rem; border-top: 2px dashed #b7a27370; font-size: .8rem; }
+.health-bars-footer p { margin: 0; }
+.health-bars-footer .battle-mode { --hi: #fffef8; --lo: #dfcfae; --lip: var(--drop); --sx: 6px; --sy: 6px; justify-self: start; max-width: 100%; padding: .45rem .6rem; background: #fffaf0; color: var(--ink); overflow-wrap: anywhere; }
+.health-bars-actions { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.health-bars-actions .leave-game-button { margin: 4px; min-height: 44px; }
 .health-label { display: flex; justify-content: space-between; gap: .6rem; font-size: .92rem; line-height: 1.5; }
 .health-label > span { min-width: 0; overflow-wrap: anywhere; }
 .health-label > span:last-child { flex-shrink: 0; white-space: nowrap; }
@@ -355,10 +369,17 @@ button { touch-action: manipulation; }
 .heal-button { --edge: #3f4a26; --hi: #c6d79a; --lo: #8ea35c; --lip: #3f4a26; background: var(--rune-green); }
 .heal-button:hover:not(:disabled) { background: #b3d186; }
 .moss-voice { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-bottom: .7rem; }
+.moss-voice-icon { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; cursor: pointer; color: #3f4a26; background: #cde0a7; box-shadow: 0 0 0 2px #65753f, 2px 2px 0 2px #5b4a3a33; }
+.moss-voice-icon:hover:not(:disabled) { background: #dcebbb; }
+.moss-voice-icon:disabled { cursor: default; opacity: .5; }
+.speaker-line .moss-voice { margin: 0; gap: .4rem; }
+.speaker-line .moss-voice .hint { flex-basis: 100%; margin: 0; font-size: .78rem; font-weight: 400; }
 .battle-voice-control { --hi: var(--parchment-hi); --lo: var(--parchment-lo); --lip: var(--drop); --sx: 6px; --sy: 6px; max-width: 100%; padding: .25rem .55rem; background: #f1e3c2f2; text-shadow: none; }
-.battle-voice-toggle { display: flex; align-items: center; gap: .75rem; min-height: 34px; border: 0; padding: .2rem 0; background: transparent; cursor: pointer; font-size: .85rem; }
-.battle-voice-state { border: 2px solid #65753f; padding: .1rem .4rem; background: #cde0a7; color: #3f4a26; font-size: .75rem; }
-.battle-voice-toggle[aria-checked='false'] .battle-voice-state { border-color: #94727b; background: #f2d4d8; color: #65474e; }
+/* Speaker badge on Moss's battle portrait: green when Moss speaks, muted rose when off. */
+.battle-conversation .npc-portrait { position: relative; }
+.battle-voice-icon { position: absolute; right: -6px; bottom: -6px; display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 50%; cursor: pointer; pointer-events: auto; color: #3f4a26; background: #cde0a7; box-shadow: 0 0 0 2px #65753f, 2px 2px 0 2px #5b4a3a33; }
+.battle-voice-icon[aria-checked='false'] { color: #65474e; background: #f2d4d8; box-shadow: 0 0 0 2px #94727b, 2px 2px 0 2px #5b4a3a33; }
+.battle-voice-icon:focus-visible { outline: 3px solid var(--leaf); outline-offset: 2px; }
 .rune-red { background: var(--rune-red); } .rune-blue { background: var(--rune-blue); }
 .rune-green { background: var(--rune-green); } .rune-yellow { background: var(--rune-yellow); }
 .rune-key { font-weight: 700; color: #3a372b; }
@@ -371,12 +392,10 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
 .armed-bar > div { height: 100%; background: repeating-linear-gradient(90deg, #7fa1b3 0 8px, transparent 8px 10px); }
 .battle-controls { display: grid; justify-items: start; gap: .65rem; padding: .1rem 0; font-size: .8rem; text-shadow: 2px 2px 0 #fffae0; }
 .battle-controls p { margin: 0; }
-.battle-controls .battle-mode { --hi: #fffef8; --lo: #dfcfae; --lip: var(--drop); --sx: 6px; --sy: 6px; max-width: 100%; padding: .55rem .7rem; background: #fffaf0; color: var(--ink); text-shadow: none; overflow-wrap: anywhere; }
 .battle-conversation { display: flex; flex-direction: column; gap: 1rem; margin-top: auto; min-height: 0; pointer-events: none; }
 .battle-conversation .npc-guide-compact { position: static; inset: auto; display: flex; align-items: center; gap: .4rem; flex: 0 0 auto; width: 100%; }
 .battle-conversation .npc-guide-compact .npc-moss { width: 96px; }
 .battle-conversation .npc-portrait { flex: 0 0 auto; padding: 4px; border-radius: 50%; background: radial-gradient(ellipse, #fff9e9 0 55%, #f2e4be 78%, #deca9c 100%); box-shadow: 0 0 0 2px #b69a6d, 3px 4px 0 1px #5b4a3a26; }
-.battle-conversation .npc-portrait .npc-moss { filter: url(#pixelate-soft) drop-shadow(0 2px 0 #675333); }
 .battle-conversation .npc-caption { --hi: var(--parchment-hi); --lo: var(--parchment-lo); --lip: var(--drop); --sx: 6px; --sy: 6px; align-self: center; flex: 1; min-width: 0; width: auto; max-width: none; margin: 0; padding: .6rem .75rem; background: #f1e3c2f2; }
 .npc-guide-compact .npc-caption p { font-size: .8rem; }
 .event-log { --edge: #6f7d45; --hi: #fffaea; --lip: var(--drop); --sx: 6px; --sy: 6px; flex: 0 1 auto; min-height: 0; max-height: min(140px, 22svh); overflow-y: auto; scrollbar-width: thin; pointer-events: auto; list-style: none; margin: 0; padding: .7rem 1rem; width: 100%; background: #f1e5c7ee; font-size: .82rem; line-height: 1.6; overflow-wrap: anywhere; }
@@ -384,9 +403,9 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
 .camera-widget { position: absolute; bottom: 22px; right: calc(3vw + min(300px, 30vw) + 24px); width: min(320px, calc(32vw - 3rem)); display: flex; flex-direction: column; align-items: flex-end; pointer-events: none; }
 .camera-frame { --b: 6px; --edge: #5b4a3a; --hi: #eee0bb; --lo: #c9b48a; --lip: var(--drop); --sx: 8px; --sy: 8px; width: 100%; aspect-ratio: 16/10; display: grid; place-items: center; padding-top: 28px; color: #5f5577; background: #d7cce4e6; }
 .camera-frame[hidden] { display: none; }
-.camera-toggle { position: absolute; top: 6px; right: 6px; z-index: 1; display: inline-flex; align-items: center; gap: .35rem; min-height: 30px; padding: .2rem .45rem; border: 2px solid var(--frame); background: var(--parchment-hi); color: var(--ink); font-size: .75rem; cursor: pointer; pointer-events: auto; }
+.camera-toggle { display: grid; place-items: center; width: 44px; height: 44px; margin: 4px; padding: 0; border: 2px solid var(--frame); background: var(--parchment-hi); color: var(--ink); cursor: pointer; box-shadow: 3px 3px 0 var(--drop); }
 .camera-toggle:hover { background: #fffdf3; }
-.camera-widget.is-collapsed .camera-toggle { position: static; min-height: 44px; box-shadow: 4px 4px 0 var(--drop); }
+.camera-toggle[aria-expanded='true'] { background: #d7cce4; }
 .camera-frame > div { display: grid; justify-items: center; gap: .45rem; padding: .5rem; text-align: center; }
 .camera-frame span:not(.camera-sigil) { font-size: .88rem; }
 .camera-frame small { font-family: var(--label-font); font-size: .58rem; }
@@ -401,7 +420,6 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
 .ending-moss .npc-moss { width: 72px; }
 .ending-moss .speaker-line { margin: 0; }
 .ending-moss p { font-size: .95rem; margin: .4rem 0 .6rem; }
-.ending-moss .moss-voice { margin-bottom: 0; }
 .fatal { --hi: var(--parchment-hi); --lo: var(--parchment-lo); padding: 2rem; margin: 1rem; background: var(--parchment); }
 
 @keyframes scroll-arrive { from { opacity: 0; translate: 0 16px; } to { opacity: 1; translate: 0 0; } }
@@ -426,6 +444,9 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
 @keyframes firefly { 0%, 100% { opacity: 0; transform: translate(0, 10px); } 50% { opacity: .8; transform: translate(12px, -12px); } }
 @keyframes cursor-blink { 50% { opacity: 0; } }
 @keyframes twinkle { 50% { opacity: .3; } }
+@keyframes cloud-drift { to { transform: translateX(calc(-100vw - 100%)); } }
+@keyframes star-flash { 0%, 60%, 100% { opacity: .15; transform: scale(.6); } 75% { opacity: 1; transform: scale(1.15); } 85% { opacity: .6; transform: scale(.9); } }
+@media (prefers-reduced-motion: reduce) { .pixel-cloud, .night-stars i { animation: none; } .night-stars i { opacity: .6; } }
 
 /* Wide screens: Moss stands on the grass beside the panel, so the panel doesn't reserve room for him. */
 @media (min-width: 721px) {
@@ -473,11 +494,11 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
   .duel-illustration { width: 48%; opacity: .8; }
   .near-knight { left: -18%; width: 65%; }
   .distant-knight { right: 15%; width: 36%; }
-  .duel-caption { display: none; }
 }
 @media (max-width: 720px) {
   .world-header { height: 68px; padding-inline: 20px; }
   .wordmark { font-size: 1.2rem; }
+  .wordmark-logo { height: 44px; }
   .world-edition { display: none; }
   .entry-layout { align-items: center; padding: 96px 34px 110px; }
   .story-scroll { width: 100%; max-width: 540px; padding: 25px 30px 126px; }
@@ -505,8 +526,6 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
   .runes { gap: .5rem; }
   .spell-panel .hint { font-size: .72rem; }
   .battle-controls { gap: .55rem; font-size: .72rem; }
-  .battle-voice-toggle { gap: .4rem; font-size: .76rem; }
-  .battle-voice-state { padding-inline: .25rem; font-size: .7rem; }
   .battle-conversation .npc-guide-compact .npc-moss { width: 64px; }
   .battle-conversation .npc-caption { padding: .5rem; }
   .npc-guide-compact .npc-caption p { font-size: .72rem; }
@@ -535,8 +554,8 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
   .battle-left-hud .health-bars { padding: .65rem .8rem; gap: .55rem; }
   .battle-left-hud .health-label { font-size: .78rem; }
   .battle-controls { gap: .45rem; }
-  .battle-controls .leave-game-button { min-height: 40px; padding-block: .5rem; }
-  .battle-voice-toggle { min-height: 30px; }
+  .health-bars-actions .leave-game-button { min-height: 40px; padding-block: .5rem; }
+  .camera-toggle { width: 40px; height: 40px; }
   .battle-conversation .npc-guide-compact .npc-moss { width: 64px; }
   .event-log { max-height: 100px; padding-block: .45rem; }
 }
@@ -545,3 +564,7 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
   .world-footer { display: none; }
   .entry-layout { padding-bottom: 28px; }
 }
+
+/* FitText shrinks a heading to stay on one line; when it can't, the wrap is balanced so no lone word hangs on line two. */
+.fit-text { display: block; }
+h1, h2, .quest-button, .primary-button { text-wrap: balance; }

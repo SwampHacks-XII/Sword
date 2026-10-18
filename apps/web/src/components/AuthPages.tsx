@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { FitText } from './FitText';
 import { MOSS_NAME_PROMPT } from '@sword/protocol';
 import { useSession } from '../auth/SessionProvider';
 import { navigate } from '../hooks/useScreen';
@@ -28,7 +29,7 @@ export function useAuthLedger() {
 /** Art on the left page; log in, sign up or practice on the right. */
 export function authSpread({ session, pending, issue, signIn, setError }: ReturnType<typeof useAuthLedger>, narrate = false): BookSpread {
   const ledger = <div className="book-form book-auth">
-    <h1>{session.authenticated ? 'Your story awaits.' : 'Who holds the sword?'}</h1>
+    <h1><FitText>{session.authenticated ? 'Your story awaits.' : 'Who holds the sword?'}</FitText></h1>
     {pending ? <p role="status">Your sign-in window is open.</p>
       : session.loading ? <p role="status">Checking your login…</p>
       : session.authenticated ? <>
@@ -72,8 +73,7 @@ export function authSpread({ session, pending, issue, signIn, setError }: Return
       title: <>Every legend<br />begins with <em>you.</em></>,
       content: <div className="book-art">
         <Knight plain className="book-art-knight" label="A small pixel hero, waiting for a sword" />
-        <NpcGuide message={MOSS_NAME_PROMPT} />
-        <div className="book-auth-voice"><MossVoice text={MOSS_NAME_PROMPT} autoSpeak={narrate} /></div>
+        <NpcGuide message={MOSS_NAME_PROMPT} voice={<MossVoice text={MOSS_NAME_PROMPT} autoSpeak={narrate} />} />
       </div>,
     },
     right: { content: ledger, className: 'book-page-dense' },

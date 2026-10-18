@@ -20,14 +20,6 @@
         <feComposite in="SourceGraphic" in2="grid" operator="in" />
         <feMorphology operator="dilate" radius="3" />
       </filter>
-      <!-- Gentler variant for Moss: 3px cells, dilated by 1px. -->
-      <filter id="pixelate-soft" x="0" y="0" width="1" height="1">
-        <feFlood x="10" y="10" width="1" height="1" />
-        <feComposite width="3" height="3" />
-        <feTile result="grid" />
-        <feComposite in="SourceGraphic" in2="grid" operator="in" />
-        <feMorphology operator="dilate" radius="1" />
-      </filter>
     </svg>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
