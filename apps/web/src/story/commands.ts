@@ -60,6 +60,7 @@ export function planLobbyControl(command: MossLobbyCommand, context: {
   if (online && context.onlineStatus !== 'open') return { ok: false, reply: MOSS_COMMAND_REPLIES.reconnecting };
   if (online && context.lobby.you !== 'p1') return { ok: false, reply: MOSS_COMMAND_REPLIES.hostOnly };
   if (context.lobby.players.filter(player => player.connected).length !== 2) return { ok: false, reply: MOSS_COMMAND_REPLIES.waitForRival };
+  if (online && !context.lobby.players.every(player => player.ready === true)) return { ok: false, reply: 'Both players need to finish the sword setup page before starting.' };
   return { ok: true, message: { type: 'quest.begin' }, reply: MOSS_COMMAND_REPLIES.startQuest };
 }
 

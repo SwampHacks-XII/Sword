@@ -24,6 +24,7 @@ export type ClientMessage =
   | { type: 'lobby.create'; name: string; mode: 'online' | 'bot' }
   | { type: 'lobby.join'; code: string; name: string }
   | { type: 'lobby.leave' }
+  | { type: 'lobby.ready'; ready: boolean }
   | { type: 'device.check' }
   | { type: 'quest.begin' }
   | { type: 'quest.accept' }
