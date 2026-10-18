@@ -37,7 +37,13 @@ button { touch-action: manipulation; }
 .stage { position: relative; width: 100%; height: 100vh; height: 100svh; overflow: hidden; isolation: isolate; }
 .storybook-world, .pixel-landscape, .world-haze, .duel-illustration, .fireflies { position: absolute; inset: 0; pointer-events: none; }
 .storybook-world { z-index: -2; overflow: hidden; background: #b9aceb; }
-.pixel-landscape { background: url('/art/meadow-sky.png') center / cover no-repeat; image-rendering: pixelated; transform: scale(1.025); }
+.pixel-landscape { overflow: hidden; transform: scale(1.025); }
+/* Each *-loop.png is the art baked as normal, mirrored, normal, mirrored in one image, so there are no tile seams;
+   sliding by half the strip (one normal+mirrored pair) loops seamlessly. */
+.landscape-strip { position: absolute; top: 0; left: 0; height: 100%; aspect-ratio: 2000 / 312; background: 0 0 / 100% 100% no-repeat; image-rendering: pixelated; animation: landscape-scroll 80s linear infinite; }
+/* Parallax: the grass drifts slower than the sky. */
+.landscape-strip.sky { background-image: url('/art/meadow-sky-loop.png'); animation-duration: 120s; }
+.landscape-strip.grass { background-image: url('/art/meadow-grass-loop.png'); animation-duration: 320s; }
 .world-haze { background: linear-gradient(0deg, #6d805013, transparent 40%); }
 .wandering-clouds { position: absolute; width: 135%; height: 25%; left: -15%; top: 15%; opacity: .15; background: #f2dce9; clip-path: polygon(0 35%, 10% 35%, 10% 15%, 17% 15%, 17% 40%, 30% 40%, 30% 60%, 41% 60%, 41% 48%, 52% 48%, 52% 25%, 62% 25%, 62% 50%, 77% 50%, 77% 30%, 84% 30%, 84% 55%, 100% 55%, 100% 85%, 0 85%); animation: cloud-wander 38s steps(40) infinite alternate; }
 .fireflies i { position: absolute; width: 6px; height: 6px; background: #fff4bb; box-shadow: 0 0 0 3px #fff4bb55; animation: firefly 8s steps(10) infinite; }
@@ -395,6 +401,7 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
   40%, 60% { background-position-x: 80%; }
   50% { background-position-x: 100%; }
 }
+@keyframes landscape-scroll { to { transform: translateX(-50%); } }
 @keyframes cloud-wander { from { transform: translateX(-2%); } to { transform: translateX(6%); } }
 @keyframes firefly { 0%, 100% { opacity: 0; transform: translate(0, 10px); } 50% { opacity: .8; transform: translate(12px, -12px); } }
 @keyframes cursor-blink { 50% { opacity: 0; } }
