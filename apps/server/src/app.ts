@@ -24,7 +24,10 @@ export function createApp(config: Config, players: PlayerStore | null, game: Gam
   app.disable('x-powered-by');
   const authOrigin = config.auth0 ? new URL(config.auth0.issuerBaseURL).origin : null;
   const socketOrigin = config.webOrigin.replace(/^http/, 'ws');
-  app.use(helmet(config.serveWeb ? { contentSecurityPolicy: { directives: {
+  app.use(helmet(config.serveWeb ? {
+    // Auth0 must retain its opener to report popup completion or cancellation.
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+    contentSecurityPolicy: { directives: {
     connectSrc: ["'self'", socketOrigin, ...(authOrigin ? [authOrigin] : [])],
     frameSrc: ["'self'", ...(authOrigin ? [authOrigin] : [])],
     imgSrc: ["'self'", 'data:', 'blob:'],

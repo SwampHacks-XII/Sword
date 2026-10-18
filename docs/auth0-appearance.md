@@ -156,6 +156,45 @@ so a player returns directly to Log in / Sign up. Keep the website origin in
 **Sword Web → Settings → Allowed Logout URLs**, as in the existing setup.
 Auth0 ignores fragments when checking this endpoint's logout allowlist.
 
+## Password reset messages and return links
+
+The English reset request and email-confirmation copy is saved in Auth0 and
+tracked in `tools/auth0/reset-password-text.en.json`. Both messages say an email
+is sent **if an account exists**, without confirming whether that account exists.
+The request button says **Send reset email**. The confirmation uses the player's
+entered email and says: `If an account exists for ${email}, we’ll email instructions to reset your password.`
+
+The Auth0 custom domain `login.duelwith.us` was still **Pending verification**
+when these messages were saved. The **Back to login** and **Sign up here!** links are
+prepared, but **not live**. New Universal Login page templates render only on a
+configured custom domain, not the canonical `dev-….us.auth0.com` address.
+
+After the domain is verified, back up any existing Universal Login page template
+and publish `tools/auth0/reset-password-email-template.html` through Auth0's
+Page Templates API or CLI. This minimal template preserves the current branding
+and adds the navigation only to Sword Web's `reset-password-email` screen.
+The existing full book template also contains these links if that layout is
+published instead. Do not replace the theme with the full book just to add links.
+
+The links encode Auth0's current opaque `state` and stay on the Auth0 origin;
+they do not construct a new OAuth callback or send passwords through the game.
+Before enabling it for players, check the reset-email → login and reset-email →
+signup links with a fresh authentication transaction. Also check the popup flow
+and layout at narrow viewport sizes. These navigation links have not yet been
+verified against a live custom-domain login flow.
+
+The template places **New here? Sign up here!** in its own paragraph beneath the
+reset instructions, followed by **Back to login**. The shortened confirmation
+description is already saved in Auth0. Custom text fields render HTML literally,
+so the separate paragraph and clickable links require the page template.
+
+Reference: [Custom content on the reset-email screen](https://support.auth0.com/center/s/article/Use-Custom-HTML-on-Check-Your-Email-Screen).
+
+## Google sign-in
+
+The Google social connection is disabled for **Sword Web**. The connection and
+its other applications are retained; email/password login remains available.
+
 ## Official references
 
 - [Theme editor](https://auth0.com/docs/customize/login-pages/universal-login/customize-themes)

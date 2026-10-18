@@ -29,7 +29,8 @@ export function useAuthLedger() {
 export function authSpread({ session, pending, issue, signIn, setError }: ReturnType<typeof useAuthLedger>, narrate = false): BookSpread {
   const ledger = <div className="book-form book-auth">
     <h1>{session.authenticated ? 'Your story awaits.' : 'Who holds the sword?'}</h1>
-    {session.loading ? <p role="status">{pending ? 'Your sign-in window is open.' : 'Checking your login…'}</p>
+    {pending ? <p role="status">Your sign-in window is open.</p>
+      : session.loading ? <p role="status">Checking your login…</p>
       : session.authenticated ? <>
         <p>Signed in as <strong>{session.name || 'a player'}</strong>. Choose a game to get started.</p>
         <div className="auth-actions">

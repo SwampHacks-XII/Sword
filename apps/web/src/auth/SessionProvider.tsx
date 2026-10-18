@@ -1,7 +1,7 @@
 import { Auth0Provider, useAuth0 } from '@auth0/auth0-react';
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { describeAuthError, logoutOptions, type AuthIssue } from './errors';
-import { loginInPopup } from './popupLogin';
+import { createPopupLogin } from './popupLogin';
 import { navigate } from '../hooks/useScreen';
 import { signOutFromBook } from '../story/bookNavigation';
 
@@ -27,6 +27,20 @@ function AuthSession({ children }: { children: ReactNode }) {
   const popupRef = useRef<Window | null>(null);
   const logoutAttempt = useRef<Promise<void> | null>(null);
   const [popupAttempt, setPopupAttempt] = useState(false);
+  const authenticate = useRef(auth.loginWithPopup);
+  authenticate.current = auth.loginWithPopup;
+  const [login] = useState(() => createPopupLogin({
+    open: () => {
+      const left = Math.max(0, Math.round(window.screenX + (window.innerWidth - 500) / 2));
+      const top = Math.max(0, Math.round(window.screenY + (window.innerHeight - 720) / 2));
+      return window.open('', '_blank', `popup=yes,width=500,height=720,left=${left},top=${top},resizable=yes,scrollbars=yes`);
+    },
+    track: popup => {
+      popupRef.current = popup;
+      if (popup) setPopupAttempt(true);
+    },
+    authenticate: (options, config) => authenticate.current(options, config),
+  }));
   const issue = useMemo(() => {
     const result = auth.error ? describeAuthError(auth.error) : null;
     return result?.code === 'popup_closed' ? null : result;
@@ -53,18 +67,7 @@ function AuthSession({ children }: { children: ReactNode }) {
     name: auth.user?.nickname ?? auth.user?.name ?? '',
     error: issue?.message ?? null,
     errorDetails: issue,
-    login: (mode = 'login') => loginInPopup(mode, {
-      open: () => {
-        const left = Math.max(0, Math.round(window.screenX + (window.innerWidth - 500) / 2));
-        const top = Math.max(0, Math.round(window.screenY + (window.innerHeight - 720) / 2));
-        return window.open('', '_blank', `popup=yes,width=500,height=720,left=${left},top=${top},resizable=yes,scrollbars=yes`);
-      },
-      track: popup => {
-        popupRef.current = popup;
-        if (popup) setPopupAttempt(true);
-      },
-      authenticate: auth.loginWithPopup,
-    }),
+    login,
     cancelLogin: () => {
       setPopupAttempt(false);
       popupRef.current?.close();
@@ -83,7 +86,7 @@ function AuthSession({ children }: { children: ReactNode }) {
       if (!token) throw new Error('Please sign in again.');
       return token;
     },
-  }), [auth.isLoading, auth.isAuthenticated, auth.user, issue, auth.loginWithPopup, auth.logout, auth.getAccessTokenSilently]);
+  }), [auth.isLoading, auth.isAuthenticated, auth.user, issue, login, auth.logout, auth.getAccessTokenSilently]);
   return <SessionContext value={value}>{children}</SessionContext>;
 }
 

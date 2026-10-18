@@ -85,6 +85,10 @@
     {%- auth0:widget -%}
     {% if application.id == 'M5zNcKJOswrwafsCXpkJwAtwesX0mSq5' %}
       <footer class="sword-auth-footer">
+        {% if prompt.screen.name == 'reset-password-email' %}
+        <p>New here? <a href="/u/signup?state={{ state | url_encode | escape }}">Sign up here!</a></p>
+        <p><a class="sword-auth-back" href="/u/login?state={{ state | url_encode | escape }}">← Back to login</a></p>
+        {% endif %}
         {% if application.metadata.sword_web_url != blank %}
         <a class="sword-auth-back" href="{{ application.metadata.sword_web_url | escape }}/#login">← Back to Sword</a>
         {% endif %}
