@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, type RefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Quaternion, type Group } from 'three';
 import type { PlayerSlot } from '../game/types';
@@ -7,14 +7,18 @@ import { ModelSlot } from './ModelSlot';
 import { MODELS } from './models';
 
 const GRIP_DOTS = ['#e0607e', '#6d9be0', '#6cc489', '#e8c75a'];
+// Each player's blade ends in their own glowing tip.
+const TIP_COLORS: Record<PlayerSlot, string> = { p1: '#a35cff', p2: '#ff5fb0' };
 const target = new Quaternion();
 
 /**
  * One sword, pivoting at the grip. Identity orientation = blade straight up.
  * Sensor axes may need remapping here once the real MPU6050 mounting is known.
  */
-export function Sword({ slot, poses }: { slot: PlayerSlot; poses: PoseStore }) {
-  const ref = useRef<Group>(null);
+export function Sword({ slot, poses, pivotRef }: { slot: PlayerSlot; poses: PoseStore; pivotRef?: RefObject<Group | null> }) {
+  const own = useRef<Group>(null);
+  // The fighter can pass its own ref so the arms follow the smoothed sword orientation.
+  const ref = pivotRef ?? own;
 
   useFrame((_, delta) => {
     if (!ref.current) return;
@@ -27,13 +31,13 @@ export function Sword({ slot, poses }: { slot: PlayerSlot; poses: PoseStore }) {
   return (
     <group ref={ref}>
       <ModelSlot model={MODELS.sword}>
-        <SwordPlaceholder />
+        <SwordPlaceholder tip={TIP_COLORS[slot]} />
       </ModelSlot>
     </group>
   );
 }
 
-function SwordPlaceholder() {
+function SwordPlaceholder({ tip }: { tip: string }) {
   return (
     <group>
       <mesh>
@@ -58,6 +62,13 @@ function SwordPlaceholder() {
         <boxGeometry args={[0.025, 1.3, 0.052]} />
         <meshStandardMaterial color="#d9a3a8" />
       </mesh>
+      {/* Pointed tip on top of the blade (which ends at y 1.73), flattened to the blade's thickness. */}
+      <group position={[0, 1.87, 0]} scale={[1, 1, 0.36]}>
+        <mesh rotation={[0, Math.PI / 4, 0]}>
+          <coneGeometry args={[0.1, 0.28, 4]} />
+          <meshStandardMaterial color={tip} emissive={tip} emissiveIntensity={0.6} />
+        </mesh>
+      </group>
     </group>
   );
 }

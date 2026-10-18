@@ -183,9 +183,11 @@ test('guest and online sword preparation both show the full checklist with no by
     assert.match(html, /<button[^>]*class="quest-button"[^>]*disabled=""[^>]*>Connect your sword/);
     for (const { label } of SWORD_CHECKS) assert.ok(html.includes(label));
     assert.match(html, /Calibrate practice sword/);
-    assert.match(html, /camera are simulated/);
-    assert.doesNotMatch(html, /Continue with keyboard/);
-    assert.doesNotMatch(html, /Start my quest|Your practice sword is ready!/);
+    assert.match(html, /Sword Connection/);
+    for (const option of ['Bluetooth', 'USB', 'Keyboard']) {
+      assert.match(html, new RegExp(`<button[^>]*class="secondary-button sword-connection-option"[^>]*>${option}`), option);
+    }
+    assert.doesNotMatch(html, /Start my quest|practice sword is ready/);
   }
 });
 
@@ -204,7 +206,7 @@ test('Connect your sword unlocks only when all four checks have passed', () => {
     }
   }
   assert.equal(swordChecksPassed(ready), true);
-  assert.match(render(ready), /All four practice checks passed!/);
+  assert.match(render(ready), /All four practice checks passed!<\/p>/);
   assert.match(render(ready), /<button type="button" class="quest-button">Connect your sword/);
   const physical = renderToStaticMarkup(createElement(SwordSetupForm, {
     checks: { pairing: 'pending', lights: 'pending', motion: 'pending', camera: 'pending' },

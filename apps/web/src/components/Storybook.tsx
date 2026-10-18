@@ -33,12 +33,10 @@ function loreSpread(narrate: boolean): BookSpread {
     left: { kicker: 'Prologue', title: first.title, content: <>
       <div className="book-lore-moss">
         <div className="npc-moss" role="img" aria-label="Moss, your tiny green forest guide" />
-        <span className="speaker-line"><span className="speaker-dot" /> Moss</span>
+        <div className="speaker-line"><span className="speaker-dot" /> Moss
+          <MossVoice text={MOSS_PROLOGUE_NARRATION} autoSpeak={narrate} /></div>
       </div>
       {page(first.text)}
-      <div className="book-lore-voice">
-        <MossVoice text={MOSS_PROLOGUE_NARRATION} autoSpeak={narrate} />
-      </div>
     </> },
     right: {
       kicker: 'A crack in the mirror', title: second.title,

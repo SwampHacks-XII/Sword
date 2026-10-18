@@ -51,7 +51,7 @@ export function App() {
         <Arena you={you} poses={poses} lastHitAt={lastHitAt} shielded={shielded} />
       </Suspense>}
       <header className="world-header">
-        <button type="button" className="wordmark" disabled={!!lobby || !!match} onClick={() => navigate('home')} aria-label="Sword home"><span aria-hidden="true">⚔</span> SWORD<span className="wordmark-star" aria-hidden="true">✦</span></button>
+        <button type="button" className="wordmark" disabled={!!lobby || !!match} onClick={() => navigate('home')} aria-label="duelwith.us home"><img className="wordmark-logo" src="/art/logo.png" alt="" /></button>
         <MusicControls scene={battle ? 'battle' : 'lobby'} />
       </header>
       <main className="overlay">
@@ -65,7 +65,7 @@ export function App() {
           </div>}
       </main>
       <MossCommandVoice controlRef={commandVoice} stopWhen={!!quest || !!match || (!choosingGame && !lobby)} />
-      {!battle && <footer className="world-footer"><span>Remember your runes. Rewrite your fate.</span><span>✦ A little magic goes a long way.</span></footer>}
+      {!battle && <footer className="world-footer"><span>Made with ♥ by Team Gator Gang</span><span>✦ Made for SwampHacks XII</span></footer>}
       <LeaveGameDialog scope={`${screen}:${lobby?.mode ?? ''}:${lobby?.code ?? ''}:${quest ? 'quest' : match?.phase ?? 'menu'}`} />
     </div>
   );

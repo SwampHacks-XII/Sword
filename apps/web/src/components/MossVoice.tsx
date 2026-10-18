@@ -18,13 +18,23 @@ export function MossVoice({ text, controlRef, autoSpeak = true }: {
     narrator.current?.speak(text);
     return () => narrator.current?.stop();
   }, [text, narrator, available, autoSpeak]);
+  const muteLabel = enabled ? 'Mute Moss' : 'Unmute Moss';
+  const replayLabel = state === 'blocked' || state === 'unavailable' ? 'Play Moss’s voice' : 'Replay Moss';
   return <div className="moss-voice">
-    <button type="button" className="text-button" aria-pressed={!enabled} onClick={() => setEnabled(!enabled)}>
-      {enabled ? 'Mute Moss' : 'Unmute Moss'} <span aria-hidden="true">♫</span>
+    <button type="button" className="moss-voice-icon" aria-label={muteLabel} title={muteLabel} onClick={() => setEnabled(!enabled)}>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 9h4l5-4v14l-5-4H4V9Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+        {enabled ? <path d="M17 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          : <path d="m17 9 5 6m0-6-5 6" stroke="currentColor" strokeWidth="2" />}
+      </svg>
     </button>
-    <button type="button" className="text-button" disabled={!available || !autoSpeak || !enabled || busy} onClick={() => {
-      narrator.current?.speak(text);
-    }}>{state === 'blocked' || state === 'unavailable' ? 'Play Moss’s voice' : 'Replay audio'}</button>
+    <button type="button" className="moss-voice-icon" aria-label={replayLabel} title={replayLabel}
+      disabled={!available || !autoSpeak || !enabled || busy} onClick={() => { narrator.current?.speak(text); }}>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 12a8 8 0 1 0 2.5-5.8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <path d="M4 3v5h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
     {recovery && <span className="hint" role="status">{recovery}</span>}
   </div>;
 }
