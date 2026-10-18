@@ -16,19 +16,14 @@ export function SpellPanel({ fighter, disabled = false }: { fighter: FighterStat
   const sword = useSerialSword();
   const swordReady = sword.status === 'ready';
   const spell = fighter.spellId ? getSpell(fighter.spellId) : null;
-  const armed = fighter.castPhase === 'armed';
   const now = useNow(100, true);
   const healWait = Math.max(0, Math.ceil(((fighter.healReadyAt ?? 0) - now) / 1000));
-  const remaining = armed && fighter.armedUntil && fighter.armedAt
-    ? Math.max(0, (fighter.armedUntil - now) / (fighter.armedUntil - fighter.armedAt))
-    : 0;
 
   return (
     <Parchment className="spell-panel">
       {!spell ? <>
-        {sword.firing && <div className="armed"><p>FIRING — aim your sword at your opponent!</p></div>}
         <p className="label">Your next move</p>
-        <h2 className="spell-name"><FitText>Choose your spell difficulty</FitText></h2>
+        <h2 className="spell-name"><FitText>{swordReady ? 'Choose with your sword' : 'Choose your spell difficulty'}</FitText></h2>
         <div className="difficulty-options">
           {SPELL_DIFFICULTIES.map(difficulty => <button type="button" className={`difficulty-button difficulty-${difficulty}`} key={difficulty}
             disabled={disabled || swordReady} onClick={() => send({ type: 'spell.choose', difficulty })}>
@@ -43,7 +38,8 @@ export function SpellPanel({ fighter, disabled = false }: { fighter: FighterStat
       <h2 className="spell-name"><FitText>{spell.name}</FitText></h2>
       <ol className="runes">
         {spell.combo.map((color, i) => (
-          <li key={i} className={`rune rune-${color} ${i < fighter.entered ? 'lit' : ''}`}>
+          <li key={i} className={`rune rune-${color} ${i < fighter.entered ? 'entered' : ''}`}
+            aria-label={`Rune ${COLOR_KEYS[color]}: ${i < fighter.entered ? 'entered' : 'pending'}`}>
             <span className="rune-key">{COLOR_KEYS[color]}</span>
           </li>
         ))}
@@ -53,12 +49,6 @@ export function SpellPanel({ fighter, disabled = false }: { fighter: FighterStat
           ? <>Then move your sword: {[...spell.swordMotions].map(m => SWORD_MOTION_LABELS[m]).join(' → ')}</>
           : <>Then: {GESTURE_LABELS[spell.gesture]} <kbd>{GESTURE_KEYS[spell.gesture]}</kbd></>}
       </div>
-      {armed && (
-        <div className="armed">
-          <p>ARMED — aim and fire <kbd>Space</kbd></p>
-          <div className="armed-bar"><div style={{ width: `${remaining * 100}%` }} /></div>
-        </div>
-      )}
       <p className="hint">{swordReady
         ? 'Press the runes on your sword, then make the motions. It fires IR for up to 10 seconds — aim!'
         : 'Keys stand in for the sword: 1–4 runes · Q/E/R/W motions · Space fire'}</p>

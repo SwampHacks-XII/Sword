@@ -353,8 +353,8 @@ button { touch-action: manipulation; }
 .spell-panel { position: absolute; top: 98px; bottom: 22px; right: 3vw; width: min(300px, 30vw); overflow-y: auto; scrollbar-width: thin; padding: 1.3rem; text-align: center; }
 .spell-name { font-size: 1.6rem; font-weight: 500; margin: .6rem 0 1rem; }
 .runes { list-style: none; padding: 0; margin: 0 0 1rem; display: flex; flex-wrap: wrap; justify-content: center; gap: .8rem; }
-.rune { --edge: #5a5236; --hi: #ffffff55; --lo: #00000022; width: 43px; height: 43px; display: grid; place-items: center; opacity: .5; transition: opacity 120ms steps(1), transform 120ms steps(1); }
-.rune.lit { --edge: #2f2b1c; --hi: #ffffffaa; --lip: #2f2b1c55; --sy: 4px; opacity: 1; transform: translateY(-4px); }
+.rune { --edge: #5a5236; --hi: #ffffffaa; --lo: #00000022; width: 43px; height: 43px; display: grid; place-items: center; opacity: 1; transition: opacity 120ms steps(1); }
+.rune.entered { opacity: .4; }
 .difficulty-options { display: grid; gap: .7rem; margin-bottom: .4rem; }
 .difficulty-button, .heal-button {
   --edge: #8a7448; --hi: #fffaea; --lo: #d8c49a; --lip: #8a7448; --sy: 4px;
@@ -572,3 +572,22 @@ kbd { --b: 2px; --edge: #8a7448; --lo: #d9c391; font-family: var(--pixel-font); 
 /* FitText shrinks a heading to stay on one line; when it can't, the wrap is balanced so no lone word hangs on line two. */
 .fit-text { display: block; }
 h1, h2, .quest-button, .primary-button { text-wrap: balance; }
+
+.world-header-actions { display: flex; align-items: center; gap: 1rem; pointer-events: auto; }
+.world-header-actions .leave-game-button { white-space: nowrap; }
+.sword-setup .sword-connection-option { display: flex; align-items: center; justify-content: center; }
+.cast-timer { position: absolute; left: 60%; bottom: 28px; transform: translateX(-50%); width: 33vw; min-height: 30svh; display: flex; flex-direction: column; justify-content: center; gap: 1rem; padding: clamp(1rem, 2vw, 2rem); text-align: center; pointer-events: none; }
+.cast-timer p { margin: 0; font-size: clamp(1rem, 1.4vw, 1.5rem); }
+.cast-timer-seconds { font-family: var(--label-font); font-size: clamp(2rem, 4vw, 4rem); line-height: 1; font-variant-numeric: tabular-nums; }
+.cast-timer .armed-bar { height: 24px; flex-shrink: 0; }
+@media (min-width: 721px) and (max-width: 1100px) {
+  .cast-timer { left: 51%; width: 28vw; }
+}
+@media (max-width: 720px) {
+  .cast-timer { left: 50%; width: 80vw; min-height: 24svh; bottom: 20px; gap: .6rem; }
+  .cast-timer .armed-bar { height: 18px; }
+  .battle-left-hud { bottom: calc(24svh + 40px); }
+  .world-header-actions { gap: .65rem; }
+  .world-header-actions .leave-game-button { padding: .4rem; font-size: .75rem; }
+  .stage-battle .wordmark-logo { max-width: 18vw; height: auto; }
+}

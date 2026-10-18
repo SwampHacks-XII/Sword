@@ -13,7 +13,7 @@ import { useSwordPoses } from './hooks/useSwordPoses';
 import { useSerialSword } from './hooks/useSerialSword';
 import { MusicControls } from './components/MusicControls';
 import { LeaveGameDialog } from './components/LeaveGameDialog';
-import { gameExitScreen } from './story/leaveBattle';
+import { leaveBattle, gameExitScreen } from './story/leaveBattle';
 const loadArena = () => import('./scene/Arena');
 const Arena = lazy(() => loadArena().then(module => ({ default: module.Arena })));
 
@@ -60,12 +60,15 @@ export function App() {
       </Suspense>}
       <header className="world-header">
         <button type="button" className="wordmark" disabled={!!lobby || !!match} onClick={() => navigate('home')} aria-label="duelwith.us home"><img className="wordmark-logo" src="/art/logo.png" alt="" /></button>
-        <MusicControls scene={battle ? 'battle' : 'lobby'} />
+        <div className="world-header-actions">
+          {battle && <button type="button" className="secondary-button leave-game-button"
+            onClick={() => void leaveBattle(send, () => navigate(gameExitScreen(screen, session.authenticated)))}>Leave game <span aria-hidden="true">↗</span></button>}
+          <MusicControls scene={battle ? 'battle' : 'lobby'} />
+        </div>
       </header>
       <main className="overlay">
         {handoff ? <QuestHandoff />
-          : match && !quest ? <BattleScreen match={match} you={you} now={now}
-            onLeave={() => navigate(gameExitScreen(screen, session.authenticated))} />
+          : match && !quest ? <BattleScreen match={match} you={you} now={now} />
           : <div className="entry-layout storybook-layout">
             <Storybook onClosed={() => setBookClosed(true)}
               swordReady={swordReady} onSwordReady={() => { setPreparedWithSword(sword.status === 'ready'); setPreparedRoom(roomKey); }}

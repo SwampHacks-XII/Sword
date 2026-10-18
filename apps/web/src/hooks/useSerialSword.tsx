@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { SWORD_COLORS, getSpell, type FighterState, type SwordColor } from '../game/types';
+import { SWORD_COLORS, SWORD_FIRE_WINDOW_MS, getSpell, type FighterState, type SwordColor } from '../game/types';
 import { openSerialSword, parseSwordLine, serialSupported, swordSpellNumber, type SwordEvent, type SwordLink } from '../net/serialSword';
 import { bluetoothSupported, openBluetoothSword } from '../net/bluetoothSword';
 import { useMatch } from './useMatch';
@@ -16,6 +16,7 @@ interface SerialSwordValue {
   status: SerialSwordStatus;
   /** The sword is firing IR for a cast spell. It stops on a hit, a miss, or after 10 s. */
   firing: boolean;
+  firingUntil: number | null;
   error: string | null;
   connect: (transport: SwordTransport) => void;
   disconnect: () => void;
@@ -43,7 +44,7 @@ export function SerialSwordProvider({ children }: { children: ReactNode }) {
   const { match, lobby, log, onlineStatus, send, connectionKind } = useMatch();
   const [status, setStatus] = useState<SerialSwordStatus>('disconnected');
   const [transport, setTransport] = useState<SwordTransport | null>(null);
-  const [firing, setFiring] = useState(false);
+  const [firingUntil, setFiringUntil] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const link = useRef<SwordLink | null>(null);
@@ -69,7 +70,7 @@ export function SerialSwordProvider({ children }: { children: ReactNode }) {
   const token = () => { const t = nextToken.current; nextToken.current = t % 255 + 1; return t; };
   const clearSpell = () => {
     awaitingSpell.current = false; spell.current = null; pendingHeal.current = null;
-    firingToken.current = null; setFiring(false); clearTimeout(answerTimer.current);
+    firingToken.current = null; setFiringUntil(null); clearTimeout(answerTimer.current);
   };
   /** If the game never answers, send K so the sword is not stuck waiting. */
   const expectAnswer = () => {
@@ -95,6 +96,16 @@ export function SerialSwordProvider({ children }: { children: ReactNode }) {
 
   const handleEvent = (event: SwordEvent) => {
     const { fighter, send } = latest.current;
+    // STEP is a cumulative count. BLE may drop a notification; later counts
+    // still prove that the sword accepted all preceding runes.
+    const forwardRunes = (current: NonNullable<typeof spell.current>, count: number) => {
+      const combo = getSpell(current.spellId).combo;
+      if (!fighter || count > combo.length || count <= current.forwarded) return;
+      while (current.forwarded < count) {
+        const color = combo[current.forwarded++]!;
+        send({ type: 'dev.sword', input: { kind: 'button', color } });
+      }
+    };
     switch (event.kind) {
       case 'select': {
         if (!fighter) { write('K'); return; }
@@ -114,11 +125,8 @@ export function SerialSwordProvider({ children }: { children: ReactNode }) {
       }
       case 'step': {
         const current = spell.current;
-        if (!current || current.token !== event.token || event.count !== current.forwarded + 1) return;
-        const color = getSpell(current.spellId).combo[current.forwarded];
-        if (!color) return;
-        current.forwarded++;
-        send({ type: 'dev.sword', input: { kind: 'button', color } });
+        if (!current || current.token !== event.token) return;
+        forwardRunes(current, event.count);
         return;
       }
       case 'reset': {
@@ -130,17 +138,19 @@ export function SerialSwordProvider({ children }: { children: ReactNode }) {
       }
       case 'fire': {
         const current = spell.current;
-        if (!current || current.token !== event.token) return;
+        if (!fighter || !current || current.token !== event.token) return;
+        // FIRE confirms the entire sequence even if its final STEP was lost.
+        forwardRunes(current, getSpell(current.spellId).combo.length);
         spell.current = null;
         firingToken.current = event.token;
-        setFiring(true);
+        setFiringUntil(Date.now() + SWORD_FIRE_WINDOW_MS);
         // The game's motion step is done by the sword; perform it and fire with the IR token.
         send({ type: 'dev.sword', input: { kind: 'gesture', gesture: getSpell(current.spellId).gesture } });
         send({ type: 'dev.sword', input: { kind: 'trigger', shot: event.token } });
         return;
       }
       case 'end':
-        if (firingToken.current === event.token) { firingToken.current = null; setFiring(false); }
+        if (firingToken.current === event.token) { firingToken.current = null; setFiringUntil(null); }
         return;
       case 'hit':
         if (fighter) send({ type: 'sword.hit', shot: event.token });
@@ -154,6 +164,7 @@ export function SerialSwordProvider({ children }: { children: ReactNode }) {
       }
       case 'ready': // Back at selection.
         awaitingSpell.current = false; spell.current = null;
+        firingToken.current = null; setFiringUntil(null);
         return;
       case 'start': case 'motion': case 'alive':
         return;
@@ -197,8 +208,10 @@ export function SerialSwordProvider({ children }: { children: ReactNode }) {
         pendingHeal.current = null;
       } else if (event.kind === 'hit' && event.attacker === you && firingToken.current !== null) {
         write(`S,${firingToken.current}`);
+        setFiringUntil(null);
       } else if (event.kind === 'miss' && event.attacker === you && firingToken.current !== null) {
         write('K');
+        setFiringUntil(null);
       }
     }
   }, [log, lobby?.you]);
@@ -250,8 +263,8 @@ export function SerialSwordProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<SerialSwordValue>(
-    () => ({ supported: { usb: serialSupported(), bluetooth: bluetoothSupported() }, transport, status, firing, error, connect, disconnect }),
-    [transport, status, firing, error, connect, disconnect],
+    () => ({ supported: { usb: serialSupported(), bluetooth: bluetoothSupported() }, transport, status, firing: firingUntil !== null, firingUntil, error, connect, disconnect }),
+    [transport, status, firingUntil, error, connect, disconnect],
   );
   return <SerialSwordContext value={value}>{children}</SerialSwordContext>;
 }
