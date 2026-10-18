@@ -85,6 +85,10 @@ change your billing plan or create any Enterprise App subscriptions.
 
 ## Render is a separate setup
 
+If service-account keys are disabled, follow [the keyless Render + Cloud Run guide](gemini-render.md).
+It uses the prepared quest helper, its attached Google identity, and a separate
+Render-to-helper password. Your existing local ADC setup stays supported.
+
 Your local `gcloud` login does **not** authenticate Render. Leave `GEMINI_ENABLED`
 unset or `false` there until the hosted backend has its own Google identity;
 the hosted game continues to work with local stories.

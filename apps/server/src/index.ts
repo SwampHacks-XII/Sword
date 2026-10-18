@@ -19,7 +19,7 @@ try {
     console.log(`Sword backend: http://${config.host}:${config.port}`);
     if (!config.auth0) console.log('Auth0 is not configured; protected routes remain unavailable.');
     if (!pool) console.log('Tiger Data is not configured; player storage remains unavailable.');
-    console.log(config.gemini ? `Gemini quests enabled (${config.gemini.model}); ADC is checked when generating a story.` : 'Gemini is disabled; Moss uses local quests.');
+    console.log(config.gemini ? `Gemini quests enabled (${config.gemini.model}); ${config.gemini.relay ? 'using the Cloud Run quest helper' : 'using backend ADC'}.` : 'Gemini is disabled; Moss uses local quests.');
     console.log(config.elevenlabs ? 'ElevenLabs voice configured; browser speech remains the fallback.' : 'ElevenLabs is disabled; Moss uses the browser voice.');
   });
   realtime?.attach(server);
